@@ -1,0 +1,28 @@
+---
+description: Core context for what GDSS is and the mission behind it
+alwaysApply: true
+---
+
+# GDSS Context
+
+GDSS (Geometric Distributed Software Synchronizer) is a **semantic intelligence layer above
+Git**, not a Git wrapper, chatbot, or autocomplete.
+
+Mental model (treat code as evolving geometry):
+
+- Repository state = point on a semantic manifold `M`
+- Branch = trajectory `gamma_i(t)` on `M`
+- Commit = tangent vector / transformation `dC`
+- Merge conflict = non-commutativity `[T_i, T_j] != 0`
+- Branch interaction = conflict tensor `Omega_{ij}`
+- `dev` / reference branch = attractor trajectory other branches are measured against
+
+Goal: detect semantic branch drift, identify affected symbols, and predict conflicts and
+convergence **before** merge.
+
+Honesty about limits: perfect semantic merge is undecidable (program equivalence, halting).
+Build probabilistic approximations for the common cases (renames, refactors, API changes);
+never claim a universal merge oracle.
+
+Deeper sources: `FROM WHERE IT ALL STARTED..txt` and
+`.cursor/plans/gdss_complete_roadmap_e8cc388d.plan.md`.

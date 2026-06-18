@@ -1,0 +1,48 @@
+---
+description: Python coding conventions for GDSS
+globs: **/*.py
+alwaysApply: false
+---
+
+# Python Conventions
+
+Match the existing style in `gdss/`. Target Python 3.10+.
+
+## Data models
+
+Use `@dataclass` with typed fields and enums, mirroring `gdss/core/transform_types.py`.
+Provide `to_dict` / `from_dict` for anything serialized to state.
+
+```python
+from dataclasses import dataclass, field
+from enum import Enum
+
+class OperatorType(str, Enum):
+    ADD_FUNCTION = "add_function"
+
+@dataclass
+class SemanticOperator:
+    operator: OperatorType
+    file: str
+    details: dict = field(default_factory=dict)
+```
+
+## Typing
+
+- Annotate public function signatures (params and return types).
+- Use `Optional[...]` / `list[...]` / `dict[...]` consistently.
+- New code should pass `mypy` (see `mypy.ini`).
+
+## CLI
+
+CLI commands use Typer + Rich, following `gdss/cli/main.py`:
+
+- One `@app.command()` per verb, with `typer.Option(...)` for flags.
+- Render with Rich `Console`, `Table`, `Panel`, `Tree`. Keep output informative and styled.
+- Exit with `raise typer.Exit(code=1)` on user-facing errors.
+
+## General
+
+- Keep modules within their architectural layer (see architecture-invariants rule).
+- Prefer pure functions that return values over functions that mutate shared state.
+- Read files with `encoding="utf-8", errors="ignore"` as the existing code does.

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" width="100%" height="360">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b" />
+    </marker>
+  </defs>
+
+  <!-- Manifold Subgraph -->
+  <rect x="20" y="20" width="460" height="260" rx="14" fill="#fffbeb" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8,4"/>
+  <text x="250" y="45" text-anchor="middle" fill="#92400e" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">🌐 Semantic Manifold M</text>
+
+  <!-- Branch Nodes -->
+  <rect x="60" y="70" width="220" height="40" rx="8" fill="#3b82f6" stroke="#1e3a8a" stroke-width="2"/>
+  <text x="170" y="95" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Branch A trajectory function</text>
+
+  <rect x="60" y="130" width="220" height="40" rx="8" fill="#f97316" stroke="#9a3412" stroke-width="2"/>
+  <text x="170" y="155" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Branch B trajectory function</text>
+
+  <!-- Merge Path Node -->
+  <rect x="60" y="220" width="380" height="40" rx="8" fill="#10b981" stroke="#065f46" stroke-width="2"/>
+  <text x="250" y="245" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Geodesic merge path: optimal convergence</text>
+
+  <!-- Conflict Node -->
+  <rect x="540" y="100" width="220" height="40" rx="8" fill="#ef4444" stroke="#7f1d1d" stroke-width="2"/>
+  <text x="650" y="125" text-anchor="middle"
+      fill="#ffffff"
+      font-family="Segoe UI, Roboto, Arial, sans-serif"
+      font-weight="600"
+      font-size="12">
+    ⚠️ Conflict Tensor Ω₁₂ ≠ 0
+  </text>
+
+  <!-- Edges -->
+  <path d="M280,90 Q540,90 540,110" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="410" y="85" text-anchor="middle" fill="#475569" font-size="10">non-commuting operators</text>
+
+  <path d="M280,150 Q540,150 540,130" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="410" y="165" text-anchor="middle" fill="#475569" font-size="10">divergence drift</text>
+
+  <path d="M650,140 L650,240 L440,240" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="560" y="235" text-anchor="middle" fill="#475569" font-size="10">geometric correction</text>
+
+</svg>

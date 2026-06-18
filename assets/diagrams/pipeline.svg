@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 220" width="100%" height="220">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#94a3b8" />
+    </marker>
+  </defs>
+
+  <!-- Nodes (centers at 120,320,520,720,920) -->
+  <!-- RepoFile -->
+  <rect x="40" y="60" width="160" height="80" rx="14" fill="#06b6d4" stroke="#035e66" stroke-width="2" />
+  <text x="120" y="95" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">📁 Raw Repository</text>
+  <text x="120" y="115" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Files &amp; Commits</text>
+
+  <!-- AST -->
+  <rect x="240" y="60" width="160" height="80" rx="14" fill="#2563eb" stroke="#1e40af" stroke-width="2" />
+  <text x="320" y="95" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">⚙️ AST Parser</text>
+  <text x="320" y="115" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Engine</text>
+
+  <!-- TX -->
+  <rect x="440" y="60" width="160" height="80" rx="14" fill="#7c3aed" stroke="#4c1d95" stroke-width="2" />
+  <text x="520" y="95" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">🔄 Transformation</text>
+  <text x="520" y="115" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Operator Engine</text>
+
+  <!-- DG -->
+  <rect x="640" y="60" width="160" height="80" rx="14" fill="#f59e0b" stroke="#92400e" stroke-width="2" />
+  <text x="720" y="95" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">🔗 Dependency</text>
+  <text x="720" y="115" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Graph Builder</text>
+
+  <!-- SM -->
+  <rect x="840" y="60" width="160" height="80" rx="14" fill="#10b981" stroke="#065f46" stroke-width="2" />
+  <text x="920" y="95" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">🧠 Semantic</text>
+  <text x="920" y="115" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Manifold Model</text>
+
+  <!-- Arrows -->
+  <line x1="200" y1="100" x2="240" y2="100" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="360" y1="100" x2="440" y2="100" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="560" y1="100" x2="640" y2="100" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="760" y1="100" x2="840" y2="100" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Footer caption -->
+  <text x="500" y="195" text-anchor="middle" fill="#334155" font-size="12">GDSS pipeline — AST → Transformation → Dependency Graph → Semantic Manifold</text>
+</svg>

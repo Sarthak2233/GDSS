@@ -1,0 +1,217 @@
+{
+  "project": "GDSS",
+  "reference_doc": ".cursor/plans/gdss_complete_roadmap_e8cc388d.plan.md",
+  "definition_of_done": "bash harness/verify.sh exits 0 (static -> tests -> end-to-end)",
+  "rules": [
+    "Pick exactly ONE feature whose dependencies are all done.",
+    "Implement test-first (see .cursor/skills/tdd).",
+    "Update this file and progress.md when status changes.",
+    "Do not edit existing gdss/ or tests/ source unless the user asks."
+  ],
+  "status_values": ["pending", "in_progress", "done", "blocked"],
+  "features": [
+    {
+      "id": "phase0-distributed-runtime",
+      "phase": "0.0",
+      "title": "Distributed Runtime Foundation: GitHub awareness, local/remote observers, event bus",
+      "layer": "runtime",
+      "status": "done",
+      "deps": [],
+      "done_criteria": "gdss/runtime/* exists with tests; treated GitHub as source of truth",
+      "evidence": "verify.sh Layer 2 green (6 tests pass)"
+    },
+    {
+      "id": "phase1-git-watcher",
+      "phase": "1.1",
+      "title": "Git Watcher: commits, pushes, rebases, hooks integration",
+      "layer": "watcher",
+      "status": "done",
+      "deps": [],
+      "done_criteria": "gdss/watcher/git_observer.py exists; tests/test_git_observer.py green",
+      "evidence": "verify.sh Layer 2 green (6 tests pass)"
+    },
+    {
+      "id": "phase1-ast-parser",
+      "phase": "1.1",
+      "title": "AST Parser Engine: Tree-sitter multi-language parsing",
+      "layer": "core",
+      "status": "done",
+      "deps": [],
+      "done_criteria": "gdss/core/ast_parser.py exists; tests/test_ast_parser.py green",
+      "evidence": "verify.sh Layer 2 green"
+    },
+    {
+      "id": "phase1-transform",
+      "phase": "1.1",
+      "title": "Transformation Operator Engine: diffs to semantic operators",
+      "layer": "core",
+      "status": "done",
+      "deps": ["phase1-ast-parser"],
+      "done_criteria": "gdss/core/transform_extractor.py emits SemanticOperators; tests green",
+      "evidence": "verify.sh Layer 2 green"
+    },
+    {
+      "id": "phase1-graph",
+      "phase": "1.1",
+      "title": "Dependency Graph: call/import/module graphs with NetworkX",
+      "layer": "graph",
+      "status": "done",
+      "deps": ["phase1-ast-parser"],
+      "done_criteria": "gdss/graph/code_graph.py builds graph; tests/test_code_graph.py green",
+      "evidence": "verify.sh Layer 2 green"
+    },
+    {
+      "id": "phase2-embeddings",
+      "phase": "1.2",
+      "title": "Semantic Embedding Layer: encoder, similarity, branch vectors",
+      "layer": "embeddings",
+      "status": "pending",
+      "deps": ["phase1-transform", "phase1-graph"],
+      "done_criteria": "gdss/embeddings/* with tests; phi(C) embeddings + cosine similarity"
+    },
+    {
+      "id": "phase3-drift",
+      "phase": "1.3",
+      "title": "Continuous Drift Monitoring: drift engine, alerts, daemon",
+      "layer": "drift",
+      "status": "pending",
+      "deps": ["phase2-embeddings"],
+      "done_criteria": "gdss/drift/* computes divergence + alerts; tests green"
+    },
+    {
+      "id": "phase4-tensor",
+      "phase": "1.4",
+      "title": "Conflict Tensor Engine: Omega matrix, commutativity, geometry",
+      "layer": "conflict",
+      "status": "pending",
+      "deps": ["phase3-drift"],
+      "done_criteria": "gdss/conflict/* computes Omega_{ij} + commutativity table; tests green"
+    },
+    {
+      "id": "phase5-ai",
+      "phase": "1.5",
+      "title": "AI Convergence Layer: suggestions, semantic rebase, intent",
+      "layer": "ai",
+      "status": "pending",
+      "deps": ["phase4-tensor"],
+      "done_criteria": "gdss/ai/* produces validated suggestions; never auto-merges; tests green"
+    },
+    {
+      "id": "phase6-validation",
+      "phase": "1.6",
+      "title": "Validation Sandbox: tests, types, syntax checks",
+      "layer": "validation",
+      "status": "pending",
+      "deps": ["phase5-ai"],
+      "done_criteria": "gdss/validation/* validates suggestions before presentation; tests green"
+    },
+    {
+      "id": "phase7-research",
+      "phase": "1.7",
+      "title": "Geometric Merge Research: trajectories, transport, geodesics",
+      "layer": "geometry",
+      "status": "pending",
+      "deps": ["phase4-tensor"],
+      "done_criteria": "gdss/geometry/* experimental trajectory + parallel transport prototypes"
+    },
+    {
+      "id": "sp1-telemetry",
+      "phase": "1.8",
+      "title": "Sub-Phase: Telemetry & Privacy Integration",
+      "layer": "cli",
+      "status": "pending",
+      "deps": [],
+      "done_criteria": "Opt-out flag implemented, payload schema strictly metadata, TLS default"
+    },
+    {
+      "id": "sp1-distribution",
+      "phase": "1.8",
+      "title": "Sub-Phase: CLI Stabilization & Distribution",
+      "layer": "cli",
+      "status": "pending",
+      "deps": [],
+      "done_criteria": "PyPI wheel build config and Homebrew tap generated"
+    },
+    {
+      "id": "sp1-cicd",
+      "phase": "1.8",
+      "title": "Sub-Phase: CI/CD Pipeline",
+      "layer": "validation",
+      "status": "pending",
+      "deps": [],
+      "done_criteria": "GitHub Actions workflow running verify.sh"
+    }
+  ],
+  "harness_findings": [
+    {
+      "id": "finding-rename-downstream-crash",
+      "severity": "high",
+      "discovered_by": "harness Layer 3 (cli_smoke end-to-end)",
+      "where": "gdss/cli/main.py:228 (status command, Downstream Change Impact section)",
+      "what": "TypeError: 'in <string>' requires string as left operand, not NoneType",
+      "why": "modified_funcs collects op.name for RENAME_FUNCTION ops, but rename operators carry name=None (they use from_name/to_name), so `func in node` crashes when a branch renames a function.",
+      "fix": "guard against None / use op.to_name or op.from_name for rename ops before the membership test. Requires editing gdss/cli/main.py, so deferred until the user authorizes source changes.",
+      "status": "open-needs-source-change"
+    },
+    {
+      "id": "finding-graph-reverse-copy",
+      "severity": "medium",
+      "discovered_by": "harness Layer 1 (dsa_fitness static sensor)",
+      "where": "gdss/graph/code_graph.py:157",
+      "what": "Calling '.reverse(copy=True)' copies the entire graph.",
+      "why": "It creates a full copy of the NetworkX directed graph object, wasting CPU cycles and memory on each impact query.",
+      "fix": "Use '.reverse(copy=False)' to return a read-only view of the reversed graph without copying memory.",
+      "status": "open-needs-source-change"
+    },
+    {
+      "id": "finding-rename-quadratic",
+      "severity": "medium",
+      "discovered_by": "harness Layer 1 (dsa_fitness static sensor)",
+      "where": "gdss/core/transform_extractor.py",
+      "what": "O(D×A) pairwise similarity comparisons in rename detection.",
+      "why": "Pairwise SequenceMatcher comparison between deleted symbols and added symbols results in quadratic complexity.",
+      "fix": "Use pre-computed body fingerprints + threshold-based hashing to group candidates first, then compare only high-probability pairs.",
+      "status": "open-needs-source-change"
+    },
+    {
+      "id": "finding-call-resolution-quadratic",
+      "severity": "medium",
+      "discovered_by": "harness Layer 1 (dsa_fitness static sensor)",
+      "where": "gdss/graph/code_graph.py:resolve_calls()",
+      "what": "O(F²) nested iteration during static call resolution.",
+      "why": "Looping over defined functions to resolve imports and local calls without index queries leads to quadratic complexity.",
+      "fix": "Index function definitions by name and file to allow O(1) lookups during resolution.",
+      "status": "open-needs-source-change"
+    },
+    {
+      "id": "finding-stale-node-scan",
+      "severity": "low",
+      "discovered_by": "harness Layer 1 (dsa_fitness static sensor)",
+      "where": "gdss/graph/code_graph.py:add_file_symbols()",
+      "what": "O(N) scan to find stale nodes of a modified file.",
+      "why": "Scanning all graph nodes to filter by the 'file' attribute is a linear operation.",
+      "fix": "Maintain a reverse mapping/index of File -> Set[NodeID] to query and remove stale nodes in O(K) where K is the number of symbols in the file.",
+      "status": "open-needs-source-change"
+    },
+    {
+      "id": "finding-no-parser-cache",
+      "severity": "medium",
+      "discovered_by": "harness Layer 1 (dsa_fitness static sensor)",
+      "where": "gdss/core/ast_parser.py",
+      "what": "AST parser recomputes from scratch on every parse invocation.",
+      "why": "Missing memoization or file hash checks causes the parser to parse files repeatedly even if unchanged.",
+      "fix": "Implement file content hashing (MD5/SHA256) and cache parse results in memory or disk.",
+      "status": "open-needs-source-change"
+    },
+    {
+      "id": "finding-flat-symbol-list",
+      "severity": "low",
+      "discovered_by": "harness Layer 1 (dsa_fitness static sensor)",
+      "where": "gdss/core/ast_parser.py",
+      "what": "ast_parser returns a flat list of CodeSymbols, requiring O(N) lookup.",
+      "why": "Downstream consumers must scan the list linearly to find symbols by name or type.",
+      "fix": "Expose an indexed dictionary interface (e.g. dict[str, CodeSymbol]) alongside the flat list.",
+      "status": "open-needs-source-change"
+    }
+  ]
+}

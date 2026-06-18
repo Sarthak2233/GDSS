@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 240" width="100%" height="240">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#cbd5e1" />
+    </marker>
+  </defs>
+
+  <!-- Columns -->
+  <rect x="40" y="40" width="200" height="140" rx="12" fill="#0f172a" stroke="#1e293b" stroke-width="2" />
+  <text x="140" y="75" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">📥 Input Layer</text>
+  <text x="140" y="100" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Git Repository · Source Files</text>
+
+  <rect x="280" y="40" width="200" height="140" rx="12" fill="#1e40af" stroke="#3b82f6" stroke-width="2" />
+  <text x="380" y="75" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">⚙️ Processing</text>
+  <text x="380" y="100" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">AST · Embedding · Graph</text>
+
+  <rect x="520" y="40" width="200" height="140" rx="12" fill="#7c3aed" stroke="#a78bfa" stroke-width="2" />
+  <text x="620" y="75" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">📈 Analysis</text>
+  <text x="620" y="100" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Drift · Tensor · Predict</text>
+
+  <rect x="760" y="40" width="200" height="140" rx="12" fill="#065f46" stroke="#10b981" stroke-width="2" />
+  <text x="860" y="75" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">💡 Output</text>
+  <text x="860" y="100" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Status · Warnings · Suggestions</text>
+
+  <!-- Arrows -->
+  <line x1="240" y1="110" x2="280" y2="110" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="480" y1="110" x2="520" y2="110" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="720" y1="110" x2="760" y2="110" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrow)" />
+
+  <text x="500" y="220" text-anchor="middle" fill="#0f172a" font-size="12">Architecture overview — input → processing → analysis → output</text>
+</svg>

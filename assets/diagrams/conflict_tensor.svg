@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" width="100%" height="300">
+  <defs>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#22c55e" />
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ef4444" />
+    </marker>
+  </defs>
+
+  <!-- Subgraph Branches -->
+  <rect x="20" y="20" width="220" height="260" rx="12" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5,5"/>
+  <text x="130" y="45" text-anchor="middle" fill="#475569" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">🌿 Branch Manifold</text>
+
+  <!-- Nodes A, B, C -->
+  <rect x="50" y="70" width="160" height="40" rx="8" fill="#3b82f6" stroke="#1e3a8a" stroke-width="2"/>
+  <text x="130" y="95" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Feature A</text>
+
+  <rect x="50" y="130" width="160" height="40" rx="8" fill="#f97316" stroke="#9a3412" stroke-width="2"/>
+  <text x="130" y="155" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Feature B</text>
+
+  <rect x="50" y="190" width="160" height="40" rx="8" fill="#10b981" stroke="#065f46" stroke-width="2"/>
+  <text x="130" y="215" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Main</text>
+
+  <!-- Conflict Nodes -->
+  <rect x="500" y="70" width="220" height="40" rx="8" fill="#22c55e" stroke="#166534" stroke-width="2"/>
+  <text x="610" y="95" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">✅ Compatible Merge</text>
+
+  <rect x="500" y="130" width="220" height="40" rx="8" fill="#ef4444" stroke="#7f1d1d" stroke-width="2"/>
+  <text x="610" y="155" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">⚠️ Conflict Predicted</text>
+
+  <rect x="500" y="190" width="220" height="40" rx="8" fill="#22c55e" stroke="#166534" stroke-width="2"/>
+  <text x="610" y="215" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">✅ Clean Merge</text>
+
+  <!-- Edges -->
+  <path d="M210,90 L500,90" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)"/>
+  <text x="355" y="85" text-anchor="middle" fill="#166534" font-size="11" font-weight="600">Ω₁₂₃ = 0.12</text>
+
+  <path d="M210,150 L500,150" stroke="#ef4444" stroke-width="2" marker-end="url(#arrow-red)"/>
+  <text x="355" y="145" text-anchor="middle" fill="#7f1d1d" font-size="11" font-weight="600">Ω₂₃₄ = 0.89</text>
+
+  <path d="M210,210 L500,210" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)"/>
+  <text x="355" y="205" text-anchor="middle" fill="#166534" font-size="11" font-weight="600">Ω₁₃₄ = 0.05</text>
+</svg>

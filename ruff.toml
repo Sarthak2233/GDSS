@@ -1,0 +1,21 @@
+# GDSS harness lint sensor config (standalone; pyproject.toml is left untouched).
+target-version = "py310"
+line-length = 100
+
+# Lint the package and tests; the harness itself is shell/markdown-heavy.
+include = ["gdss/**/*.py", "tests/**/*.py", "harness/**/*.py"]
+
+[lint]
+# Pragmatic starting set: pyflakes (F), pycodestyle errors (E), warnings (W),
+# isort (I), pyupgrade (UP), flake8-bugbear (B). Tighten via the ratchet.
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    "E501",  # line length is handled by the formatter, not enforced hard here
+]
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["B"]  # tests may use patterns bugbear dislikes
+
+[format]
+quote-style = "double"
+indent-style = "space"

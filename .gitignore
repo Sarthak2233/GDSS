@@ -28,6 +28,7 @@ dist/
 .git/
 
 # Others
-FromWhereItAllStarted..txt
+FROM WHERE IT ALL STARTED..txt
 research.md
+.cursor/plans/*.md
 

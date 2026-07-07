@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Python Conventions
 
-Match the existing style in `gdss/`. Target Python 3.10+.
+Match the existing style in `gdss/`. Target Python 3.11.
 
 ## Data models
 

@@ -1,7 +1,8 @@
 import os
 from typing import Dict, List, Optional, Tuple, Set
 from tree_sitter import Parser, Node, Language
-from gdss.core.transform_types import CodeSymbol, SymbolType
+from gdss.core.transform_types import BodyBlock, CodeSymbol, SymbolType
+from gdss.core.structural_fingerprint import extract_tokens_from_body_text
 
 class ASTParser:
     """
@@ -55,6 +56,7 @@ class ASTParser:
             mtime = None
 
         ext = os.path.splitext(filepath)[1]
+        language = self._language_for_ext(ext)
         parser = self.get_parser_for_ext(ext)
         if not parser:
             return []
@@ -68,9 +70,9 @@ class ASTParser:
         symbols: List[CodeSymbol] = []
         
         if ext in {".py", "py"}:
-            self._parse_python(root, content, symbols)
+            self._parse_python(root, content, symbols, language=language, chart_location=filepath)
         elif ext in {".js", "js", ".jsx", "jsx", ".ts", "ts", ".tsx", "tsx"}:
-            self._parse_js_ts(root, content, symbols)
+            self._parse_js_ts(root, content, symbols, language=language, chart_location=filepath)
 
         # Update cache
         if mtime is not None:
@@ -87,6 +89,46 @@ class ASTParser:
             return content[node.start_byte:node.end_byte]
         except Exception:
             return ""
+
+    @staticmethod
+    def _language_for_ext(ext: str) -> str:
+        if ext in {".py", "py"}:
+            return "python"
+        if ext in {".js", "js", ".jsx", "jsx", ".ts", "ts", ".tsx", "tsx"}:
+            return "javascript"
+        return "unknown"
+
+    def _extract_structural_tokens(self, node: Optional[Node]) -> List[str]:
+        if not node:
+            return []
+        tokens: List[str] = []
+        for child in node.children:
+            if child.is_named:
+                tokens.append(child.type)
+        return tokens
+
+    def _extract_body_blocks(self, body_node: Optional[Node], content: str) -> List[BodyBlock]:
+        if not body_node:
+            return []
+        blocks: List[BodyBlock] = []
+        counters: Dict[str, int] = {}
+        for child in body_node.children:
+            if not child.is_named:
+                continue
+            count = counters.get(child.type, 0)
+            block_id = f"{child.type}_{count}"
+            counters[child.type] = count + 1
+            block_tokens = self._extract_structural_tokens(child)
+            blocks.append(
+                BodyBlock(
+                    block_id=block_id,
+                    node_type=child.type,
+                    start_line=child.start_point[0] + 1,
+                    end_line=child.end_point[0] + 1,
+                    structural_tokens=block_tokens or [child.type],
+                )
+            )
+        return blocks
 
     def _extract_calls(self, node: Node, content: str, calls: List[str]):
         """Recursively traverses a node to find all function and method call names."""
@@ -107,7 +149,24 @@ class ASTParser:
         for child in node.children:
             self._extract_calls(child, content, calls)
 
-    def _parse_python(self, root: Node, content: str, symbols: List[CodeSymbol], parent_class: Optional[str] = None):
+    def _append_symbol(
+        self,
+        symbols: List[CodeSymbol],
+        sym: CodeSymbol,
+        chart_location: Optional[str],
+    ) -> None:
+        sym.ensure_identity(chart_location)
+        symbols.append(sym)
+
+    def _parse_python(
+        self,
+        root: Node,
+        content: str,
+        symbols: List[CodeSymbol],
+        parent_class: Optional[str] = None,
+        language: str = "python",
+        chart_location: Optional[str] = None,
+    ):
         """Recursively parses a Python AST root node."""
         for child in root.children:
             child_text = self._get_node_text(child, content) # dsa:ignore
@@ -136,7 +195,13 @@ class ASTParser:
                                 if expr.type == "string":
                                     docstring = self._get_node_text(expr, content).strip('"\'')
                     
-                    symbols.append(CodeSymbol(
+                    body_blocks = self._extract_body_blocks(body_node, content)
+                    structural_tokens = (
+                        [b.node_type for b in body_blocks]
+                        if body_blocks
+                        else extract_tokens_from_body_text(body_text)
+                    )
+                    sym = CodeSymbol(
                         name=name_text,
                         type=SymbolType.FUNCTION,
                         start_line=child.start_point[0] + 1,
@@ -145,8 +210,13 @@ class ASTParser:
                         body=body_text,
                         docstring=docstring,
                         parent_class=parent_class,
-                        calls=calls
-                    ))
+                        calls=calls,
+                        structural_tokens=structural_tokens,
+                        body_blocks=body_blocks,
+                        language=language,
+                        chart_location=chart_location,
+                    )
+                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
             
             elif ctype == "class_definition":
                 if name_node:
@@ -154,19 +224,29 @@ class ASTParser:
                     super_node = child.child_by_field_name("superclasses")
                     sig = self._get_node_text(super_node, content) if super_node else ""
 
-                    symbols.append(CodeSymbol(
+                    sym = CodeSymbol(
                         name=name_text,
                         type=SymbolType.CLASS,
                         start_line=child.start_point[0] + 1,
                         end_line=child.end_point[0] + 1,
                         signature=sig,
                         body=body_text,
-                        parent_class=parent_class
-                    ))
-                    
-                    # Parse functions inside the class body
+                        parent_class=parent_class,
+                        structural_tokens=self._extract_structural_tokens(body_node),
+                        language=language,
+                        chart_location=chart_location,
+                    )
+                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
+
                     if body_node:
-                        self._parse_python(body_node, content, symbols, parent_class=name_text)
+                        self._parse_python(
+                            body_node,
+                            content,
+                            symbols,
+                            parent_class=name_text,
+                            language=language,
+                            chart_location=chart_location,
+                        )
 
             elif ctype == "assignment":
                 # Top-level variables or constants
@@ -242,9 +322,24 @@ class ASTParser:
             else:
                 # Recurse for general containers (e.g. if statements, try/except block, etc. - unless already handled)
                 if ctype not in {"function_definition", "class_definition", "import_statement", "import_from_statement"} and child.children:
-                    self._parse_python(child, content, symbols, parent_class)
+                    self._parse_python(
+                        child,
+                        content,
+                        symbols,
+                        parent_class,
+                        language=language,
+                        chart_location=chart_location,
+                    )
 
-    def _parse_js_ts(self, root: Node, content: str, symbols: List[CodeSymbol], parent_class: Optional[str] = None):
+    def _parse_js_ts(
+        self,
+        root: Node,
+        content: str,
+        symbols: List[CodeSymbol],
+        parent_class: Optional[str] = None,
+        language: str = "javascript",
+        chart_location: Optional[str] = None,
+    ):
         """Recursively parses a Javascript/Typescript AST root node."""
         for child in root.children:
             child_text = self._get_node_text(child, content) # dsa:ignore
@@ -266,7 +361,13 @@ class ASTParser:
                     if body_node:
                         self._extract_calls(body_node, content, calls)
 
-                    symbols.append(CodeSymbol(
+                    body_blocks = self._extract_body_blocks(body_node, content)
+                    structural_tokens = (
+                        [b.node_type for b in body_blocks]
+                        if body_blocks
+                        else extract_tokens_from_body_text(body_text)
+                    )
+                    sym = CodeSymbol(
                         name=name_text,
                         type=SymbolType.FUNCTION,
                         start_line=child.start_point[0] + 1,
@@ -274,8 +375,13 @@ class ASTParser:
                         signature=sig,
                         body=body_text,
                         parent_class=parent_class,
-                        calls=calls
-                    ))
+                        calls=calls,
+                        structural_tokens=structural_tokens,
+                        body_blocks=body_blocks,
+                        language=language,
+                        chart_location=chart_location,
+                    )
+                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
             
             elif ctype == "class_declaration":
                 if name_node:
@@ -283,18 +389,29 @@ class ASTParser:
                     heritage_node = child.child_by_field_name("heritage")
                     sig = self._get_node_text(heritage_node, content) if heritage_node else ""
 
-                    symbols.append(CodeSymbol(
+                    sym = CodeSymbol(
                         name=name_text,
                         type=SymbolType.CLASS,
                         start_line=child.start_point[0] + 1,
                         end_line=child.end_point[0] + 1,
                         signature=sig,
                         body=body_text,
-                        parent_class=parent_class
-                    ))
-                    
+                        parent_class=parent_class,
+                        structural_tokens=self._extract_structural_tokens(body_node),
+                        language=language,
+                        chart_location=chart_location,
+                    )
+                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
+
                     if body_node:
-                        self._parse_js_ts(body_node, content, symbols, parent_class=name_text)
+                        self._parse_js_ts(
+                            body_node,
+                            content,
+                            symbols,
+                            parent_class=name_text,
+                            language=language,
+                            chart_location=chart_location,
+                        )
 
             elif ctype == "import_statement":
                 # 'import { foo, bar } from "mod"' or 'import defaultExport from "mod"'
@@ -341,4 +458,11 @@ class ASTParser:
             
             else:
                 if ctype not in {"function_declaration", "method_definition", "class_declaration", "import_statement"} and child.children:
-                    self._parse_js_ts(child, content, symbols, parent_class)
+                    self._parse_js_ts(
+                        child,
+                        content,
+                        symbols,
+                        parent_class,
+                        language=language,
+                        chart_location=chart_location,
+                    )

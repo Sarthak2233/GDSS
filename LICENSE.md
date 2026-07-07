@@ -1,8 +1,11 @@
 # Business Source License 1.1 (Hardened for GDSS)
 
 **Licensor:** Sarthak Basnet
-**Software:** GDSS (Geometric Distributed Software Synchronizer), including but not limited to its core 10-layer architecture, AST Parser Engines, Transformation Operator Algebra, Dependency Graph Logic, Semantic Embedding Layers, Conflict Tensor Engines ($\Omega_{ij}$), and Geometric Merge Research components.
+
+**Software:** GDSS (Geometric Distributed Software Synchronizer), including but not limited to its core 10-layer architecture, AST Parser Engines, Transformation Operator Algebra, Dependency Graph Logic, Semantic Embedding Layers, Conflict Tensor Engines $\Omega_{ij}$, and Geometric Merge Research components.
+
 **Change License:** Apache License, Version 2.0
+
 **Change Date:** Four (4) years from the date of each specific release.
 
 ---

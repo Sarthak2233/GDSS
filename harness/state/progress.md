@@ -5,6 +5,48 @@ output), not just claims.
 
 ---
 
+## 2026-07-06 - Phase 1.1: Rigor Refactor (session)
+
+Completed Phase 1 semantic foundation refactor: stable symbol identity, executable
+operators, structural fingerprints, block-level modify details, and graph
+invariance across file moves.
+
+Created:
+- `gdss/core/structural_fingerprint.py` — Levenshtein distance, normalized
+  similarity, fingerprint buckets
+- `gdss/core/symbol_identity.py` — deterministic `symbol_id` (position-independent)
+- `gdss/graph/operator_engine.py` — `apply_operator()` / `invert_operator()` for
+  core add/delete/rename/modify ops
+
+Modified:
+- `gdss/core/transform_types.py` — `BodyBlock`, stable `CodeSymbol` identity,
+  `SemanticOperator` symbol_id fields
+- `gdss/core/ast_parser.py` — structural tokens + body blocks per symbol
+- `gdss/core/transform_extractor.py` — AST-token Levenshtein rename detection,
+  block-level `changed_blocks` in MODIFY_FUNCTION
+- `gdss/graph/code_graph.py` — node IDs = `symbol_id`, `chart_location` metadata,
+  `_file_nodes` / `_symbol_index` indexes, `reverse(copy=False)`
+
+Tests added/updated:
+- `tests/test_transform_extractor.py` — formatter-invariant rename, block-level
+  modify, Levenshtein unit test
+- `tests/test_code_graph.py` — stable identity, file-move preservation
+- `tests/test_operator_algebra.py` — commutativity identity (apply + invert)
+
+Evidence (`bash harness/verify.sh`):
+- Layer 1 static: Architecture fitness OK; DSA fitness OK (4 violations fixed)
+- Layer 2 runtime: pytest 21 passed
+- Layer 3 end-to-end: cli-smoke OK
+- Result: ALL LAYERS GREEN (exit 0)
+
+Remaining risks:
+- `finding-call-resolution-quadratic` partially resolved (symbol index; import
+  edge scan remains)
+- `finding-no-parser-cache` and `finding-flat-symbol-list` still open
+- lint/typecheck SKIP (ruff/mypy not installed)
+
+---
+
 ## 2026-06-16 - Phase 0: Distributed Runtime Foundation (session 1)
 
 Implemented the GDSS Distributed Runtime Foundation. Redesigned the core to

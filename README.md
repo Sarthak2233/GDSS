@@ -2,7 +2,7 @@
 
 <div align='center'>
 
-![Python Version](https://img.shields.io/badge/python-3.10+%2B-blue.svg)
+![Python Version](https://img.shields.io/badge/python-3.11-blue.svg)
 ![Architecture](https://img.shields.io/badge/Architecture-10--Layer-blueviolet.svg)
 
 </div>
@@ -14,7 +14,7 @@ A Semantic Intelligence Layer Above Git that transforms traditional, text-based 
 
 ### The Philosophy: Code as a Semantic Manifold 
 
-Could the geodesic output enviroment be in 3D for Merge id what I believe. 
+The geodesic output for Merge is what I believe. 
 
 Traditional version control systems (like Git) treat code as static, flat lines of text. Merges are done by string matching (diffs), which frequently leads to syntax breaks, silent semantic failures, and costly merge conflicts.
 
@@ -29,7 +29,7 @@ GDSS reframes software evolution through **Differential Geometry** and **Operato
 | **Merge** | String alignment | Geometric path convergence |
 
 <p align="center">
-  <img src="./assets/diagrams/pipeline.svg" alt="GDSS pipeline" width="100%">
+  <img src="./assets/product/pipeline.svg" alt="GDSS pipeline" width="100%">
 </p>
 
 <details>
@@ -108,8 +108,27 @@ This section details the development roadmap towards building the full 10-layer 
 
 The **Distributed Runtime Foundation (Phase 0)** is fully implemented and optimized, providing GitHub awareness, local/remote observers, an event bus, and a rich interactive interface.
 
+#### Phase 0 — Distributed Runtime Foundation
+
+- **Goal**: Provide a lightweight, local-first distributed runtime that tracks repository state, detects local and remote changes, and broadcasts semantic change events for downstream analysis.
+- **Primary components**:
+    - **Event Bus**: centralized pub/sub used for local and remote events — [gdss/runtime/event_bus.py](gdss/runtime/event_bus.py).
+    - **Local Observer**: watches the local Git repository, parses ASTs, and emits semantic operators — [gdss/runtime/local_observer.py](gdss/runtime/local_observer.py).
+    - **Remote Monitor**: polls remote refs (`git ls-remote`) and emits remote events to detect upstream drift — [gdss/runtime/remote_monitor.py](gdss/runtime/remote_monitor.py).
+    - **GDSS Daemon**: orchestrates observers and periodic scans; starts the context engine and lifecycle loop — [gdss/runtime/daemon.py](gdss/runtime/daemon.py).
+    - **Context Engine**: subscribes to events, builds awareness packets, and persists context to the runtime DB — [gdss/runtime/context_engine.py](gdss/runtime/context_engine.py).
+    - **Repository Registry**: DB-backed registry for repositories, branches and branch state helpers — [gdss/runtime/registry.py](gdss/runtime/registry.py).
+    - **Hierarchy Manager**: resolves branch priority chains and trajectory configuration used by the context engine — [gdss/runtime/hierarchy.py](gdss/runtime/hierarchy.py).
+
+- **How these files help the project**:
+    - `LocalObserver` extracts `semantic_operators` (via `ASTParser` and `TransformExtractor`) and emits them on the `EventBus`, enabling downstream systems (graph builder, embedder, drift monitor) to consume a normalized semantic stream.
+    - `RemoteMonitor` and `LocalObserver` use consistent topics (`"local"`, `"remote"`, and global `"all"`) so components can subscribe uniformly to a single event layer.
+    - `ContextEngine` assembles awareness packets (source, event, timestamp, repo id, reference branch, semantic operators) and persists them for later analysis and UI display.
+
+- **Evidence & verification**: Phase 0 components are implemented under `gdss/runtime/` and are exercised by the harness verification pipeline; run `bash harness/verify.sh` to validate the static checks and tests.
+
 <p align="center">
-  <img src="./assets/diagrams/roadmap.svg" alt="Roadmap — Phase status" width="100%">
+    <img src="./assets/product/roadmap.svg" alt="Roadmap — Phase status" width="100%">
 </p>
 
 <details>
@@ -164,7 +183,7 @@ $$I(B_i) = \int_0^T \| \dot{\gamma}_i(t) - \dot{\gamma}_{\text{main}}(t) \|_{\ma
 Branch interaction matrix $\Omega_{ij}$ predicts merge compatibility before checkout:
 
 <p align="center">
-  <img src="./assets/diagrams/conflict_tensor.svg" alt="Conflict Tensor Matrix" width="100%">
+  <img src="./assets/product/conflict_tensor.svg" alt="Conflict Tensor Matrix" width="100%">
 </p>
 
 <details>
@@ -198,7 +217,7 @@ flowchart LR
 ### Semantic Merge Geometry
 
 <p align="center">
-  <img src="./assets/diagrams/merge_geometry.svg" alt="Semantic Merge Geometry" width="100%">
+  <img src="./assets/product/merge_geometry.svg" alt="Semantic Merge Geometry" width="100%">
 </p>
 
 <details>
@@ -230,7 +249,7 @@ flowchart TB
 ## 📊 Architecture Overview
 
 <p align="center">
-  <img src="./assets/diagrams/architecture.svg" alt="GDSS Architecture Overview" width="100%">
+  <img src="./assets/product/architecture.svg" alt="GDSS Architecture Overview" width="100%">
 </p>
 
 <details>

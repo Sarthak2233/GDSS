@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420" width="100%" height="420">
+  <defs>
+    <marker id="arrowDown" markerWidth="12" markerHeight="12" refX="6" refY="10" orient="auto">
+      <path d="M0,0 L12,0 L6,12 z" fill="#94a3b8" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="500" y="30" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="18">End-to-end: one modified file becomes a semantic operator</text>
+
+  <!-- Step 1 -->
+  <rect x="250" y="55" width="500" height="52" rx="10" fill="#0ea5e9" stroke="#075985" stroke-width="2" />
+  <text x="270" y="80" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">1. GitObserver.get_working_tree_changes()</text>
+  <text x="270" y="98" fill="#e0f2fe" font-family="Consolas, monospace" font-size="11">=&gt; {"modified": ["utils.py"]}</text>
+
+  <!-- Step 2 -->
+  <rect x="250" y="127" width="500" height="52" rx="10" fill="#0284c7" stroke="#075985" stroke-width="2" />
+  <text x="270" y="152" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">2. get_file_content_at_commit("HEAD", f) + open(f)</text>
+  <text x="270" y="170" fill="#e0f2fe" font-family="Consolas, monospace" font-size="11">=&gt; old_text, new_text</text>
+
+  <!-- Step 3 -->
+  <rect x="250" y="199" width="500" height="52" rx="10" fill="#2563eb" stroke="#1e40af" stroke-width="2" />
+  <text x="270" y="224" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">3. ASTParser.parse_file(f, text)  (x2)</text>
+  <text x="270" y="242" fill="#dbeafe" font-family="Consolas, monospace" font-size="11">=&gt; old_symbols, new_symbols</text>
+
+  <!-- Step 4 -->
+  <rect x="250" y="271" width="500" height="52" rx="10" fill="#7c3aed" stroke="#4c1d95" stroke-width="2" />
+  <text x="270" y="296" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">4. TransformExtractor.extract_operators(f, old, new)</text>
+  <text x="270" y="314" fill="#ede9fe" font-family="Consolas, monospace" font-size="11">=&gt; [MODIFY_FUNCTION(changed_blocks=...)]</text>
+
+  <!-- Step 5 -->
+  <rect x="250" y="343" width="500" height="52" rx="10" fill="#10b981" stroke="#065f46" stroke-width="2" />
+  <text x="270" y="368" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">5. CLI renders Rich table</text>
+  <text x="270" y="386" fill="#d1fae5" font-family="Consolas, monospace" font-size="11">operator icon, symbol, file</text>
+
+  <!-- Arrows between steps -->
+  <line x1="500" y1="107" x2="500" y2="127" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowDown)" />
+  <line x1="500" y1="179" x2="500" y2="199" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowDown)" />
+  <line x1="500" y1="251" x2="500" y2="271" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowDown)" />
+  <line x1="500" y1="323" x2="500" y2="343" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowDown)" />
+</svg>

@@ -8,7 +8,12 @@
     "Update this file and progress.md when status changes.",
     "Do not edit existing gdss/ or tests/ source unless the user asks."
   ],
-  "status_values": ["pending", "in_progress", "done", "blocked"],
+  "status_values": [
+    "pending",
+    "in_progress",
+    "done",
+    "blocked"
+  ],
   "features": [
     {
       "id": "phase0-distributed-runtime",
@@ -46,9 +51,11 @@
       "title": "Transformation Operator Engine: diffs to semantic operators",
       "layer": "core",
       "status": "done",
-      "deps": ["phase1-ast-parser"],
-      "done_criteria": "gdss/core/transform_extractor.py emits SemanticOperators; tests green",
-      "evidence": "verify.sh Layer 2 green"
+      "deps": [
+        "phase1-ast-parser"
+      ],
+      "done_criteria": "gdss/core/transform_extractor.py emits SemanticOperators; structural fingerprints + block-level modify; tests green",
+      "evidence": "verify.sh ALL LAYERS GREEN (21 pytest); test_transform_extractor.py (formatter-invariant rename, block-level modify, Levenshtein); test_operator_algebra.py (commutativity identity)"
     },
     {
       "id": "phase1-graph",
@@ -56,9 +63,11 @@
       "title": "Dependency Graph: call/import/module graphs with NetworkX",
       "layer": "graph",
       "status": "done",
-      "deps": ["phase1-ast-parser"],
-      "done_criteria": "gdss/graph/code_graph.py builds graph; tests/test_code_graph.py green",
-      "evidence": "verify.sh Layer 2 green"
+      "deps": [
+        "phase1-ast-parser"
+      ],
+      "done_criteria": "gdss/graph/code_graph.py builds graph with stable symbol_id nodes; tests/test_code_graph.py green",
+      "evidence": "verify.sh ALL LAYERS GREEN; test_code_graph.py::test_file_move_preserves_symbol_identity; gdss/graph/operator_engine.py apply/invert"
     },
     {
       "id": "phase2-embeddings",
@@ -66,7 +75,10 @@
       "title": "Semantic Embedding Layer: encoder, similarity, branch vectors",
       "layer": "embeddings",
       "status": "pending",
-      "deps": ["phase1-transform", "phase1-graph"],
+      "deps": [
+        "phase1-transform",
+        "phase1-graph"
+      ],
       "done_criteria": "gdss/embeddings/* with tests; phi(C) embeddings + cosine similarity"
     },
     {
@@ -75,7 +87,9 @@
       "title": "Continuous Drift Monitoring: drift engine, alerts, daemon",
       "layer": "drift",
       "status": "pending",
-      "deps": ["phase2-embeddings"],
+      "deps": [
+        "phase2-embeddings"
+      ],
       "done_criteria": "gdss/drift/* computes divergence + alerts; tests green"
     },
     {
@@ -84,7 +98,9 @@
       "title": "Conflict Tensor Engine: Omega matrix, commutativity, geometry",
       "layer": "conflict",
       "status": "pending",
-      "deps": ["phase3-drift"],
+      "deps": [
+        "phase3-drift"
+      ],
       "done_criteria": "gdss/conflict/* computes Omega_{ij} + commutativity table; tests green"
     },
     {
@@ -93,7 +109,9 @@
       "title": "AI Convergence Layer: suggestions, semantic rebase, intent",
       "layer": "ai",
       "status": "pending",
-      "deps": ["phase4-tensor"],
+      "deps": [
+        "phase4-tensor"
+      ],
       "done_criteria": "gdss/ai/* produces validated suggestions; never auto-merges; tests green"
     },
     {
@@ -102,7 +120,9 @@
       "title": "Validation Sandbox: tests, types, syntax checks",
       "layer": "validation",
       "status": "pending",
-      "deps": ["phase5-ai"],
+      "deps": [
+        "phase5-ai"
+      ],
       "done_criteria": "gdss/validation/* validates suggestions before presentation; tests green"
     },
     {
@@ -111,7 +131,9 @@
       "title": "Geometric Merge Research: trajectories, transport, geodesics",
       "layer": "geometry",
       "status": "pending",
-      "deps": ["phase4-tensor"],
+      "deps": [
+        "phase4-tensor"
+      ],
       "done_criteria": "gdss/geometry/* experimental trajectory + parallel transport prototypes"
     },
     {
@@ -147,21 +169,23 @@
       "id": "finding-rename-downstream-crash",
       "severity": "high",
       "discovered_by": "harness Layer 3 (cli_smoke end-to-end)",
-      "where": "gdss/cli/main.py:228 (status command, Downstream Change Impact section)",
+      "where": "gdss/cli/start.py (semantic log / drift display)",
       "what": "TypeError: 'in <string>' requires string as left operand, not NoneType",
-      "why": "modified_funcs collects op.name for RENAME_FUNCTION ops, but rename operators carry name=None (they use from_name/to_name), so `func in node` crashes when a branch renames a function.",
-      "fix": "guard against None / use op.to_name or op.from_name for rename ops before the membership test. Requires editing gdss/cli/main.py, so deferred until the user authorizes source changes.",
-      "status": "open-needs-source-change"
+      "why": "Rename operators carry name=None (they use from_name/to_name); downstream display must not pass None into string membership tests.",
+      "fix": "Use op.name or f\"{op.from_name} -> {op.to_name}\" for rename ops (implemented in start.py).",
+      "status": "resolved",
+      "evidence": "verify.sh Layer 3 cli-smoke OK (2026-07-06); start.py lines 242, 305, 408 guard rename display"
     },
     {
       "id": "finding-graph-reverse-copy",
       "severity": "medium",
       "discovered_by": "harness Layer 1 (dsa_fitness static sensor)",
-      "where": "gdss/graph/code_graph.py:157",
+      "where": "gdss/graph/code_graph.py:273",
       "what": "Calling '.reverse(copy=True)' copies the entire graph.",
       "why": "It creates a full copy of the NetworkX directed graph object, wasting CPU cycles and memory on each impact query.",
       "fix": "Use '.reverse(copy=False)' to return a read-only view of the reversed graph without copying memory.",
-      "status": "open-needs-source-change"
+      "status": "resolved",
+      "evidence": "get_downstream_impact() uses g.reverse(copy=False) in Phase 1.1 rigor refactor"
     },
     {
       "id": "finding-rename-quadratic",
@@ -171,7 +195,8 @@
       "what": "O(D×A) pairwise similarity comparisons in rename detection.",
       "why": "Pairwise SequenceMatcher comparison between deleted symbols and added symbols results in quadratic complexity.",
       "fix": "Use pre-computed body fingerprints + threshold-based hashing to group candidates first, then compare only high-probability pairs.",
-      "status": "open-needs-source-change"
+      "status": "resolved",
+      "evidence": "structural_fingerprint.py + fingerprint_bucket() + normalized Levenshtein in _match_symbol_renames(); test_formatter_invariant_rename_detection passes"
     },
     {
       "id": "finding-call-resolution-quadratic",
@@ -181,7 +206,8 @@
       "what": "O(F²) nested iteration during static call resolution.",
       "why": "Looping over defined functions to resolve imports and local calls without index queries leads to quadratic complexity.",
       "fix": "Index function definitions by name and file to allow O(1) lookups during resolution.",
-      "status": "open-needs-source-change"
+      "status": "partially-resolved",
+      "evidence": "_symbol_index + find_node_by_name() reduce candidate scans; import-edge iteration remains O(F×imports)"
     },
     {
       "id": "finding-stale-node-scan",
@@ -191,7 +217,8 @@
       "what": "O(N) scan to find stale nodes of a modified file.",
       "why": "Scanning all graph nodes to filter by the 'file' attribute is a linear operation.",
       "fix": "Maintain a reverse mapping/index of File -> Set[NodeID] to query and remove stale nodes in O(K) where K is the number of symbols in the file.",
-      "status": "open-needs-source-change"
+      "status": "resolved",
+      "evidence": "_file_nodes index maintained in add_file_symbols/upsert/remove_node (Phase 1.1)"
     },
     {
       "id": "finding-no-parser-cache",

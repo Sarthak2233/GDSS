@@ -8,3 +8,56 @@
 2026-06-05T17:16:36Z	exit=?	bash harness/verify.sh; echo "FINAL_EXIT=$?"
 2026-06-05T17:16:47Z	exit=?	bash harness/init.sh; echo "INIT_EXIT=$?"
 2026-06-05T17:18:39Z	exit=?	bash harness/init.sh >/tmp/init.out 2>&1; echo "init_exit=$?"; tail -n 6 /tmp/init.out; echo; echo "=== verify ==="; bash harness/verify.sh >/tmp/verify.out 2>&1; echo "verify_exit=$?"; tail -n 8 /tmp/verify.out; echo; echo "=== tree ==="; find AGENTS.md ruff.toml mypy.ini .cursor/rules .cursor/skills .cursor/hooks.json .cursor/hooks harness -type f | sort
+2026-07-06T16:33:26Z	exit=?	cd /home/sbasnet/projects/GDSS && python -m pytest tests/ -q 2>&1
+2026-07-06T16:35:28Z	exit=?	cd /home/sbasnet/projects/GDSS && python -m pytest tests/ -q 2>&1
+2026-07-06T16:36:06Z	exit=?	cd /home/sbasnet/projects/GDSS && python -m pytest tests/ -q 2>&1
+2026-07-06T16:36:24Z	exit=?	cd /home/sbasnet/projects/GDSS && python3 - <<'PY'
+from gdss.core.transform_types import CodeSymbol, SymbolType, OperatorType
+from gdss.core.transform_extractor import TransformExtractor
+
+extractor = TransformExtractor()
+old_symbols = [
+    CodeSymbol(name="process_payment", type=SymbolType.FUNCTION, start_line=5, end_line=10, signature="(user, card)", body="def process_payment(user, card):\n    validate_card()\n    execute_payment()", structural_tokens=["expression_statement", "expression_statement"]),
+    CodeSymbol(name="unmodified_helper", type=SymbolType.FUNCTION, start_line=12, end_line=14, signature="()", body="def unmodified_helper():\n    pass", structural_tokens=["pass_statement"]),
+    CodeSymbol(name="to_be_deleted", type=SymbolType.FUNCTION, start_line=16, end_line=18, signature="()", body="def to_be_deleted():\n    pass", structural_tokens=["pass_statement"]),
+]
+new_symbols = [
+    CodeSymbol(name="execute_payment", type=SymbolType.FUNCTION, start_line=5, end_line=10, signature="(user, card)", body="def execute_payment(user, card):\n    validate_card()\n    execute_payment()", structural_tokens=["expression_statement", "expression_statement"]),
+    CodeSymbol(name="unmodified_helper", type=SymbolType.FUNCTION, start_line=12, end_line=14, signature="()", body="def unmodified_helper():\n    pass", structural_tokens=["pass_statement"]),
+    CodeSymbol(name="newly_added", type=SymbolType.FUNCTION, start_line=20, end_line=22, signature="()", body="def newly_added():\n    print('hello')", structural_tokens=["expression_statement"]),
+]
+ops = extractor.extract_operators('billing.py', old_symbols, new_symbols)
+for op in ops:
+    if op.operator == OperatorType.RENAME_FUNCTION:
+        print(op.from_name, '->', op.to_name, op.details)
+PY
+2026-07-06T16:36:38Z	exit=?	cd /home/sbasnet/projects/GDSS && python3 - <<'PY'
+from gdss.core.structural_fingerprint import extract_tokens_from_body_text, normalized_similarity
+a = "def to_be_deleted():\n    pass"
+b = "def newly_added():\n    print('hello')"
+print(extract_tokens_from_body_text(a))
+print(extract_tokens_from_body_text(b))
+print(normalized_similarity(extract_tokens_from_body_text(a), extract_tokens_from_body_text(b)))
+PY
+2026-07-06T16:37:30Z	exit=?	cd /home/sbasnet/projects/GDSS && python -m pytest tests/ -q && bash harness/verify.sh 2>&1
+2026-07-06T16:39:11Z	exit=?	cd /home/sbasnet/projects/GDSS && python -m pytest tests/ -q && bash harness/verify.sh 2>&1
+2026-07-06T16:39:50Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/verify.sh 2>&1
+2026-07-06T16:41:40Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/verify.sh 2>&1
+2026-07-06T16:42:31Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/verify.sh 2>&1
+2026-07-06T16:43:23Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/verify.sh 2>&1
+2026-07-07T10:32:06Z	exit=?	cd /home/sbasnet/projects/GDSS && for f in assets/diagrams/io_pipeline.svg assets/diagrams/io_change_flow.svg assets/diagrams/graph_viz.svg; do python3 -c "import xml.dom.minidom,sys; xml.dom.minidom.parse('$f'); print('OK: $f')"; done
+2026-07-07T10:32:43Z	exit=?	cd /home/sbasnet/projects/GDSS && python3 -c "
+lines = open('assets/diagrams/io_pipeline.svg','rb').read().split(b'\n')
+l = lines[9]
+print(repr(l[150:175]))
+"
+2026-07-07T10:34:28Z	exit=?	cd /home/sbasnet/projects/GDSS && for f in assets/diagrams/io_pipeline.svg assets/diagrams/io_change_flow.svg assets/diagrams/graph_viz.svg; do python3 -c "import xml.dom.minidom; xml.dom.minidom.parse('$f'); print('OK: $f')"; done
+2026-07-07T10:34:36Z	exit=?	cd /home/sbasnet/projects/GDSS && python3 -c "
+d=open('docs/IO & VIZ.md','rb').read()
+bad=[i for i,b in enumerate(d) if b<9 or (13<b<32)]
+print('control bytes:', bad[:10], 'count', len(bad))
+s=open('.cursor/skills/author-doc-diagrams/SKILL.md','rb').read()
+bad2=[i for i,b in enumerate(s) if b<9 or (13<b<32)]
+print('skill control bytes count', len(bad2))
+"
+2026-07-07T10:36:53Z	exit=?	cd /home/sbasnet/projects/GDSS && mkdir -p assets/io assets/product && mv assets/diagrams/io_pipeline.svg assets/io/pipeline.svg && mv assets/diagrams/io_change_flow.svg assets/io/change_flow.svg && mv assets/diagrams/graph_viz.svg assets/io/graph_viz.svg && mv assets/diagrams/pipeline.svg assets/product/pipeline.svg && mv assets/diagrams/roadmap.svg assets/product/roadmap.svg && mv assets/diagrams/architecture.svg assets/product/architecture.svg && mv assets/diagrams/conflict_tensor.svg assets/product/conflict_tensor.svg && mv assets/diagrams/merge_geometry.svg assets/product/merge_geometry.svg && rmdir assets/diagrams 2>/dev/null; find assets -type f | sort

@@ -34,9 +34,9 @@
 
   <!-- Option D -->
   <rect x="760" y="220" width="200" height="90" rx="12" fill="#475569" stroke="#334155" stroke-width="2" />
-  <text x="860" y="250" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">D. Export (manual)</text>
-  <text x="860" y="270" text-anchor="middle" fill="#e2e8f0" font-family="Consolas, monospace" font-size="11">nx.write_dot</text>
-  <text x="860" y="290" text-anchor="middle" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">to Graphviz PNG</text>
+  <text x="860" y="250" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">D. Export</text>
+  <text x="860" y="270" text-anchor="middle" fill="#e2e8f0" font-family="Consolas, monospace" font-size="11">gdss graph export</text>
+  <text x="860" y="290" text-anchor="middle" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">DOT or JSON</text>
 
   <!-- Arrows -->
   <path d="M420,140 C300,160 180,180 140,220" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowV)" />

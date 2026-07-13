@@ -72,31 +72,112 @@ GDSS is designed to run locally on low-end hardware without requiring a GPU.
 git clone https://github.com/sbasnet/GDSS.git
 cd GDSS
 pip install -e .
+
+# For development
+pip install -e ".[dev]"
 ```
+
+### 🧭 Getting Started (first 2 minutes)
+
+New here? Point GDSS at any Git repository and explore it interactively.
+
+```bash
+# 1. Launch the interactive shell against a repo (use "." for the current folder)
+gdss start --repo /path/to/your/repo
+```
+
+On first launch you pick a color theme, the daemon wakes, and you land at the
+`gdss ▶` prompt. From there, move around with these steps:
+
+```text
+gdss ▶ help              # 1. see every available command
+gdss ▶ status            # 2. current branch + uncommitted semantic drift
+gdss ▶ analyze           # 3. build the dependency graph (node/edge summary)
+gdss ▶ impact <symbol>   # 4. what breaks if you change <symbol> (e.g. a function)
+gdss ▶ log 5             # 5. semantic operators for the last 5 commits
+gdss ▶ quit              # 6. exit (or press Ctrl+D)
+```
+
+> [!TIP]
+> Prefer one-off commands without the shell? Everything works directly too, e.g.
+> `gdss status --repo .` or `gdss analyze --repo .`. See the reference below.
 
 ### 💻 CLI Operations
 
 GDSS provides both a standard CLI and a rich interactive shell for deep repository awareness.
 
+#### One-off CLI commands
+
+Every command accepts `--repo PATH` (defaults to the current directory).
+
 ```bash
-# 1. Start the GDSS Interactive Shell (Recommended)
-gdss start
+# Start the GDSS interactive shell (recommended)
+gdss start --repo .
 
-# 2. Check active branch trajectory divergence (one-off)
-gdss status
+# Show distributed status and semantic drift vs a reference branch
+gdss status --repo . --ref main
 
-# 3. View semantic transformation log
-gdss log -n 5
+# Show the semantic transformation log for the last N commits
+gdss log --repo . -n 5
+
+# Deep semantic analysis + dependency graph summary
+gdss analyze --repo .
+
+# Semantic diff of the active branch against a target branch
+gdss diff main --repo .
+
+# Live monitor of the distributed event bus
+gdss watch --repo .
+
+# Export the dependency graph to DOT (render with Graphviz)
+gdss graph export --repo . --format dot -o gdss_graph.dot
+dot -Tpng gdss_graph.dot -o graph.png
+
+# Export as JSON snapshot
+gdss graph export --repo . --format json -o gdss_graph.json
 ```
 
-#### Interactive Shell Commands:
-- `status`: Show distributed status and semantic drift.
-- `analyze`: Deep semantic analysis and dependency mapping of the codebase.
-- `impact <symbol>`: Analyze downstream impact of a specific symbol.
-- `log`: Show semantic commit log.
-- `watch`: Real-time monitoring of the distributed event bus.
-- `hierarchy`: Show the distributed priority chain.
-- `clear`: Clear the console and show the banner.
+| Command | Arguments | Purpose |
+| :--- | :--- | :--- |
+| `gdss start` | `--repo` | Launch the interactive shell |
+| `gdss status` | `--repo`, `--ref` | Branch status + uncommitted semantic drift |
+| `gdss log` | `--repo`, `-n` | Semantic operators per commit |
+| `gdss analyze` | `--repo` | Build dependency graph, print node/edge summary |
+| `gdss diff` | `TARGET`, `--repo` | Semantic diff vs another branch |
+| `gdss watch` | `--repo` | Real-time event bus monitor |
+| `gdss graph export` | `--repo`, `--format`, `-o` | Export dependency graph to DOT or JSON |
+
+#### Interactive shell commands
+
+Run `gdss start`, then use these at the `gdss ▶` prompt:
+
+| Command | Purpose |
+| :--- | :--- |
+| `status` | Show distributed status and semantic drift |
+| `analyze` | Deep semantic analysis and dependency mapping |
+| `impact <symbol>` | Downstream impact of a specific symbol |
+| `log [count] [--type=OP]` | Semantic commit log (optionally filtered by operator) |
+| `diff [target]` | Semantic diff against a target branch (default `main`) |
+| `watch` | Real-time monitoring of the distributed event bus |
+| `hierarchy` | Show the distributed branch priority chain |
+| `config [ref <branch>]` | View or set the reference branch |
+| `clear` | Clear the console and show the banner |
+| `help` | List all available commands |
+| `quit` / `Ctrl+D` | Exit the shell (daemon stops) |
+
+> For how data flows through these commands (Git → AST → operators → graph → terminal)
+> and how to visualize the dependency graph, see [`docs/IO & VIZ.md`](docs/IO%20%26%20VIZ.md).
+
+#### 📊 How Semantic Diffing Works (`diff` command)
+
+The `diff` command calculates structural and semantic changes by finding the split point (common ancestor) between the active branch and the target branch:
+
+* **Comparing against a different branch (e.g. `diff dev`)**:
+  GDSS finds the **Merge Base** (common ancestor commit) between the current branch and the target branch, then compares that ancestor to the local working directory. The result shows all **cumulative changes** (committed branch changes + uncommitted edits) since divergence.
+* **Comparing against the active branch (e.g. running `diff` without arguments)**:
+  GDSS compares your branch's `HEAD` commit to the working directory. The result tracks the **uncommitted and untracked changes** currently in your local workspace.
+
+For modified code files, GDSS parses both the original state (at the ancestor commit) and the current working tree state into ASTs to extract precise symbol-level transformations (such as class modifications, function renames, or new dependencies).
 
 ---
 

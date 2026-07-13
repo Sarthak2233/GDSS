@@ -31,6 +31,7 @@ from gdss.core.transform_types import OperatorType, CodeSymbol, SymbolType
 
 # GDSS Graph imports - USED
 from gdss.graph.code_graph import CodeGraph
+from gdss.graph.graph_builder import build_code_graph_from_repo
 
 # GDSS Runtime imports - USED
 from gdss.runtime.daemon import GDSSDaemon
@@ -58,13 +59,13 @@ class ColorTheme:
             "accent": "bright_magenta"
         },
         "monokai": {
-            "primary": "yellow",
-            "secondary": "bright_pink",
-            "success": "bright_green",
-            "error": "bright_red",
-            "warning": "bright_orange",
-            "info": "bright_cyan",
-            "accent": "bright_purple"
+            "primary": "#e6db74",
+            "secondary": "#f92672",
+            "success": "#a6e22e",
+            "error": "#f92672",
+            "warning": "#fd971f",
+            "info": "#66d9ef",
+            "accent": "#ae81ff"
         },
         "nord": {
             "primary": "bright_blue",
@@ -155,9 +156,76 @@ class GDSSShell(cmd.Cmd):
         )
         self.theme = ColorTheme(choice)
 
+    def _get_status_indicator(self) -> str:
+        """Dynamically computes git working tree status and semantic drift."""
+        is_valid = self.observer.is_valid()
+        self.active_branch = (self.observer.get_active_branch() or "DETACHED") if is_valid else "unknown"
+        
+        if not is_valid:
+            return f"[bold {self.theme['error']}]![/]"
+
+        # Check for working tree changes
+        changes = self.observer.get_working_tree_changes()
+        has_changes = any(changes.values())
+        if not has_changes:
+            # Check context engine remote awareness if available
+            ctx = self.daemon.context_engine.get_latest_context() if (hasattr(self, 'daemon') and self.daemon) else {}
+            if ctx.get("remote_aware"):
+                return f"[bold {self.theme['error']}]Δ[/]"
+            return f"[bold {self.theme['success']}]●[/]"
+        
+        # Check for semantic changes in modified code files
+        has_semantic_drift = False
+        for f in changes.get("modified", []):
+            if f.endswith((".py", ".js", ".ts", ".jsx", ".tsx")):
+                try:
+                    head_content = self.observer.get_file_content_at_commit("HEAD", f)
+                    with open(os.path.join(self.repo_path, f), "r") as current_f:
+                        current_content = current_f.read()
+                    if head_content and current_content:
+                        old_syms = self.parser.parse_file(f, head_content)
+                        new_syms = self.parser.parse_file(f, current_content)
+                        ops = self.extractor.extract_operators(f, old_syms, new_syms)
+                        if ops:
+                            has_semantic_drift = True
+                            break
+                except Exception:
+                    pass
+                     
+        if has_semantic_drift:
+            return f"[bold {self.theme['error']}]Δ[/]"
+        else:
+            return f"[bold {self.theme['warning']}]✱[/]"
+
     def _get_colored_prompt(self) -> str:
-        branch = f" [{self.theme['secondary']}]{self.active_branch}[/]" if self.active_branch else ""
-        return f"[bold {self.theme['primary']}]gdss[/{self.theme['primary']}]{branch} [bold {self.theme['accent']}]▶[/] "
+        status = self._get_status_indicator()
+        branch_part = f"([bold {self.theme['secondary']}]{self.active_branch}[/])" if self.active_branch else ""
+        return f"[bold {self.theme['primary']}]gdss[/]{branch_part} {status} [bold {self.theme['accent']}]▶[/] "
+
+    def cmdloop(self, intro=None):
+        """Override cmdloop to use rich console input for colored prompts."""
+        self.preloop()
+        if intro is not None:
+            self.intro = intro
+        if self.intro:
+            console.print(self.intro)
+        
+        stop = None
+        while not stop:
+            try:
+                # Update prompt dynamically
+                self.prompt = self._get_colored_prompt()
+                line = console.input(self.prompt)
+            except EOFError:
+                line = 'EOF'
+            except KeyboardInterrupt:
+                console.print()  # print a newline
+                line = ''
+                continue
+            line = self.precmd(line)
+            stop = self.onecmd(line)
+            stop = self.postcmd(stop, line)
+        self.postloop()
 
     def _show_welcome_banner(self):
         title_style = f"bold {self.theme['secondary']}"
@@ -168,8 +236,8 @@ class GDSSShell(cmd.Cmd):
 ║  ██╔════╝ ██╔═══██╗██╔════╝██╔════╝                               ║
 ║  ██║  ███╗██║   ██║███████╗███████╗                               ║
 ║  ██║   ██║██║   ██║╚════██║╚════██║                               ║
-║  ╚██████╔╝████████╔╝██████║███████║                               ║
-║   ╚═════╝  ╚═════╝ ╚══════╝╚══════╝                               ║
+║  ╚██████╔╝███████  ███████║███████║                               ║
+║   ╚═════╝ ╚══════╝ ╚══════╝╚══════╝                               ║
 ║                                                                    ║
 ║  [{title_style}]Geometric Distributed Software Synchronizer[/]     ║
 ║  [dim]Semantic Intelligence Layer Above Git[/]                    ║
@@ -319,22 +387,8 @@ class GDSSShell(cmd.Cmd):
             transient=True
         ) as progress:
             task = progress.add_task("[cyan]Building dependency graph...", total=None)
-            
-        # Walk and parse files
-        for root, _, files in os.walk(self.repo_path):
-            if ".git" in root or "venv" in root or "__pycache__" in root:
-                continue
-            for file in files:
-                if file.endswith((".py", ".js", ".ts", ".jsx", ".tsx")):
-                    fp = os.path.join(root, file)
-                    try:
-                        symbols: List[CodeSymbol] = self.parser.parse_file(fp)
-                        self.graph.add_file_symbols(fp, symbols)
-                    except Exception:
-                        pass
-        
-        self.graph.resolve_calls()
-        progress.update(task, description="[green]✓ Analysis complete!")
+            self.graph = build_code_graph_from_repo(self.repo_path)
+            progress.update(task, description="[green]✓ Analysis complete!")
         
         summary = self.graph.get_summary()
         console.print(f"Nodes: [bold]{summary['total_nodes']}[/] | Edges: [bold]{summary['total_edges']}[/]")
@@ -388,19 +442,50 @@ class GDSSShell(cmd.Cmd):
             console.print(f"[bold {self.theme['error']}]✗ No common ancestor found with {target}[/]")
             return
             
-        diffs = self.observer.get_file_diffs_between_commits(base_sha, "HEAD")
+        # Get diff between base_sha and working directory (including staged/unstaged changes)
+        diffs = {"added": [], "deleted": [], "modified": []}
+        try:
+            commit_base = self.observer.repo.commit(base_sha)
+            diffs_to_wt = commit_base.diff(None)
+            
+            # Untracked files
+            untracked = self.observer.repo.untracked_files
+            diffs["added"].extend(untracked)
+            
+            for d in diffs_to_wt:
+                if d.new_file:
+                    if d.b_path not in diffs["added"]:
+                        diffs["added"].append(d.b_path)
+                elif d.deleted_file:
+                    diffs["deleted"].append(d.a_path)
+                elif d.renamed_file:
+                    # Rename: store new path and old path for symbol extraction comparison
+                    diffs["modified"].append((d.b_path, d.a_path))
+                else:
+                    diffs["modified"].append((d.b_path, d.b_path))
+        except Exception:
+            # Fallback using path strings
+            fallback_diffs = self.observer.get_file_diffs_between_commits(base_sha, "HEAD")
+            diffs["added"] = fallback_diffs["added"]
+            diffs["deleted"] = fallback_diffs["deleted"]
+            diffs["modified"] = [(f, f) for f in fallback_diffs["modified"]]
         
         table = Table(box=box.MINIMAL, border_style=self.theme['info'])
         table.add_column("State", style=f"bold {self.theme['secondary']}")
         table.add_column("File / Transformation")
         
-        for f in diffs["modified"]: 
+        for f, old_f in diffs["modified"]: 
             table.add_row("MODIFIED", f)
-            if f.endswith((".py", ".js")):
-                old_content = self.observer.get_file_content_at_commit(base_sha, f)
-                new_content = self.observer.get_file_content_at_commit("HEAD", f)
+            if f.endswith((".py", ".js", ".ts", ".jsx", ".tsx")):
+                old_content = self.observer.get_file_content_at_commit(base_sha, old_f)
+                try:
+                    with open(os.path.join(self.repo_path, f), "r") as current_f:
+                        new_content = current_f.read()
+                except Exception:
+                    new_content = self.observer.get_file_content_at_commit("HEAD", f)
+                
                 if old_content and new_content:
-                    old_syms: List[CodeSymbol] = self.parser.parse_file(f, old_content)
+                    old_syms: List[CodeSymbol] = self.parser.parse_file(old_f, old_content)
                     new_syms: List[CodeSymbol] = self.parser.parse_file(f, new_content)
                     ops: List[SemanticOperator] = self.extractor.extract_operators(f, old_syms, new_syms)
                     for op in ops:
@@ -443,16 +528,7 @@ class GDSSShell(cmd.Cmd):
             
             # Rebuild graph if empty
             if self.graph.g.number_of_nodes() <= 1:
-                for root, _, files in os.walk(self.repo_path):
-                    if ".git" in root or "venv" in root: continue
-                    for file in files:
-                        if file.endswith((".py", ".js")):
-                            fp = os.path.join(root, file)
-                            try:
-                                symbols = self.parser.parse_file(fp)
-                                self.graph.add_file_symbols(fp, symbols)
-                            except: pass
-                self.graph.resolve_calls()
+                self.graph = build_code_graph_from_repo(self.repo_path)
             
             # Find nodes that match the symbol name
             target_nodes = [

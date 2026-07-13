@@ -3,9 +3,13 @@ import sys
 import os
 import typer
 from gdss.cli.start import GDSSShell, console
+from gdss.graph.graph_builder import build_code_graph_from_repo
+from gdss.graph.graph_export import UnsupportedGraphFormatError, export_graph
 from unittest.mock import patch
 
 app = typer.Typer(help="GDSS: Geometric Distributed Software Synchronizer", no_args_is_help=False)
+graph_app = typer.Typer(help="Dependency graph operations")
+app.add_typer(graph_app, name="graph")
 
 def run_shell(repo_path: str, command: str = None):
     status_code = 0
@@ -70,6 +74,34 @@ def watch(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"
 def diff(target: str = typer.Argument("main"), repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path")):
     """Perform semantic diff between branches."""
     run_shell(repo, f"diff {target}")
+
+@graph_app.command("export")
+def graph_export(
+    repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
+    output: str = typer.Option("gdss_graph.dot", "--output", "-o", help="Output file path"),
+    fmt: str = typer.Option("dot", "--format", "-f", help="Export format: dot, json"),
+):
+    """Export the dependency graph to DOT or JSON."""
+    error_message: str | None = None
+    if not os.path.exists(repo):
+        error_message = f"Path '{repo}' does not exist!"
+    else:
+        try:
+            code_graph = build_code_graph_from_repo(repo)
+            written = export_graph(code_graph, format=fmt, output_path=output)
+            summary = code_graph.get_summary()
+            console.print(
+                f"[bold green]✓[/] Exported {summary['total_nodes']} nodes and "
+                f"{summary['total_edges']} edges to [bold]{written}[/] ({fmt})"
+            )
+            return
+        except UnsupportedGraphFormatError as exc:
+            error_message = str(exc)
+        except OSError as exc:
+            error_message = f"Could not write output: {exc}"
+
+    console.print(f"[bold red]✗ Error:[/] {error_message}")
+    raise typer.Exit(code=1)
 
 if __name__ == "__main__":
     app()

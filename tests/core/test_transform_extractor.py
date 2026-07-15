@@ -207,3 +207,149 @@ def test_levenshtein_token_similarity():
     assert levenshtein_distance(a, b) == 0
     assert normalized_similarity(a, b) == 1.0
     assert normalized_similarity(a, c) < 1.0
+
+
+def test_same_method_name_in_different_classes_does_not_collide():
+    """Methods sharing a name across classes must not overwrite each other."""
+    extractor = TransformExtractor()
+
+    old_symbols = [
+        CodeSymbol(
+            name="run",
+            type=SymbolType.FUNCTION,
+            start_line=2,
+            end_line=4,
+            signature="(self)",
+            body="def run(self):\n    return 'A'",
+            parent_class="ServiceA",
+            structural_tokens=["return_statement"],
+        ),
+        CodeSymbol(
+            name="run",
+            type=SymbolType.FUNCTION,
+            start_line=8,
+            end_line=10,
+            signature="(self)",
+            body="def run(self):\n    return 'B'",
+            parent_class="ServiceB",
+            structural_tokens=["return_statement"],
+        ),
+    ]
+
+    new_symbols = [
+        CodeSymbol(
+            name="run",
+            type=SymbolType.FUNCTION,
+            start_line=2,
+            end_line=4,
+            signature="(self, verbose=False)",
+            body="def run(self, verbose=False):\n    return 'A_updated'",
+            parent_class="ServiceA",
+            structural_tokens=["return_statement"],
+        ),
+        CodeSymbol(
+            name="run",
+            type=SymbolType.FUNCTION,
+            start_line=8,
+            end_line=10,
+            signature="(self)",
+            body="def run(self):\n    return 'B'",
+            parent_class="ServiceB",
+            structural_tokens=["return_statement"],
+        ),
+    ]
+
+    operators = extractor.extract_operators("services.py", old_symbols, new_symbols)
+    modifies = [op for op in operators if op.operator == OperatorType.MODIFY_FUNCTION]
+    deletes = [op for op in operators if op.operator == OperatorType.DELETE_FUNCTION]
+    adds = [op for op in operators if op.operator == OperatorType.ADD_FUNCTION]
+
+    assert len(deletes) == 0
+    assert len(adds) == 0
+    assert len(modifies) == 1
+    assert modifies[0].details["parent_class"] == "ServiceA"
+    assert modifies[0].details["signature_changed"] is True
+
+def test_dissimilar_stub_pair_is_delete_and_add_not_rename():
+    """Near-empty stubs must not be treated as renames of each other."""
+    extractor = TransformExtractor()
+
+    old_symbols = [
+        CodeSymbol(
+            name="alpha",
+            type=SymbolType.FUNCTION,
+            start_line=1,
+            end_line=2,
+            signature="()",
+            body="def alpha():\n    pass",
+            structural_tokens=["pass_statement"],
+        ),
+        CodeSymbol(
+            name="beta",
+            type=SymbolType.FUNCTION,
+            start_line=4,
+            end_line=5,
+            signature="()",
+            body="def beta():\n    pass",
+            structural_tokens=["pass_statement"],
+        ),
+    ]
+
+    new_symbols = [
+        CodeSymbol(
+            name="beta",
+            type=SymbolType.FUNCTION,
+            start_line=4,
+            end_line=5,
+            signature="()",
+            body="def beta():\n    pass",
+            structural_tokens=["pass_statement"],
+        ),
+        CodeSymbol(
+            name="gamma",
+            type=SymbolType.FUNCTION,
+            start_line=1,
+            end_line=2,
+            signature="()",
+            body="def gamma():\n    pass",
+            structural_tokens=["pass_statement"],
+        ),
+    ]
+
+    operators = extractor.extract_operators("stubs.py", old_symbols, new_symbols)
+    renames = [op for op in operators if op.operator == OperatorType.RENAME_FUNCTION]
+    deletes = [op for op in operators if op.operator == OperatorType.DELETE_FUNCTION]
+    adds = [op for op in operators if op.operator == OperatorType.ADD_FUNCTION]
+
+    assert renames == []
+    assert len(deletes) == 1 and deletes[0].name == "alpha"
+    assert len(adds) == 1 and adds[0].name == "gamma"
+
+
+def test_corrupt_symbol_names_are_rejected_as_renames():
+    extractor = TransformExtractor()
+    old_symbols = [
+        CodeSymbol(
+            name="self, _):",
+            type=SymbolType.FUNCTION,
+            start_line=1,
+            end_line=3,
+            signature="()",
+            body="...",
+            structural_tokens=["expression_statement", "return_statement"],
+        )
+    ]
+    new_symbols = [
+        CodeSymbol(
+            name=", _):",
+            type=SymbolType.FUNCTION,
+            start_line=1,
+            end_line=3,
+            signature="()",
+            body="...",
+            structural_tokens=["expression_statement", "return_statement"],
+        )
+    ]
+    operators = extractor.extract_operators("bad.py", old_symbols, new_symbols)
+    renames = [op for op in operators if op.operator == OperatorType.RENAME_FUNCTION]
+    assert renames == []

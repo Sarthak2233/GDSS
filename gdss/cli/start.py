@@ -25,9 +25,9 @@ from rich.columns import Columns
 from rich.tree import Tree
 
 # GDSS Core imports - USED
-from gdss.core.ast_parser import ASTParser
+from gdss.core.ast_parser import ASTParser, SOURCE_EXTENSIONS
 from gdss.core.transform_extractor import TransformExtractor
-from gdss.core.transform_types import OperatorType, CodeSymbol, SymbolType
+from gdss.core.transform_types import OperatorType, CodeSymbol, SymbolType, SemanticOperator
 
 # GDSS Graph imports - USED
 from gdss.graph.code_graph import CodeGraph
@@ -41,6 +41,7 @@ from gdss.storage.db import RuntimeDB
 
 # GDSS Watcher imports - USED
 from gdss.watcher.git_observer import GitObserver
+from gdss.core.trajectory import extract_trajectory_operators, is_single_attractor_trajectory
 
 # Initialize Rich Console
 console = Console()
@@ -157,46 +158,108 @@ class GDSSShell(cmd.Cmd):
         self.theme = ColorTheme(choice)
 
     def _get_status_indicator(self) -> str:
-        """Dynamically computes git working tree status and semantic drift."""
+        """Prompt indicator for local uncommitted semantic delta (not remote topic)."""
         is_valid = self.observer.is_valid()
         self.active_branch = (self.observer.get_active_branch() or "DETACHED") if is_valid else "unknown"
-        
+
         if not is_valid:
             return f"[bold {self.theme['error']}]![/]"
 
-        # Check for working tree changes
         changes = self.observer.get_working_tree_changes()
         has_changes = any(changes.values())
         if not has_changes:
-            # Check context engine remote awareness if available
-            ctx = self.daemon.context_engine.get_latest_context() if (hasattr(self, 'daemon') and self.daemon) else {}
-            if ctx.get("remote_aware"):
-                return f"[bold {self.theme['error']}]Δ[/]"
             return f"[bold {self.theme['success']}]●[/]"
-        
-        # Check for semantic changes in modified code files
-        has_semantic_drift = False
-        for f in changes.get("modified", []):
-            if f.endswith((".py", ".js", ".ts", ".jsx", ".tsx")):
-                try:
-                    head_content = self.observer.get_file_content_at_commit("HEAD", f)
-                    with open(os.path.join(self.repo_path, f), "r") as current_f:
-                        current_content = current_f.read()
-                    if head_content and current_content:
-                        old_syms = self.parser.parse_file(f, head_content)
-                        new_syms = self.parser.parse_file(f, current_content)
-                        ops = self.extractor.extract_operators(f, old_syms, new_syms)
-                        if ops:
-                            has_semantic_drift = True
-                            break
-                except Exception:
-                    pass
-                     
-        if has_semantic_drift:
-            return f"[bold {self.theme['error']}]Δ[/]"
-        else:
-            return f"[bold {self.theme['warning']}]✱[/]"
 
+        # Δ means local working-tree semantic operators, never remote_aware.
+        has_semantic_delta = False
+        candidate_files = (
+            changes.get("modified", []) + changes.get("added", []) + changes.get("deleted", [])
+        )
+        for f in candidate_files:
+            if not f.endswith(SOURCE_EXTENSIONS):
+                continue
+            try:
+                head_content = self.observer.get_file_content_at_commit("HEAD", f) or ""  # dsa:ignore
+                current_path = os.path.join(self.repo_path, f)
+                current_content = ""
+                if os.path.exists(current_path):
+                    with open(current_path, "r", encoding="utf-8", errors="ignore") as current_f:
+                        current_content = current_f.read()  # dsa:ignore
+                old_syms = self.parser.parse_file(f, head_content) if head_content else []  # dsa:ignore
+                new_syms = self.parser.parse_file(f, current_content) if current_content else []  # dsa:ignore
+                ops = self.extractor.extract_operators(f, old_syms, new_syms)
+                if ops:
+                    has_semantic_delta = True
+                    break
+            except Exception:
+                pass
+
+        if has_semantic_delta:
+            return f"[bold {self.theme['error']}]Δ[/]"
+        return f"[bold {self.theme['warning']}]✱[/]"
+
+    def _resolve_reference_branch(self, arg: str = "") -> str:
+        """Resolve reference attractor from CLI arg, then persisted config, then default."""
+        parts = arg.split() if arg else []
+        if parts:
+            return parts[0]
+        if hasattr(self, "daemon") and self.daemon:
+            return self.daemon.context_engine.get_reference_branch()
+        return "main"
+
+    def _extract_uncommitted_operators(self) -> List[SemanticOperator]:
+        working_changes = self.observer.get_working_tree_changes()
+        operators: List[SemanticOperator] = []
+        for f in working_changes.get("modified", []):
+            if not f.endswith(SOURCE_EXTENSIONS):
+                continue
+            head_content = self.observer.get_file_content_at_commit("HEAD", f)  # dsa:ignore
+            try:
+                with open(os.path.join(self.repo_path, f), "r", encoding="utf-8", errors="ignore") as current_f:
+                    current_content = current_f.read()  # dsa:ignore
+            except OSError:
+                continue
+            if head_content is None:
+                continue
+            old_syms = self.parser.parse_file(f, head_content)  # dsa:ignore
+            new_syms = self.parser.parse_file(f, current_content)  # dsa:ignore
+            operators.extend(self.extractor.extract_operators(f, old_syms, new_syms))
+        for f in working_changes.get("added", []):
+            if not f.endswith(SOURCE_EXTENSIONS):
+                continue
+            try:
+                with open(os.path.join(self.repo_path, f), "r", encoding="utf-8", errors="ignore") as current_f:
+                    current_content = current_f.read()  # dsa:ignore
+            except OSError:
+                continue
+            new_syms = self.parser.parse_file(f, current_content)  # dsa:ignore
+            operators.extend(self.extractor.extract_operators(f, [], new_syms))
+        for f in working_changes.get("deleted", []):
+            if not f.endswith(SOURCE_EXTENSIONS):
+                continue
+            head_content = self.observer.get_file_content_at_commit("HEAD", f)  # dsa:ignore
+            if not head_content:
+                continue
+            old_syms = self.parser.parse_file(f, head_content)  # dsa:ignore
+            operators.extend(self.extractor.extract_operators(f, old_syms, []))
+        return operators
+
+    def _print_operator_table(self, title: str, operators: List[SemanticOperator], border_key: str) -> None:
+        console.print(f"\n[bold {self.theme[border_key]}]{title}[/]")
+        if not operators:
+            console.print("[dim]  (none)[/]")
+            return
+        table = Table(box=box.MINIMAL, border_style=self.theme[border_key])
+        table.add_column("Operator", style="dim")
+        table.add_column("Symbol")
+        table.add_column("File")
+        for op in operators:
+            table.add_row(
+                f"{op.get_icon()} {op.get_display_name()}",
+                op.name or f"{op.from_name} -> {op.to_name}",
+                op.file,
+            )
+        console.print(table)
     def _get_colored_prompt(self) -> str:
         status = self._get_status_indicator()
         branch_part = f"([bold {self.theme['secondary']}]{self.active_branch}[/])" if self.active_branch else ""
@@ -255,66 +318,55 @@ class GDSSShell(cmd.Cmd):
         
         tips = Columns([
             f"[{self.theme['info']}]❓[/] [bold]help[/] for commands",
-            f"[{self.theme['success']}]📈[/] [bold]status[/] for drift",
+            f"[{self.theme['success']}]📈[/] [bold]status[/] for trajectory",
             f"[{self.theme['warning']}]🕸[/] [bold]analyze[/] for graph",
             f"[{self.theme['error']}]🚪[/] [bold]quit[/] to exit"
         ], equal=True)
         console.print(tips)
 
-    def do_status(self, _):
-        """Show distributed status and semantic drift from uncommitted changes."""
-        console.print(f"\n[bold {self.theme['primary']}]━━━ 📊 DISTRIBUTED STATUS ━━━[/]")
-        ctx = self.daemon.context_engine.get_latest_context()
-        
-        # 1. Base Status Table
-        table = Table(box=box.ROUNDED, border_style=self.theme['info'])
+    def do_status(self, arg):
+        """Show branch/attractor/remote state, trajectory since ref, and uncommitted semantic delta.
+
+        Usage: status [ref_branch]
+        """
+        console.print(f"\n[bold {self.theme['primary']}]━━━ DISTRIBUTED STATUS ━━━[/]")
+        ref = self._resolve_reference_branch(arg)
+        ctx = self.daemon.context_engine.get_latest_context() if self.daemon else {}
+
+        table = Table(box=box.ROUNDED, border_style=self.theme["info"])
         table.add_column("Vector", style=f"bold {self.theme['secondary']}")
         table.add_column("State")
-        
+
         table.add_row("Local Branch", f"[bold {self.theme['success']}]{self.active_branch}[/]")
+        table.add_row("Attractor (ref)", f"[bold]{ref}[/]")
+
+        remote = self.observer.get_remote_sync_status(ref)
+        remote_style = self.theme["success"] if remote["label"] == "ALIGNED" else self.theme["info"]
+        if remote["label"] == "N/A":
+            remote_style = "dim"
+        table.add_row(
+            "Remote",
+            f"[{remote_style}]{remote['label']}[/] [dim]({remote['remote_ref']})[/]",
+        )
         if ctx:
-            table.add_row(
-                "Remote Reality", 
-                f"[{self.theme['warning']}]{'DRIFT DETECTED' if ctx.get('remote_aware') else 'ALIGNED'}[/]"
-            )
-            table.add_row("Reference", ctx.get('reference_branch', 'main'))
-        
+            table.add_row("Last Context Event", str(ctx.get("event") or ctx.get("source") or "—"))
+
         console.print(table)
 
-        # 2. Semantic Drift (Uncommitted changes)
-        working_changes = self.observer.get_working_tree_changes()
-        modified_files = working_changes.get("modified", [])
-        
-        if modified_files:
-            console.print(f"\n[bold {self.theme['warning']}]⚡ SEMANTIC DRIFT (Uncommitted)[/]")
-            drift_table = Table(box=box.MINIMAL, border_style=self.theme['warning'])
-            drift_table.add_column("Operator", style="dim")
-            drift_table.add_column("Symbol")
-            drift_table.add_column("File")
-            
-            for f in modified_files:
-                if f.endswith((".py", ".js")):
-                    head_content = self.observer.get_file_content_at_commit("HEAD", f)
-                    try:
-                        with open(os.path.join(self.repo_path, f), "r") as current_f:
-                            current_content = current_f.read()
-                    except: continue
-                    
-                    if head_content and current_content:
-                        old_syms = self.parser.parse_file(f, head_content)
-                        new_syms = self.parser.parse_file(f, current_content)
-                        ops = self.extractor.extract_operators(f, old_syms, new_syms)
-                        for op in ops:
-                            drift_table.add_row(
-                                f"{op.get_icon()} {op.get_display_name()}", 
-                                op.name or f"{op.from_name} -> {op.to_name}", 
-                                f
-                            )
-            
-            if drift_table.rows:
-                console.print(drift_table)
-            else:
-                console.print("[dim]  Structural integrity maintained (text-only changes).[/]")
+        single, only_branch = is_single_attractor_trajectory(self.observer, ref)
+        if single:
+            console.print(
+                f"\n[dim]Single trajectory on attractor '{only_branch}'. "
+                "Multi-branch conflict tensor Ω_ij is N/A.[/]"
+            )
+
+        traj_ops = extract_trajectory_operators(
+            self.observer, self.parser, self.extractor, ref_branch=ref, head="HEAD"
+        )
+        self._print_operator_table("Trajectory since reference (committed)", traj_ops, "info")
+
+        wt_ops = self._extract_uncommitted_operators()
+        self._print_operator_table("Uncommitted semantic delta (working tree)", wt_ops, "warning")
 
     def do_log(self, arg):
         """Show semantic commit log. Usage: log [count] [--type=operator_type]"""
@@ -347,7 +399,7 @@ class GDSSShell(cmd.Cmd):
             if parent_sha:
                 changes = self.observer.get_file_diffs_between_commits(parent_sha, sha)
                 for f in changes["modified"]:
-                    if f.endswith((".py", ".js")):
+                    if f.endswith(SOURCE_EXTENSIONS):
                         old_content = self.observer.get_file_content_at_commit(parent_sha, f)
                         new_content = self.observer.get_file_content_at_commit(sha, f)
                         if old_content and new_content:
@@ -378,22 +430,30 @@ class GDSSShell(cmd.Cmd):
 
     def do_analyze(self, _):
         """Deep semantic analysis and dependency mapping."""
-        console.print(f"\n[bold {self.theme['primary']}]━━━ 🔬 SEMANTIC ANALYSIS ━━━[/]")
-        
+        console.print(f"\n[bold {self.theme['primary']}]━━━ SEMANTIC ANALYSIS ━━━[/]")
+
+        def on_progress(done, total, skipped):
+            console.print(f"[dim]  parsed {done}/{total} files...[/]")
+
         with Progress(
-            SpinnerColumn(), 
-            TextColumn("{task.description}"), 
-            console=console, 
-            transient=True
+            SpinnerColumn(),
+            TextColumn("{task.description}"),
+            console=console,
+            transient=True,
         ) as progress:
             task = progress.add_task("[cyan]Building dependency graph...", total=None)
-            self.graph = build_code_graph_from_repo(self.repo_path)
-            progress.update(task, description="[green]✓ Analysis complete!")
-        
+            self.graph = build_code_graph_from_repo(
+                self.repo_path, progress_callback=on_progress, batch_size=500
+            )
+            progress.update(task, description="[green]Analysis complete!")
         summary = self.graph.get_summary()
         console.print(f"Nodes: [bold]{summary['total_nodes']}[/] | Edges: [bold]{summary['total_edges']}[/]")
-        
-        # Use SymbolType for better display filtering
+
+        skipped = getattr(self.graph, "skipped_unsupported", {}) or {}
+        if skipped:
+            parts = [f"{count} {ext}" for ext, count in sorted(skipped.items())]
+            console.print(f"[dim]Skipped unsupported: {', '.join(parts)}[/]")
+
         for stype in SymbolType:
             count = sum(1 for _, data in self.graph.g.nodes(data=True) if data.get("type") == stype.value)
             if count > 0:
@@ -418,7 +478,8 @@ class GDSSShell(cmd.Cmd):
                         Layout(
                             Panel(
                                 f"Last Event: [yellow]{ctx.get('event', 'Watching...')}[/]\n"
-                                f"Remote Peer State: [magenta]{'ACTIVE' if ctx.get('remote_aware') else 'IDLE'}[/]",
+                                f"Remote Peer State: [magenta]{'ACTIVE' if ctx.get('remote_aware') else 'IDLE'}[/] "
+                                f"[dim](event bus; not semantic drift)[/]",
                                 border_style="green"
                             )
                         ),
@@ -433,9 +494,15 @@ class GDSSShell(cmd.Cmd):
             pass
 
     def do_diff(self, arg):
-        """Perform semantic diff between branches with structural insights."""
-        target = arg.strip() or "main"
-        console.print(f"\n[bold {self.theme['primary']}]━━━ 📊 SEMANTIC DIFF (vs {target}) ━━━[/]")
+        """Semantic diff: merge-base(ref) through working tree (committed + uncommitted).
+
+        Usage: diff [ref_branch]
+        """
+        target = arg.strip() or self._resolve_reference_branch("")
+        console.print(
+            f"\n[bold {self.theme['primary']}]━━━ SEMANTIC DIFF "
+            f"(merge-base with {target} → working tree) ━━━[/]"
+        )
         
         base_sha = self.observer.get_merge_base(self.active_branch, target)
         if not base_sha:
@@ -476,13 +543,13 @@ class GDSSShell(cmd.Cmd):
         
         for f, old_f in diffs["modified"]: 
             table.add_row("MODIFIED", f)
-            if f.endswith((".py", ".js", ".ts", ".jsx", ".tsx")):
+            if f.endswith(SOURCE_EXTENSIONS):
                 old_content = self.observer.get_file_content_at_commit(base_sha, old_f)
                 try:
                     with open(os.path.join(self.repo_path, f), "r") as current_f:
-                        new_content = current_f.read()
+                        new_content = current_f.read()  # dsa:ignore
                 except Exception:
-                    new_content = self.observer.get_file_content_at_commit("HEAD", f)
+                    new_content = self.observer.get_file_content_at_commit("HEAD", f)  # dsa:ignore
                 
                 if old_content and new_content:
                     old_syms: List[CodeSymbol] = self.parser.parse_file(old_f, old_content)
@@ -559,17 +626,22 @@ class GDSSShell(cmd.Cmd):
         """View or update configuration (e.g. choice of reference branch)."""
         args = arg.split()
         if not args:
-            ctx = self.daemon.context_engine.get_latest_context()
+            ref = self.daemon.context_engine.get_reference_branch()
             console.print(
-                f"[{self.theme['info']}]Current Reference Branch:[/] "
-                f"{ctx.get('reference_branch', 'main')}"
+                f"[{self.theme['info']}]Current Reference Branch (attractor):[/] {ref}"
             )
             return
-            
+
         if args[0] == "ref":
             ref = args[1] if len(args) > 1 else "main"
-            # In a real app we'd update DB here
-            console.print(f"[bold {self.theme['success']}]✓ Reference branch set to {ref}[/]")
+            self.daemon.context_engine.set_reference_branch(ref)
+            console.print(
+                f"[bold {self.theme['success']}]✓ Reference branch set to {ref}[/] "
+                f"[dim](persisted)[/]"
+            )
+            return
+
+        console.print(f"[bold {self.theme['error']}]Unknown config key. Try: config ref <branch>[/]")
 
     def do_clear(self, _):
         os.system('clear' if os.name != 'nt' else 'cls')

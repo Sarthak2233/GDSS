@@ -91,7 +91,7 @@ On first launch you pick a color theme, the daemon wakes, and you land at the
 
 ```text
 gdss ▶ help              # 1. see every available command
-gdss ▶ status            # 2. current branch + uncommitted semantic drift
+gdss ▶ status            # 2. attractor/remote + trajectory + uncommitted semantic delta
 gdss ▶ analyze           # 3. build the dependency graph (node/edge summary)
 gdss ▶ impact <symbol>   # 4. what breaks if you change <symbol> (e.g. a function)
 gdss ▶ log 5             # 5. semantic operators for the last 5 commits
@@ -112,9 +112,10 @@ Every command accepts `--repo PATH` (defaults to the current directory).
 
 ```bash
 # Start the GDSS interactive shell (recommended)
+# Start the GDSS interactive shell (recommended)
 gdss start --repo .
 
-# Show distributed status and semantic drift vs a reference branch
+# Show attractor/remote, committed trajectory vs --ref, and uncommitted semantic delta
 gdss status --repo . --ref main
 
 # Show the semantic transformation log for the last N commits
@@ -140,7 +141,7 @@ gdss graph export --repo . --format json -o gdss_graph.json
 | Command | Arguments | Purpose |
 | :--- | :--- | :--- |
 | `gdss start` | `--repo` | Launch the interactive shell |
-| `gdss status` | `--repo`, `--ref` | Branch status + uncommitted semantic drift |
+| `gdss status` | `--repo`, `--ref` | Attractor/remote + trajectory since ref + uncommitted semantic delta |
 | `gdss log` | `--repo`, `-n` | Semantic operators per commit |
 | `gdss analyze` | `--repo` | Build dependency graph, print node/edge summary |
 | `gdss diff` | `TARGET`, `--repo` | Semantic diff vs another branch |
@@ -153,7 +154,7 @@ Run `gdss start`, then use these at the `gdss ▶` prompt:
 
 | Command | Purpose |
 | :--- | :--- |
-| `status` | Show distributed status and semantic drift |
+| `status` | Show attractor/remote, trajectory since ref, uncommitted semantic delta |
 | `analyze` | Deep semantic analysis and dependency mapping |
 | `impact <symbol>` | Downstream impact of a specific symbol |
 | `log [count] [--type=OP]` | Semantic commit log (optionally filtered by operator) |

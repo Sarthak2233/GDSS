@@ -161,3 +161,54 @@ class GitObserver:
             return False
 
         return True
+
+    def list_local_branches(self) -> List[str]:
+        """Return local branch names."""
+        if not self.repo:
+            return []
+        try:
+            return [head.name for head in self.repo.heads]
+        except Exception:
+            return []
+
+    def get_remote_sync_status(
+        self, ref_branch: str, remote: str = "origin"
+    ) -> Dict[str, object]:
+        """
+        Compare HEAD to origin/<ref> (or configured remote).
+
+        Returns ahead/behind counts. label is N/A when the remote ref is missing.
+        Never infers semantic drift from remote event topic flags.
+        """
+        result: Dict[str, object] = {
+            "label": "N/A",
+            "ahead": 0,
+            "behind": 0,
+            "remote_ref": f"{remote}/{ref_branch}",
+        }
+        if not self.repo:
+            return result
+
+        remote_ref = f"{remote}/{ref_branch}"
+        try:
+            # Resolve remote tip; missing remote => N/A
+            self.repo.commit(remote_ref)
+        except Exception:
+            return result
+
+        try:
+            ahead = sum(1 for _ in self.repo.iter_commits(f"{remote_ref}..HEAD"))
+            behind = sum(1 for _ in self.repo.iter_commits(f"HEAD..{remote_ref}"))
+            result["ahead"] = ahead
+            result["behind"] = behind
+            if ahead == 0 and behind == 0:
+                result["label"] = "ALIGNED"
+            elif ahead > 0 and behind == 0:
+                result["label"] = f"AHEAD {ahead}"
+            elif behind > 0 and ahead == 0:
+                result["label"] = f"BEHIND {behind}"
+            else:
+                result["label"] = f"DIVERGED +{ahead}/-{behind}"
+        except Exception:
+            return result
+        return result

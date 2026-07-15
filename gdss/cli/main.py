@@ -51,8 +51,8 @@ def start(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"
     run_shell(repo)
 
 @app.command()
-def status(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"), ref: str = typer.Option("main", "--ref", help="Reference branch")):
-    """Show distributed status and semantic drift."""
+def status(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"), ref: str = typer.Option("main", "--ref", help="Reference attractor branch")):
+    """Show attractor/remote state, trajectory operators, and uncommitted semantic delta."""
     run_shell(repo, f"status {ref}")
 
 @app.command()
@@ -72,7 +72,7 @@ def watch(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"
     
 @app.command()
 def diff(target: str = typer.Argument("main"), repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path")):
-    """Perform semantic diff between branches."""
+    """Semantic diff from merge-base(target) through the working tree."""
     run_shell(repo, f"diff {target}")
 
 @graph_app.command("export")

@@ -1,6 +1,5 @@
 import pytest
 import os
-import yaml
 from gdss.runtime.registry import RepositoryRegistry
 from gdss.storage.db import RuntimeDB
 
@@ -30,18 +29,21 @@ def test_registry_local_remote_sync(registry):
     assert len(local_branches) == 2
 
 def test_hierarchy_resolution(registry):
-    config = """
-repository:
-  name: test-repo
-hierarchy:
-  production: main
-  staging: staging
-  development: dev
-feature_patterns:
-  - feature/*
-"""
+    config = {
+        "repository": {
+            "name": "test-repo"
+        },
+        "hierarchy": {
+            "production": "main",
+            "staging": "staging",
+            "development": "dev"
+        },
+        "feature_patterns": [
+            "feature/*"
+        ]
+    }
     repo_id = registry.db.register_repository("test-repo", "/path")
-    registry.set_hierarchy_config(repo_id, yaml.safe_load(config))
+    registry.set_hierarchy_config(repo_id, config)
     
     hierarchy = registry.get_hierarchy(repo_id)
     assert hierarchy['hierarchy']['production'] == "main"

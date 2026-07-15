@@ -5,6 +5,71 @@ output), not just claims.
 
 ---
 
+## 2026-07-07 - Interactive Shell Diff Command Enhancement (session)
+
+Enhanced the shell's `diff` command (`do_diff` in `gdss/cli/start.py`) to correctly display diffs against the working directory (staged, unstaged, and untracked changes) rather than strictly comparing branch-to-branch commits.
+- Modified `do_diff` to perform `commit_base.diff(None)` (commit to working tree diff) and include `self.observer.repo.untracked_files` as added files.
+- Upgraded the modified files loop to read updated contents directly from the filesystem (working tree) if available, with a fallback to `HEAD`, so that uncommitted changes are parsed and their semantic operators are extracted.
+- Improved tracking of moved/renamed files during diff by mapping the old path to the new path, enabling correct symbol AST parsing and operator extraction.
+
+Evidence (`bash harness/verify.sh` & manual run):
+- Layer 1 static: Architecture fitness OK; DSA fitness OK (0 violations)
+- Layer 2 runtime: pytest 24 passed
+- Layer 3 end-to-end: cli-smoke OK
+- Command `gdss diff` now correctly prints all untracked, uncommitted, and committed changes, including detailed semantic operators.
+
+---
+
+## 2026-07-07 - Monokai Theme Color Fix (session)
+
+Fixed fatal crash during shell rendering (e.g. running `diff`) when the `monokai` theme is selected.
+- Replaced invalid color names (`bright_pink`, `bright_orange`, `bright_purple`) in the `monokai` theme registry in `gdss/cli/start.py` with standard, valid CSS hexadecimal codes (`#f92672`, `#fd971f`, `#ae81ff`).
+
+Evidence (`bash harness/verify.sh`):
+- Layer 1 static: Architecture fitness OK; DSA fitness OK
+- Layer 2 runtime: pytest 24 passed
+- Layer 3 end-to-end: cli-smoke OK
+- Result: ALL LAYERS GREEN (exit 0)
+
+---
+
+## 2026-07-07 - REPL Shell Rich Prompt Rendering & Status Indicators (session)
+
+Implemented rich visual prompt rendering and dynamic status indicator features in the interactive shell (`gdss` command CLI):
+- Overrode the `cmdloop` method of `GDSSShell` to prompt the user using Rich's `console.input` instead of the default `input()`. This correctly renders Rich markup in the prompt.
+- Refactored prompt layout to `gdss(branch:<name>) <status> ▶ ` to clearly indicate the current Git branch.
+- Added dynamic status checking to query git working tree and semantic drift:
+  - 🟢 `●` (success theme color) indicates clean state (with remote check).
+  - 🟡 `✱` (warning theme color) indicates uncommitted modifications / untracked files without semantic changes.
+  - 🔴 `Δ` (error theme color) indicates code files with semantic changes (extracted operators) or remote drift.
+- Resolved a DSA static analysis violation concerning repeated calls to `self.observer.is_valid()` in `_get_status_indicator`.
+
+Evidence (`bash harness/verify.sh`):
+- Layer 1 static: Architecture fitness OK; DSA fitness OK (0 violations)
+- Layer 2 runtime: pytest 24 passed
+- Layer 3 end-to-end: cli-smoke OK
+- Result: ALL LAYERS GREEN (exit 0)
+
+---
+
+## 2026-07-07 - Dependency Cleanup & Test Fix (session)
+
+Resolved test collection failure in Layer 2 tests due to missing `yaml` dependency.
+
+Removed unused `yaml` imports from:
+- `gdss/runtime/hierarchy.py`
+- `gdss/runtime/registry.py`
+
+Refactored `tests/runtime/test_registry.py` to use a native Python dictionary instead of `yaml.safe_load(config)`. This removes the requirement for `PyYAML` and keeps the dependency set minimal.
+
+Evidence (`bash harness/verify.sh`):
+- Layer 1 static: Architecture fitness OK; DSA fitness OK
+- Layer 2 runtime: pytest 24 passed (all tests green)
+- Layer 3 end-to-end: cli-smoke OK
+- Result: ALL LAYERS GREEN (exit 0)
+
+---
+
 ## 2026-07-06 - Phase 1.1: Rigor Refactor (session)
 
 Completed Phase 1 semantic foundation refactor: stable symbol identity, executable

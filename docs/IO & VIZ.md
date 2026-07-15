@@ -137,6 +137,7 @@ invert_operator(op: SemanticOperator) -> SemanticOperator
 | `gdss analyze --repo PATH` | All `.py/.js/.ts` files | Graph node/edge counts + symbol breakdown |
 | `gdss diff TARGET --repo PATH` | Branch diff vs target | File changes + semantic operators |
 | `gdss watch --repo PATH` | Event bus | Live monitor panel |
+| `gdss graph export --repo PATH -o FILE` | All `.py/.js/.ts` files | DOT or JSON graph file on disk |
 
 **Interactive-only** (inside `gdss start`):
 
@@ -189,7 +190,7 @@ walk repo → parse_file(path) → graph.add_file_symbols(path, symbols)
 
 ## How to visualize the graph from the shell
 
-There is **no built-in** `gdss graph export` or Graphviz/PNG command yet. What exists today is **terminal visualization**.
+Built-in terminal views plus first-class graph export.
 
 <p align="center">
   <img src="../assets/io/graph_viz.svg" alt="Ways to visualize the CodeGraph from the shell" width="100%">
@@ -204,7 +205,7 @@ flowchart TD
     A["A · Summary<br>gdss analyze"]
     B["B · Impact<br>impact &lt;symbol&gt;"]
     C["C · Hierarchy<br>hierarchy"]
-    D["D · Export (manual)<br>nx.write_dot → Graphviz PNG"]
+    D["D · Export<br>gdss graph export"]
 
     CG --> A
     CG --> B
@@ -254,45 +255,21 @@ gdss start --repo .
 hierarchy
 ```
 
-### Option D: Export to DOT/GraphML (manual Python — not a GDSS command)
-
-Since `CodeGraph` wraps NetworkX, you can dump from the shell:
+### Option D: Export to DOT or JSON (built-in)
 
 ```bash
-cd /home/sbasnet/projects/GDSS
-python3 <<'PY'
-import os
-import networkx as nx
-from gdss.core.ast_parser import ASTParser
-from gdss.graph.code_graph import CodeGraph
+cd /path/to/your/repo
 
-repo = os.getcwd()  # or your repo path
-graph = CodeGraph()
-parser = ASTParser()
-
-for root, _, files in os.walk(repo):
-    if ".git" in root or "venv" in root:
-        continue
-    for f in files:
-        if f.endswith((".py", ".js", ".ts")):
-            fp = os.path.join(root, f)
-            rel = os.path.relpath(fp, repo)
-            syms = parser.parse_file(fp)
-            graph.add_file_symbols(rel, syms)
-
-graph.resolve_calls()
-
-# Human-readable labels for DOT
-labels = {}
-for nid, data in graph.g.nodes(data=True):
-    labels[nid] = graph.get_display_id(nid) if data.get("type") != "file" else nid
-
-nx.write_dot(graph.g, "gdss_graph.dot")
-print("Wrote gdss_graph.dot — render with: dot -Tpng gdss_graph.dot -o graph.png")
-PY
-
+# DOT for Graphviz
+gdss graph export --repo . --format dot -o gdss_graph.dot
 dot -Tpng gdss_graph.dot -o graph.png   # requires Graphviz installed
+
+# JSON snapshot (nodes + edges)
+gdss graph export --repo . --format json -o gdss_graph.json
 ```
+
+Nodes are labeled with `chart_location::symbol` (via `get_display_id`). Edge labels
+carry the relation (`defines`, `calls`, `imports`).
 
 Or inspect in Python:
 
@@ -305,7 +282,7 @@ graph.get_summary()
 
 ## What is **not** implemented yet
 
-- No CLI command to export DOT/GraphML/JSON graph files
+- No GraphML export format yet (`--format graphml`)
 - No web or GUI graph viewer
 - No persistent graph database (Neo4j, etc.)
 - `impact` is not exposed as `gdss impact ...` — only inside the interactive shell
@@ -324,10 +301,3 @@ graph.get_summary()
 
 ---
 
-> [!NOTE]
-> **Diagram convention.** Every diagram above is a hand-authored SVG under
-> [`assets/io/`](../assets/io/) shown via `<img>`, with its Mermaid
-> source kept in a collapsible `<details>` block so it stays editable. New docs
-> should follow the same pattern — see the `author-doc-diagrams` skill.
-
-If you want a first-class `gdss graph export --format dot` command, that would be a small addition on top of `CodeGraph` + NetworkX.

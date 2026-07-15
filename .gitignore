@@ -33,3 +33,4 @@ research.md
 .cursor/plans/**/*.md
 
 diff.txt
+my_graph.dot

@@ -5,6 +5,34 @@ output), not just claims.
 
 ---
 
+## 2026-07-13 - Phase 1.1 Transcendence (Correctness + Honesty)
+
+Hardened Phase 1.1 into a trustworthy semantic observation layer (no Phase 2 embeddings).
+
+**Workstream A — AST/transform correctness**
+- Fixed UTF-8 Tree-sitter byte/str slicing in `ASTParser._get_node_text`.
+- Symbol maps keyed by `(parent_class, name)` to prevent multi-class collisions.
+- Wired fingerprint buckets; reject near-empty stub renames and non-identifier names.
+
+**Workstream B — CLI honesty**
+- Remote row is ahead/behind or N/A (never `remote_aware` → "DRIFT DETECTED").
+- Prompt `Δ` means local uncommitted semantic delta only.
+- `status --ref` honored; `config ref` persists via hierarchy DB.
+- Status sections: attractor/remote, trajectory since reference, uncommitted semantic delta.
+- Single-attractor honesty note when only one local branch equals ref.
+
+**Workstream C/E/F — cache, languages, scale**
+- Content-hash LRU cache for `parse_file(content=...)`.
+- Language registry + Go grammar (`tree-sitter-go`).
+- `analyze` progress callbacks + skipped-unsupported summary.
+
+Evidence (`bash harness/verify.sh`):
+- Layer 1: architecture OK; DSA OK
+- Layer 2: pytest 37 passed
+- Layer 3: cli-smoke OK (asserts no "DRIFT DETECTED"; section titles present)
+- Result: ALL LAYERS GREEN (exit 0)
+
+---
 ## 2026-07-07 - Interactive Shell Diff Command Enhancement (session)
 
 Enhanced the shell's `diff` command (`do_diff` in `gdss/cli/start.py`) to correctly display diffs against the working directory (staged, unstaged, and untracked changes) rather than strictly comparing branch-to-branch commits.

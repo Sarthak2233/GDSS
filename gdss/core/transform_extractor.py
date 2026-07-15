@@ -1,4 +1,5 @@
 from typing import List, Dict, Set, Tuple, Optional, Any
+import re
 from gdss.core.transform_types import CodeSymbol, SymbolType, SemanticOperator, OperatorType, BodyBlock
 from gdss.core.structural_fingerprint import (
     normalized_similarity,
@@ -6,6 +7,9 @@ from gdss.core.structural_fingerprint import (
     extract_tokens_from_body_text,
 )
 from gdss.core.symbol_identity import compute_symbol_id  # noqa: F401 - reserved for future ID helpers
+
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_STUB_TOKEN_TYPES = frozenset({"pass_statement", "expression_statement"})
 
 
 class TransformExtractor:
@@ -16,6 +20,46 @@ class TransformExtractor:
 
     def __init__(self, rename_threshold: float = 0.65):
         self.rename_threshold = rename_threshold
+
+    @staticmethod
+    def _symbol_key(sym: CodeSymbol) -> Tuple[str, str]:
+        """Stable map key: (parent_class, name) avoids collisions across classes."""
+        return (sym.parent_class or "", sym.name)
+
+    @staticmethod
+    def _symbol_map(symbols: List[CodeSymbol]) -> Dict[Tuple[str, str], CodeSymbol]:
+        return {TransformExtractor._symbol_key(s): s for s in symbols}
+
+    @staticmethod
+    def _is_valid_identifier(name: Optional[str]) -> bool:
+        return bool(name) and bool(_IDENTIFIER_RE.match(name))
+
+    def _is_near_empty_stub(self, sym: CodeSymbol) -> bool:
+        tokens = self._structural_profile(sym)
+        if not tokens:
+            return True
+        if len(tokens) == 1 and tokens[0] in _STUB_TOKEN_TYPES:
+            return True
+        # pass-only bodies are structurally empty regardless of formatting
+        stripped = (sym.body or "").strip()
+        if stripped.endswith("pass") and "\n" in stripped:
+            body_lines = [ln.strip() for ln in stripped.splitlines()[1:] if ln.strip()]
+            if body_lines and all(ln == "pass" for ln in body_lines):
+                return True
+        return False
+
+    def _rename_allowed(self, del_sym: CodeSymbol, add_sym: CodeSymbol, score: float) -> bool:
+        if not self._is_valid_identifier(del_sym.name) or not self._is_valid_identifier(add_sym.name):
+            return False
+        if del_sym.name == add_sym.name:
+            return False
+        # Near-empty stubs look identical under structural fingerprints — reject.
+        if self._is_near_empty_stub(del_sym) and self._is_near_empty_stub(add_sym):
+            return False
+        # Require clear structural agreement for a rename claim.
+        if score < self.rename_threshold:
+            return False
+        return True
 
     def extract_operators(
         self,
@@ -110,17 +154,17 @@ class TransformExtractor:
         operators: List[SemanticOperator],
         commit: str,
     ):
-        old_map = {s.name: s for s in old_list}
-        new_map = {s.name: s for s in new_list}
+        old_map = self._symbol_map(old_list)
+        new_map = self._symbol_map(new_list)
         old_keys = set(old_map.keys())
         new_keys = set(new_map.keys())
         deleted = old_keys - new_keys
         added = new_keys - old_keys
         common = old_keys & new_keys
 
-        for name in sorted(common):
-            old_sym = old_map[name]
-            new_sym = new_map[name]
+        for key in sorted(common):
+            old_sym = old_map[key]
+            new_sym = new_map[key]
             if old_sym.body != new_sym.body:
                 op_type = (
                     OperatorType.MODIFY_CONSTANT
@@ -132,15 +176,19 @@ class TransformExtractor:
                         operator=op_type,
                         file=file,
                         commit=commit,
-                        name=name,
+                        name=old_sym.name,
                         details={"old_value": old_sym.body, "new_value": new_sym.body},
                     )
                 )
 
-        for name in sorted(deleted):
-            operators.append(SemanticOperator(OperatorType.REMOVE_DEPENDENCY, file, commit, name=name))
-        for name in sorted(added):
-            operators.append(SemanticOperator(OperatorType.ADD_DEPENDENCY, file, commit, name=name))
+        for key in sorted(deleted):
+            operators.append(
+                SemanticOperator(OperatorType.REMOVE_DEPENDENCY, file, commit, name=old_map[key].name)
+            )
+        for key in sorted(added):
+            operators.append(
+                SemanticOperator(OperatorType.ADD_DEPENDENCY, file, commit, name=new_map[key].name)
+            )
 
     def extract_repo_operators(
         self, old_files: List[str], new_files: List[str], commit_sha: str = ""
@@ -185,33 +233,43 @@ class TransformExtractor:
 
     def _match_symbol_renames(
         self,
-        old_map: Dict[str, CodeSymbol],
-        new_map: Dict[str, CodeSymbol],
-        deleted_names: Set[str],
-        added_names: Set[str],
-    ) -> List[Tuple[str, str, float]]:
-        candidates: List[Tuple[float, str, str]] = []
-        for del_name in deleted_names:
-            del_sym = old_map[del_name]
-            for add_name in added_names:
-                add_sym = new_map[add_name]
+        old_map: Dict[Tuple[str, str], CodeSymbol],
+        new_map: Dict[Tuple[str, str], CodeSymbol],
+        deleted_keys: Set[Tuple[str, str]],
+        added_keys: Set[Tuple[str, str]],
+    ) -> List[Tuple[Tuple[str, str], Tuple[str, str], float]]:
+        deleted_syms = [old_map[k] for k in deleted_keys]
+        added_by_bucket = self._build_rename_buckets([new_map[k] for k in added_keys])
+        key_of = self._symbol_key
+
+        candidates: List[Tuple[float, Tuple[str, str], Tuple[str, str]]] = []
+        for del_sym in deleted_syms:
+            del_key = key_of(del_sym)
+            bucket = fingerprint_bucket(self._structural_profile(del_sym))
+            # Empty bucket (no tokens) — fall back to full added set is unsafe; skip.
+            pool = added_by_bucket.get(bucket, []) if bucket else []
+            for add_sym in pool:
                 if del_sym.parent_class != add_sym.parent_class:
                     continue
+                add_key = key_of(add_sym)
+                if add_key not in added_keys:
+                    continue
                 score = self._compute_structural_similarity(del_sym, add_sym)
-                if score >= self.rename_threshold:
-                    candidates.append((score, del_name, add_name))
+                if not self._rename_allowed(del_sym, add_sym, score):
+                    continue
+                candidates.append((score, del_key, add_key))
 
         candidates.sort(reverse=True, key=lambda item: item[0])
         used: Set[str] = set()
-        matches: List[Tuple[str, str, float]] = []
-        for score, del_name, add_name in candidates:
-            del_key = f"deleted:{del_name}"
-            add_key = f"added:{add_name}"
-            if del_key in used or add_key in used:
+        matches: List[Tuple[Tuple[str, str], Tuple[str, str], float]] = []
+        for score, del_key, add_key in candidates:
+            del_mark = f"deleted:{del_key}"
+            add_mark = f"added:{add_key}"
+            if del_mark in used or add_mark in used:
                 continue
-            used.add(del_key)
-            used.add(add_key)
-            matches.append((del_name, add_name, score))
+            used.add(del_mark)
+            used.add(add_mark)
+            matches.append((del_key, add_key, score))
         return matches
 
     def _extract_function_ops(
@@ -222,24 +280,24 @@ class TransformExtractor:
         operators: List[SemanticOperator],
         commit: str,
     ):
-        old_map = {s.name: s for s in old_list}
-        new_map = {s.name: s for s in new_list}
-        deleted_names = set(old_map.keys()) - set(new_map.keys())
-        added_names = set(new_map.keys()) - set(old_map.keys())
+        old_map = self._symbol_map(old_list)
+        new_map = self._symbol_map(new_list)
+        deleted_keys = set(old_map.keys()) - set(new_map.keys())
+        added_keys = set(new_map.keys()) - set(old_map.keys())
 
-        rename_pairs = self._match_symbol_renames(old_map, new_map, deleted_names, added_names)
-        for del_name, add_name, score in rename_pairs:
-            del_sym = old_map[del_name]
-            add_sym = new_map[add_name]
-            deleted_names.remove(del_name)
-            added_names.remove(add_name)
+        rename_pairs = self._match_symbol_renames(old_map, new_map, deleted_keys, added_keys)
+        for del_key, add_key, score in rename_pairs:
+            del_sym = old_map[del_key]
+            add_sym = new_map[add_key]
+            deleted_keys.remove(del_key)
+            added_keys.remove(add_key)
             operators.append(
                 SemanticOperator(
                     operator=OperatorType.RENAME_FUNCTION,
                     file=file,
                     commit=commit,
-                    from_name=del_name,
-                    to_name=add_name,
+                    from_name=del_sym.name,
+                    to_name=add_sym.name,
                     from_symbol_id=del_sym.symbol_id,
                     to_symbol_id=add_sym.symbol_id,
                     details={
@@ -250,9 +308,9 @@ class TransformExtractor:
                 )
             )
 
-        for name in sorted(set(old_map.keys()) & set(new_map.keys())):
-            old_sym = old_map[name]
-            new_sym = new_map[name]
+        for key in sorted(set(old_map.keys()) & set(new_map.keys())):
+            old_sym = old_map[key]
+            new_sym = new_map[key]
             sig_changed = old_sym.signature != new_sym.signature
             changed_blocks = self._changed_blocks(old_sym, new_sym)
             body_changed = bool(changed_blocks) or (
@@ -267,7 +325,7 @@ class TransformExtractor:
                         operator=OperatorType.MODIFY_FUNCTION,
                         file=file,
                         commit=commit,
-                        name=name,
+                        name=old_sym.name,
                         symbol_id=new_sym.symbol_id,
                         details={
                             "signature_changed": sig_changed,
@@ -280,27 +338,27 @@ class TransformExtractor:
                     )
                 )
 
-        for name in sorted(deleted_names):
-            sym = old_map[name]
+        for key in sorted(deleted_keys):
+            sym = old_map[key]
             operators.append(
                 SemanticOperator(
                     operator=OperatorType.DELETE_FUNCTION,
                     file=file,
                     commit=commit,
-                    name=name,
+                    name=sym.name,
                     symbol_id=sym.symbol_id,
                     details={"parent_class": sym.parent_class},
                 )
             )
 
-        for name in sorted(added_names):
-            sym = new_map[name]
+        for key in sorted(added_keys):
+            sym = new_map[key]
             operators.append(
                 SemanticOperator(
                     operator=OperatorType.ADD_FUNCTION,
                     file=file,
                     commit=commit,
-                    name=name,
+                    name=sym.name,
                     symbol_id=sym.symbol_id,
                     details={"parent_class": sym.parent_class, "signature": sym.signature},
                 )
@@ -314,33 +372,33 @@ class TransformExtractor:
         operators: List[SemanticOperator],
         commit: str,
     ):
-        old_map = {s.name: s for s in old_list}
-        new_map = {s.name: s for s in new_list}
-        deleted_names = set(old_map.keys()) - set(new_map.keys())
-        added_names = set(new_map.keys()) - set(old_map.keys())
+        old_map = self._symbol_map(old_list)
+        new_map = self._symbol_map(new_list)
+        deleted_keys = set(old_map.keys()) - set(new_map.keys())
+        added_keys = set(new_map.keys()) - set(old_map.keys())
 
-        rename_pairs = self._match_symbol_renames(old_map, new_map, deleted_names, added_names)
-        for del_name, add_name, score in rename_pairs:
-            del_sym = old_map[del_name]
-            add_sym = new_map[add_name]
-            deleted_names.remove(del_name)
-            added_names.remove(add_name)
+        rename_pairs = self._match_symbol_renames(old_map, new_map, deleted_keys, added_keys)
+        for del_key, add_key, score in rename_pairs:
+            del_sym = old_map[del_key]
+            add_sym = new_map[add_key]
+            deleted_keys.remove(del_key)
+            added_keys.remove(add_key)
             operators.append(
                 SemanticOperator(
                     operator=OperatorType.RENAME_CLASS,
                     file=file,
                     commit=commit,
-                    from_name=del_name,
-                    to_name=add_name,
+                    from_name=del_sym.name,
+                    to_name=add_sym.name,
                     from_symbol_id=del_sym.symbol_id,
                     to_symbol_id=add_sym.symbol_id,
                     details={"similarity": round(score, 3), "method": "levenshtein_tokens"},
                 )
             )
 
-        for name in sorted(set(old_map.keys()) & set(new_map.keys())):
-            old_sym = old_map[name]
-            new_sym = new_map[name]
+        for key in sorted(set(old_map.keys()) & set(new_map.keys())):
+            old_sym = old_map[key]
+            new_sym = new_map[key]
             sig_changed = old_sym.signature != new_sym.signature
             body_changed = self._structural_profile(old_sym) != self._structural_profile(new_sym)
             if sig_changed or body_changed:
@@ -349,7 +407,7 @@ class TransformExtractor:
                         operator=OperatorType.MODIFY_CLASS,
                         file=file,
                         commit=commit,
-                        name=name,
+                        name=old_sym.name,
                         symbol_id=new_sym.symbol_id,
                         details={
                             "signature_changed": sig_changed,
@@ -360,26 +418,26 @@ class TransformExtractor:
                     )
                 )
 
-        for name in sorted(deleted_names):
-            sym = old_map[name]
+        for key in sorted(deleted_keys):
+            sym = old_map[key]
             operators.append(
                 SemanticOperator(
                     operator=OperatorType.DELETE_CLASS,
                     file=file,
                     commit=commit,
-                    name=name,
+                    name=sym.name,
                     symbol_id=sym.symbol_id,
                 )
             )
 
-        for name in sorted(added_names):
-            sym = new_map[name]
+        for key in sorted(added_keys):
+            sym = new_map[key]
             operators.append(
                 SemanticOperator(
                     operator=OperatorType.ADD_CLASS,
                     file=file,
                     commit=commit,
-                    name=name,
+                    name=sym.name,
                     symbol_id=sym.symbol_id,
                 )
             )

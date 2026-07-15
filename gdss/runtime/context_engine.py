@@ -31,8 +31,21 @@ class ContextEngine:
         self.log_context(packet)
 
     def get_reference_branch(self) -> str:
+        config = self.hierarchy.get_config(self.repo_id)
+        if config.get("reference_branch"):
+            return str(config["reference_branch"])
         chain = self.hierarchy.resolve_priority_chain(self.repo_id, "HEAD")
         return chain[-1] if chain else "main"
+
+    def set_reference_branch(self, branch: str) -> None:
+        config = self.hierarchy.get_config(self.repo_id)
+        config = dict(config) if config else {}
+        config["reference_branch"] = branch
+        # Keep production attractor aligned with the configured reference.
+        hierarchy = dict(config.get("hierarchy") or {})
+        hierarchy["production"] = branch
+        config["hierarchy"] = hierarchy
+        self.hierarchy.set_config(self.repo_id, config)
 
     def log_context(self, packet: dict):
         with self.registry.db._get_connection() as conn:

@@ -85,3 +85,62 @@ function calculateTax(subtotal) {
 
     tax_func = next(f for f in funcs if f.name == "calculateTax")
     assert tax_func.parent_class is None
+
+
+def test_non_ascii_prefix_preserves_symbol_names():
+    """Tree-sitter byte offsets must not corrupt names after multi-byte UTF-8."""
+    code = """# café résumé 日本語 emoji 🚀
+def process_payment(user):
+    \"\"\"Handle payment for résumé.\"\"\"
+    return user
+
+class OrderService:
+    def run(self):
+        return process_payment("x")
+"""
+    parser = ASTParser()
+    symbols = parser.parse_file("utf8_mod.py", content=code)
+
+    funcs = [s for s in symbols if s.type == SymbolType.FUNCTION]
+    classes = [s for s in symbols if s.type == SymbolType.CLASS]
+
+    payment = next(f for f in funcs if f.name == "process_payment")
+    assert payment.signature == "(user)"
+    assert "return user" in payment.body
+
+    assert len(classes) == 1
+    assert classes[0].name == "OrderService"
+
+    run_method = next(f for f in funcs if f.name == "run")
+    assert run_method.parent_class == "OrderService"
+    assert "process_payment" in run_method.calls
+
+
+def test_parse_go_functions_and_structs():
+    code = """
+package main
+
+func ProcessPayment(amount int) int {
+    return amount
+}
+
+type Order struct {
+    ID int
+}
+"""
+    parser = ASTParser()
+    symbols = parser.parse_file("pay.go", content=code)
+    names = {s.name: s.type for s in symbols}
+    assert "ProcessPayment" in names
+    assert names["ProcessPayment"].value == "function"
+    assert "Order" in names
+    assert names["Order"].value == "class"
+
+
+def test_content_hash_cache_returns_same_symbols():
+    code = "def hello():\n    return 1\n"
+    parser = ASTParser()
+    first = parser.parse_file("cached.py", content=code)
+    second = parser.parse_file("cached.py", content=code)
+    assert first is second  # LRU content cache hit
+    assert first[0].name == "hello"

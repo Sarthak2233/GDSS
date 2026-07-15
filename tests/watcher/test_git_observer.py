@@ -70,3 +70,33 @@ def test_git_observer_features(temp_git_repo):
     old_content = observer.get_file_content_at_commit(initial_commit.hexsha, "calc.py")
     assert "def sub" not in old_content
     assert "def add" in old_content
+
+
+def test_remote_sync_status_without_remote_is_na(temp_git_repo):
+    repo = git.Repo(temp_git_repo)
+    path = os.path.join(temp_git_repo, "a.py")
+    with open(path, "w") as f:
+        f.write("x = 1\n")
+    repo.index.add(["a.py"])
+    repo.index.commit("init")
+
+    observer = GitObserver(temp_git_repo)
+    status = observer.get_remote_sync_status(observer.get_active_branch() or "main")
+    assert status["label"] == "N/A"
+    assert status["ahead"] == 0
+    assert status["behind"] == 0
+
+
+def test_list_local_branches(temp_git_repo):
+    repo = git.Repo(temp_git_repo)
+    path = os.path.join(temp_git_repo, "a.py")
+    with open(path, "w") as f:
+        f.write("x = 1\n")
+    repo.index.add(["a.py"])
+    repo.index.commit("init")
+    repo.create_head("feature-x")
+
+    observer = GitObserver(temp_git_repo)
+    branches = observer.list_local_branches()
+    assert observer.get_active_branch() in branches
+    assert "feature-x" in branches

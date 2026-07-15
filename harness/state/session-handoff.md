@@ -1,25 +1,30 @@
-# Session Handoff: REPL Shell Improvements & Diff Command Enhancement
+# Session Handoff: Phase 1.1 Transcendence Complete
 
 ## Current State
-- **REPL Rich markup issue resolved**: Overrode the `cmdloop` method of `GDSSShell` in `gdss/cli/start.py` to use `console.input` instead of standard `input()`. The colored prompt renders correctly now.
-- **Improved prompt layout & clarity**:
-  - The branch name is explicitly formatted inside parentheses: `gdss(branch:<name>)` (styled using the secondary theme color).
-- **Added dynamic repository state checking & status indicators**:
-  - `●` (green) indicates the working tree is clean.
-  - `✱` (yellow) indicates there are uncommitted changes or untracked files (but no semantic code modifications).
-  - `Δ` (red) indicates code files contain semantic drift (actual code/symbol modifications detected by parsing and comparison) or remote changes have been detected.
-- **Monokai Theme Color Fix**:
-  - Resolved fatal shell crash (e.g. running `diff` inside the interactive shell) when `monokai` theme was chosen.
-  - Replaced invalid color names `bright_pink`, `bright_orange`, and `bright_purple` with standard hex codes: `"#f92672"`, `"#fd971f"`, and `"#ae81ff"`.
-- **Interactive Shell Diff Command Enhancement**:
-  - Upgraded the shell's `diff` command (`do_diff`) to compare the common ancestor (`base_sha`) directly against the local working directory (including staged/unstaged changes and untracked files).
-  - Modified the files comparison loop to read new contents from the local filesystem rather than just from the `HEAD` commit, enabling extraction of semantic operators for uncommitted code changes.
-  - Properly handles file renames/moves during diff, parsing the old file path at `base_sha` and comparing it to the new path in the working directory.
-- **DSA compliance**: Resolved a DSA fitness warning regarding repeated `self.observer.is_valid()` calls in `_get_status_indicator`.
-- **Harness Verification is ALL GREEN**:
-  - Layer 1 static: Architecture fitness and DSA fitness checks pass cleanly.
-  - Layer 2 runtime: all 24 unit tests pass.
-  - Layer 3 end-to-end: cli-smoke test runs successfully.
+Phase 1.1 Transcendence (`phase1-transcendence`) is **done**. Foundation is trustworthy for observation:
+
+- AST UTF-8 text extraction is correct; rename garbage from byte/str slicing is fixed.
+- Transform maps use `(parent_class, name)`; rename matching uses fingerprint buckets + stub/identifier gates.
+- `gdss status [--ref]` shows:
+  1. Branch / attractor / remote ahead-behind (or N/A)
+  2. Trajectory since reference (`merge_base..HEAD` operators)
+  3. Uncommitted semantic delta (WT vs HEAD) — **not** called drift energy
+- `config ref <branch>` persists via `ContextEngine.set_reference_branch` → hierarchy DB.
+- Go grammar wired; content-hash LRU parser cache; analyze reports skipped unsupported files.
+- `bash harness/verify.sh` is ALL LAYERS GREEN (37 pytest).
+
+## Explicitly still out of scope (next phases)
+- Phase 2 embeddings / ONNX (`phase2-embeddings`)
+- Continuous drift integral I(B_i) (`phase3-drift`)
+- Conflict tensor Ω_ij (`phase4-tensor`)
 
 ## Next Steps
-- Implement **Phase 1.2 (Semantic Embedding Layer)** as planned in the roadmap.
+1. Pick `phase2-embeddings` only when ready for probabilistic brain work.
+2. Optional follow-ups (not blocking): Rust/Java grammars; disk-backed parse cache; deeper call-resolution DSA remaining in `finding-call-resolution-quadratic`.
+
+## How to resume
+```bash
+bash harness/init.sh
+bash harness/verify.sh
+gdss status --repo . --ref main
+```

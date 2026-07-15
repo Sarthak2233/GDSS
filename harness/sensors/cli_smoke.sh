@@ -76,8 +76,14 @@ GIT commit -qam "feature: change fee logic, add audit" || fail "feature commit f
 echo "cli-smoke: running CLI over fixture ($base -> feature-work)..."
 
 run_gdss --help >/dev/null 2>&1 || fail "gdss --help"
-run_gdss status --repo "$fixture" --ref "$base" >/dev/null 2>&1 \
+status_out="$(run_gdss status --repo "$fixture" --ref "$base" 2>&1)" \
   || fail "gdss status --repo $fixture --ref $base"
+echo "$status_out" | grep -qi "DRIFT DETECTED" \
+  && fail "status falsely labeled remote/event as DRIFT DETECTED"
+echo "$status_out" | grep -qi "Uncommitted semantic delta" \
+  || fail "status missing uncommitted semantic delta section"
+echo "$status_out" | grep -qi "Trajectory since reference" \
+  || fail "status missing trajectory section"
 run_gdss log --repo "$fixture" -n 5 >/dev/null 2>&1 \
   || fail "gdss log --repo $fixture -n 5"
 

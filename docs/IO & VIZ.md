@@ -132,7 +132,7 @@ invert_operator(op: SemanticOperator) -> SemanticOperator
 | Shell command | What it reads | What it prints |
 |---------------|---------------|----------------|
 | `gdss start` | Repo path | Interactive shell |
-| `gdss status --repo PATH [--ref main]` | Working tree + HEAD | Branch status + semantic drift table |
+| `gdss status --repo PATH [--ref main]` | merge_base(ref)..HEAD + working tree | Attractor/remote + trajectory operators + uncommitted semantic delta |
 | `gdss log -n 5 --repo PATH` | Last N commits | Semantic operators per commit |
 | `gdss analyze --repo PATH` | All `.py/.js/.ts` files | Graph node/edge counts + symbol breakdown |
 | `gdss diff TARGET --repo PATH` | Branch diff vs target | File changes + semantic operators |
@@ -286,6 +286,8 @@ graph.get_summary()
 - No web or GUI graph viewer
 - No persistent graph database (Neo4j, etc.)
 - `impact` is not exposed as `gdss impact ...` — only inside the interactive shell
+- Working tree ≠ drift energy: `status` labels WT as **uncommitted semantic delta**; branch drift integral I(B_i) is Phase 3
+- `--ref` selects the attractor branch (glossary `dev` is configurable; default often `main`)
 - Phase 2+ (embeddings, drift vectors) is not wired to CLI yet
 
 ---

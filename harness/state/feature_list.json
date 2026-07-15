@@ -70,6 +70,19 @@
       "evidence": "verify.sh ALL LAYERS GREEN; test_code_graph.py::test_file_move_preserves_symbol_identity; gdss/graph/operator_engine.py apply/invert"
     },
     {
+      "id": "phase1-transcendence",
+      "phase": "1.1.2",
+      "title": "Phase 1.1 Transcendence: AST/rename correctness + status/trajectory honesty",
+      "layer": "core",
+      "status": "done",
+      "deps": [
+        "phase1-transform",
+        "phase1-graph"
+      ],
+      "done_criteria": "UTF-8 AST text; parent+name symbol keys; rename false-positive gates; status shows remote ahead/behind (never remote_aware as DRIFT); --ref + persisted attractor; merge_base..HEAD trajectory; uncommitted semantic delta label; Go grammar; content-hash cache; verify.sh green",
+      "evidence": "verify.sh ALL LAYERS GREEN (37 pytest); cli-smoke asserts no DRIFT DETECTED and status section titles"
+    },
+    {
       "id": "phase2-embeddings",
       "phase": "1.2",
       "title": "Semantic Embedding Layer: encoder, similarity, branch vectors",
@@ -192,22 +205,22 @@
       "severity": "medium",
       "discovered_by": "harness Layer 1 (dsa_fitness static sensor)",
       "where": "gdss/core/transform_extractor.py",
-      "what": "O(D×A) pairwise similarity comparisons in rename detection.",
+      "what": "O(D\u00d7A) pairwise similarity comparisons in rename detection.",
       "why": "Pairwise SequenceMatcher comparison between deleted symbols and added symbols results in quadratic complexity.",
       "fix": "Use pre-computed body fingerprints + threshold-based hashing to group candidates first, then compare only high-probability pairs.",
       "status": "resolved",
-      "evidence": "structural_fingerprint.py + fingerprint_bucket() + normalized Levenshtein in _match_symbol_renames(); test_formatter_invariant_rename_detection passes"
+      "evidence": "fingerprint_bucket wired in _match_symbol_renames; stub/identifier gates; test_formatter_invariant_rename_detection + false-positive tests"
     },
     {
       "id": "finding-call-resolution-quadratic",
       "severity": "medium",
       "discovered_by": "harness Layer 1 (dsa_fitness static sensor)",
       "where": "gdss/graph/code_graph.py:resolve_calls()",
-      "what": "O(F²) nested iteration during static call resolution.",
+      "what": "O(F\u00b2) nested iteration during static call resolution.",
       "why": "Looping over defined functions to resolve imports and local calls without index queries leads to quadratic complexity.",
       "fix": "Index function definitions by name and file to allow O(1) lookups during resolution.",
       "status": "partially-resolved",
-      "evidence": "_symbol_index + find_node_by_name() reduce candidate scans; import-edge iteration remains O(F×imports)"
+      "evidence": "_symbol_index + find_node_by_name() reduce candidate scans; import-edge iteration remains O(F\u00d7imports)"
     },
     {
       "id": "finding-stale-node-scan",
@@ -228,7 +241,8 @@
       "what": "AST parser recomputes from scratch on every parse invocation.",
       "why": "Missing memoization or file hash checks causes the parser to parse files repeatedly even if unchanged.",
       "fix": "Implement file content hashing (MD5/SHA256) and cache parse results in memory or disk.",
-      "status": "open-needs-source-change"
+      "status": "resolved",
+      "evidence": "content-hash LRU cache in ASTParser.parse_file; test_content_hash_cache_returns_same_symbols"
     },
     {
       "id": "finding-flat-symbol-list",
@@ -238,7 +252,63 @@
       "what": "ast_parser returns a flat list of CodeSymbols, requiring O(N) lookup.",
       "why": "Downstream consumers must scan the list linearly to find symbols by name or type.",
       "fix": "Expose an indexed dictionary interface (e.g. dict[str, CodeSymbol]) alongside the flat list.",
-      "status": "open-needs-source-change"
+      "status": "resolved",
+      "evidence": "get_indexed_symbols keys by (parent_class, name)"
+    },
+    {
+      "id": "finding-utf8-byte-slicing",
+      "severity": "high",
+      "discovered_by": "live gdss status on non-ASCII sources",
+      "where": "gdss/core/ast_parser.py:_get_node_text",
+      "what": "Tree-sitter byte offsets used as Python str indices corrupted symbol names.",
+      "why": "Non-ASCII prefixes shift byte vs char indices; rename endpoints became garbage.",
+      "fix": "Decode via content_bytes[start:end].decode('utf-8').",
+      "status": "resolved",
+      "evidence": "test_non_ascii_prefix_preserves_symbol_names"
+    },
+    {
+      "id": "finding-name-key-collision",
+      "severity": "high",
+      "discovered_by": "Phase 1.1 transcendence audit",
+      "where": "gdss/core/transform_extractor.py",
+      "what": "Symbol maps keyed only by name collided across classes.",
+      "why": "Methods like run/__init__ in different classes overwrote each other.",
+      "fix": "Key by (parent_class, name).",
+      "status": "resolved",
+      "evidence": "test_same_method_name_in_different_classes_does_not_collide"
+    },
+    {
+      "id": "finding-unused-rename-buckets",
+      "severity": "medium",
+      "discovered_by": "Phase 1.1 transcendence audit",
+      "where": "gdss/core/transform_extractor.py:_match_symbol_renames",
+      "what": "fingerprint_bucket helper unused; stub pairs false-positive renames.",
+      "why": "Pairwise matching without stub/identifier gates.",
+      "fix": "Wire buckets + reject near-empty stubs and non-identifiers.",
+      "status": "resolved",
+      "evidence": "test_dissimilar_stub_pair_is_delete_and_add_not_rename; test_corrupt_symbol_names_are_rejected_as_renames"
+    },
+    {
+      "id": "finding-remote-aware-as-drift",
+      "severity": "high",
+      "discovered_by": "live gdss status",
+      "where": "gdss/cli/start.py + context_engine remote_aware",
+      "what": "status labeled remote event topic as DRIFT DETECTED.",
+      "why": "remote_aware is event-bus recency, not ahead/behind divergence.",
+      "fix": "Show Git ahead/behind or N/A; never map remote_aware to DRIFT.",
+      "status": "resolved",
+      "evidence": "cli_smoke asserts no DRIFT DETECTED; get_remote_sync_status"
+    },
+    {
+      "id": "finding-status-ref-ignored",
+      "severity": "medium",
+      "discovered_by": "Phase 1.1 transcendence audit",
+      "where": "gdss/cli/main.py status --ref / do_status / do_config",
+      "what": "--ref ignored; config ref printed success without persistence.",
+      "why": "do_status discarded arg; config did not write hierarchy DB.",
+      "fix": "Honor status arg; ContextEngine.set_reference_branch persists.",
+      "status": "resolved",
+      "evidence": "test_reference_branch_persists_via_hierarchy; status sections use ref"
     }
   ]
 }

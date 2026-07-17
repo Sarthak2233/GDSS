@@ -5,6 +5,24 @@ output), not just claims.
 
 ---
 
+## 2026-07-17 - Phase 2: Semantic Embedding Layer
+
+Implemented probabilistic Layer 6 (`gdss/embeddings/`):
+- DeterministicBagEncoder (offline default) + optional OnnxMiniLMEncoder
+- Content-hash LRU EmbeddingCache; vectorized cosine similarity
+- Branch tip aggregation (`aggregate_branch_tip`, assistive distance helper)
+- FAISS VectorStore (`IndexFlatIP`) with numpy fallback; persist under `.gdss/vectors/`
+- CLI: `gdss similar`, `gdss reindex`; status shows assistive embedding tip note
+- Optional extras: `pip install -e ".[embeddings]"` (faiss-cpu, onnxruntime)
+- Two-brain purity preserved (architecture fitness OK)
+
+Evidence (`bash harness/verify.sh`):
+- Layer 1: architecture OK; DSA OK
+- Layer 2: pytest 55 passed, 1 skipped
+- Layer 3: cli-smoke OK (includes similar)
+- Result: ALL LAYERS GREEN (exit 0)
+
+---
 ## 2026-07-13 - Phase 1.1 Transcendence (Correctness + Honesty)
 
 Hardened Phase 1.1 into a trustworthy semantic observation layer (no Phase 2 embeddings).

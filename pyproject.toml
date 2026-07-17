@@ -17,6 +17,7 @@ dependencies = [
     "tree-sitter-typescript>=0.21.0",
     "tree-sitter-go>=0.21.0",
     "networkx>=3.0",
+    "numpy>=1.26.0",
     "typer>=0.9.0",
     "rich>=13.0",
     "watchdog>=3.0",
@@ -28,6 +29,10 @@ dev = [
     "pytest-cov",
     "ruff",
     "black",
+]
+embeddings = [
+    "faiss-cpu>=1.7.4",
+    "onnxruntime>=1.16.0",
 ]
 
 [project.scripts]

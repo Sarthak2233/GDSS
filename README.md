@@ -37,24 +37,17 @@ GDSS reframes software evolution through **Differential Geometry** and **Operato
 
 ```mermaid
 flowchart LR
-    subgraph Repo["📁 Raw Repository"]
-        RepoFile[("🗄️ Files & Commits")]
+    subgraph Repo["Raw Repository"]
+        RepoFile[("Files and Commits")]
     end
 
-    AST[/'⚙️ AST Parser Engine'/]
-    TX[("🔄 Transformation Operator<br>Engine")]
-    DG[("🔗 Dependency<br>Graph Builder")]
-    SM[/'🧠 Semantic Manifold<br>Model'/]
+    AST["AST Parser"]
+    TX["Transform Operators"]
+    DG["Dependency Graph"]
+    EMB["Embeddings FAISS"]
+    SM["Semantic Manifold Model"]
 
-    RepoFile --> AST --> TX --> DG --> SM
-
-    style RepoFile fill:#06b6d4,stroke:#035e66,stroke-width:2px,color:#02111a
-    style AST fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#fff
-    style TX fill:#7c3aed,stroke:#4c1d95,stroke-width:2px,color:#fff
-    style DG fill:#f59e0b,stroke:#92400e,stroke-width:2px,color:#fff
-    style SM fill:#10b981,stroke:#065f46,stroke-width:2px,color:#fff
-
-    linkStyle default stroke:#94a3b8,stroke-width:1.5px
+    RepoFile --> AST --> TX --> DG --> EMB --> SM
 ```
 
 </details>
@@ -75,6 +68,9 @@ pip install -e .
 
 # For development
 pip install -e ".[dev]"
+
+# Verify the three-layer harness gate
+bash harness/verify.sh
 ```
 
 ### 🧭 Getting Started (first 2 minutes)
@@ -93,14 +89,15 @@ On first launch you pick a color theme, the daemon wakes, and you land at the
 gdss ▶ help              # 1. see every available command
 gdss ▶ status            # 2. attractor/remote + trajectory + uncommitted semantic delta
 gdss ▶ analyze           # 3. build the dependency graph (node/edge summary)
-gdss ▶ impact <symbol>   # 4. what breaks if you change <symbol> (e.g. a function)
-gdss ▶ log 5             # 5. semantic operators for the last 5 commits
-gdss ▶ quit              # 6. exit (or press Ctrl+D)
+gdss ▶ similar <symbol>  # 4. assistive embedding neighbors (FAISS / bag)
+gdss ▶ impact <symbol>   # 5. what breaks if you change <symbol>
+gdss ▶ log 5             # 6. semantic operators for the last 5 commits
+gdss ▶ quit              # 7. exit (or press Ctrl+D)
 ```
 
-> [!TIP]
 > Prefer one-off commands without the shell? Everything works directly too, e.g.
-> `gdss status --repo .` or `gdss analyze --repo .`. See the reference below.
+> `gdss status --repo .`, `gdss analyze --repo .`, or `gdss similar foo --repo .`.
+> See the reference below. Full I/O map: [`docs/IO & VIZ.md`](docs/IO%20%26%20VIZ.md).
 
 ### 💻 CLI Operations
 
@@ -123,6 +120,10 @@ gdss log --repo . -n 5
 # Deep semantic analysis + dependency graph summary
 gdss analyze --repo .
 
+# Assistive semantic neighbors (bag/ONNX + FAISS index under .gdss/vectors/)
+gdss similar process_payment --repo . -k 5
+gdss reindex --repo .
+
 # Semantic diff of the active branch against a target branch
 gdss diff main --repo .
 
@@ -143,6 +144,8 @@ gdss graph export --repo . --format json -o gdss_graph.json
 | `gdss status` | `--repo`, `--ref` | Attractor/remote + trajectory since ref + uncommitted semantic delta |
 | `gdss log` | `--repo`, `-n` | Semantic operators per commit |
 | `gdss analyze` | `--repo` | Build dependency graph, print node/edge summary |
+| `gdss similar` | `SYMBOL`, `--repo`, `-k` | Assistive FAISS/bag neighbors for a symbol |
+| `gdss reindex` | `--repo` | Rebuild `.gdss/vectors/` embedding index |
 | `gdss diff` | `TARGET`, `--repo` | Semantic diff vs another branch |
 | `gdss watch` | `--repo` | Real-time event bus monitor |
 | `gdss graph export` | `--repo`, `--format`, `-o` | Export dependency graph to DOT or JSON |
@@ -158,6 +161,8 @@ Run `gdss start`, then use these at the `gdss ▶` prompt:
 | `impact <symbol>` | Downstream impact of a specific symbol |
 | `log [count] [--type=OP]` | Semantic commit log (optionally filtered by operator) |
 | `diff [target]` | Semantic diff against a target branch (default `main`) |
+| `similar <name> [k]` | Assistive embedding neighbors (FAISS/bag) |
+| `reindex` | Rebuild `.gdss/vectors/` index |
 | `watch` | Real-time monitoring of the distributed event bus |
 | `hierarchy` | Show the distributed branch priority chain |
 | `config [ref <branch>]` | View or set the reference branch |
@@ -179,34 +184,59 @@ The `diff` command calculates structural and semantic changes by finding the spl
 
 For modified code files, GDSS parses both the original state (at the ancestor commit) and the current working tree state into ASTs to extract precise symbol-level transformations (such as class modifications, function renames, or new dependencies).
 
+#### How embeddings work (`similar` / `reindex`)
+
+Phase 2 adds an **assistive** probabilistic layer (Layer 6). It does **not** replace AST operators or claim continuous drift energy \(I(B_i)\) (that is Phase 3).
+
+1. Symbols are encoded to \(\phi(C) \in \mathbb{R}^d\) (default: offline **DeterministicBagEncoder**; optional **ONNX MiniLM** via `GDSS_EMBEDDING_BACKEND=onnx`).
+2. Vectors are indexed locally with **FAISS** (`IndexFlatIP` on L2-normalized vectors; numpy fallback if `faiss-cpu` is missing).
+3. Index + id map live under `.gdss/vectors/` (gitignored). Rebuild with `gdss reindex`.
+4. `gdss similar <symbol>` returns top-\(k\) neighbors — useful for overlap hints, not a merge oracle.
+
+```bash
+pip install -e ".[embeddings]"          # faiss-cpu + onnxruntime
+gdss reindex --repo .
+gdss similar process_payment --repo . -k 5
+# Optional real MiniLM: place ONNX under .gdss/models/ and set GDSS_EMBEDDING_BACKEND=onnx
+```
+
 ---
 
-## 🗺 Project Direction & Phases
+## Project Direction & Phases
 
-This section details the development roadmap towards building the full 10-layer GDSS architecture.
+This section tracks the 10-layer roadmap. **Done** means `bash harness/verify.sh` green with tests.
 
-### Current Status: **Phase 0 & 1 Complete (45%)**
+### Current Status: **Phase 0 + Phase 1 + Phase 2 Complete**
 
-The **Distributed Runtime Foundation (Phase 0)** is fully implemented and optimized, providing GitHub awareness, local/remote observers, an event bus, and a rich interactive interface.
+| Phase | Status | What you get today |
+| :--- | :--- | :--- |
+| **0 — Runtime** | Done | Daemon, event bus, local/remote observers, context DB |
+| **1.1 — Deterministic brain** | Done | AST (Py/JS/TS/Go), operators, CodeGraph, honest `status`/`diff`/`log` |
+| **1.1.2 — Transcendence** | Done | UTF-8 AST, rename precision, trajectory since `--ref`, no false “DRIFT DETECTED” |
+| **1.2 — Embeddings** | Done | \(\phi(C)\), cosine, FAISS index, `similar` / `reindex` (assistive) |
+| **1.3 — Drift** | Next | Continuous \(I(B_i)\), alerts, daemon monitoring |
+| **1.4+** | Planned | Conflict tensor \(\Omega_{ij}\), AI suggestions, validation |
 
 #### Phase 0 — Distributed Runtime Foundation
 
-- **Goal**: Provide a lightweight, local-first distributed runtime that tracks repository state, detects local and remote changes, and broadcasts semantic change events for downstream analysis.
-- **Primary components**:
-    - **Event Bus**: centralized pub/sub used for local and remote events — [gdss/runtime/event_bus.py](gdss/runtime/event_bus.py).
-    - **Local Observer**: watches the local Git repository, parses ASTs, and emits semantic operators — [gdss/runtime/local_observer.py](gdss/runtime/local_observer.py).
-    - **Remote Monitor**: polls remote refs (`git ls-remote`) and emits remote events to detect upstream drift — [gdss/runtime/remote_monitor.py](gdss/runtime/remote_monitor.py).
-    - **GDSS Daemon**: orchestrates observers and periodic scans; starts the context engine and lifecycle loop — [gdss/runtime/daemon.py](gdss/runtime/daemon.py).
-    - **Context Engine**: subscribes to events, builds awareness packets, and persists context to the runtime DB — [gdss/runtime/context_engine.py](gdss/runtime/context_engine.py).
-    - **Repository Registry**: DB-backed registry for repositories, branches and branch state helpers — [gdss/runtime/registry.py](gdss/runtime/registry.py).
-    - **Hierarchy Manager**: resolves branch priority chains and trajectory configuration used by the context engine — [gdss/runtime/hierarchy.py](gdss/runtime/hierarchy.py).
+- **Goal**: Local-first runtime that tracks repo state and broadcasts semantic change events.
+- **Components**: [event_bus](gdss/runtime/event_bus.py), [local_observer](gdss/runtime/local_observer.py), [remote_monitor](gdss/runtime/remote_monitor.py), [daemon](gdss/runtime/daemon.py), [context_engine](gdss/runtime/context_engine.py), [registry](gdss/runtime/registry.py), [hierarchy](gdss/runtime/hierarchy.py).
+- **Honesty**: Remote row on `status` is ahead/behind or N/A — never event-topic “drift”.
 
-- **How these files help the project**:
-    - `LocalObserver` extracts `semantic_operators` (via `ASTParser` and `TransformExtractor`) and emits them on the `EventBus`, enabling downstream systems (graph builder, embedder, drift monitor) to consume a normalized semantic stream.
-    - `RemoteMonitor` and `LocalObserver` use consistent topics (`"local"`, `"remote"`, and global `"all"`) so components can subscribe uniformly to a single event layer.
-    - `ContextEngine` assembles awareness packets (source, event, timestamp, repo id, reference branch, semantic operators) and persists them for later analysis and UI display.
+#### Phase 1 — Semantic Observation (deterministic brain)
 
-- **Evidence & verification**: Phase 0 components are implemented under `gdss/runtime/` and are exercised by the harness verification pipeline; run `bash harness/verify.sh` to validate the static checks and tests.
+- **AST**: Tree-sitter multi-language parser with UTF-8-safe text and content-hash cache — [ast_parser](gdss/core/ast_parser.py).
+- **Operators**: Diffs → `SemanticOperator`s; structural fingerprints; rename gates — [transform_extractor](gdss/core/transform_extractor.py).
+- **Graph**: Stable `symbol_id` nodes, DOT/JSON export — [code_graph](gdss/graph/code_graph.py), [graph export](gdss/graph/graph_export.py).
+- **Trajectory**: Committed operators `merge_base(ref)..HEAD` plus uncommitted semantic delta — [trajectory](gdss/core/trajectory.py).
+- **CLI**: `status --ref`, `diff`, `log`, `analyze`, `graph export`.
+
+#### Phase 2 — Semantic Embedding Layer (probabilistic brain)
+
+- **Goal**: Approximate semantic similarity without claiming continuous drift or auto-merge.
+- **Package**: [gdss/embeddings/](gdss/embeddings/) — encoders, cosine, branch tip vectors, FAISS `VectorStore`, CLI helpers.
+- **Two-brain rule**: `core` / `graph` / `watcher` never import `embeddings`. CLI may use embeddings downward.
+- **CLI**: `gdss similar`, `gdss reindex`; `status` may note an assistive embedding tip (not \(I(B_i)\)).
 
 <p align="center">
     <img src="./assets/product/roadmap.svg" alt="Roadmap — Phase status" width="100%">
@@ -217,32 +247,30 @@ The **Distributed Runtime Foundation (Phase 0)** is fully implemented and optimi
 
 ```mermaid
 graph TD
-    subgraph Done["✅ Completed - 40%"]
-        P1["Phase 1: AST & Dependency Graph"]
+    subgraph Done["Completed"]
+        P0["Phase 0: Distributed Runtime"]
+        P1["Phase 1: AST Operators Graph"]
+        P2["Phase 2: Embeddings + FAISS"]
     end
-    
-    subgraph Next["🚀 In Progress"]
-        P2["Phase 2: Semantic Embeddings<br>(all-MiniLM-L6-v2 ONNX)"]
+
+    subgraph Next["Next"]
+        P3["Phase 3: Continuous Drift IBi"]
     end
-    
-    subgraph Future["🔮 Planned"]
-        P3["Phase 3: Continuous Drift Monitor"]
+
+    subgraph Future["Planned"]
         P4["Phase 4: Conflict Tensor"]
         P5["Phase 5: AI Semantic Rebase"]
         P6["Phase 6: Validation Sandbox"]
-        P7["Phase 7: Geometric Research Library"]
+        P7["Phase 7: Geometric Research"]
     end
-    
+
+    P0 --> P1
     P1 --> P2
     P2 --> P3
     P3 --> P4
     P4 --> P5
     P5 --> P6
     P6 --> P7
-
-    style Done fill:#16a34a,stroke:#15803d,stroke-width:2px,color:#fff
-    style Next fill:#2563eb,stroke:#1d4ed8,stroke-width:2px,color:#fff
-    style Future fill:#475569,stroke:#334155,stroke-width:2px,color:#fff
 ```
 
 </details>
@@ -252,16 +280,15 @@ graph TD
 
 ### Branch Drift Energy
 
-GDSS quantifies how far a branch has diverged from the main semantic manifold:
+**Planned for Phase 3.** GDSS will quantify how far a branch has diverged from the attractor over time:
 
 $$I(B_i) = \int_0^T \| \dot{\gamma}_i(t) - \dot{\gamma}_{\text{main}}(t) \|_{\mathcal{M}} \, dt$$
 
-- **Low drift** → Seamless integration
-- **High drift** → Automatic conflict anticipation
+Today, Phase 1 gives **deterministic** trajectory operators + uncommitted semantic delta; Phase 2 gives **assistive** embedding distance / neighbors. Continuous \(I(B_i)\) alerts are not implemented yet.
 
 ### Conflict Tensor
 
-Branch interaction matrix $\Omega_{ij}$ predicts merge compatibility before checkout:
+**Planned for Phase 4.** Branch interaction matrix \(\Omega_{ij}\) will predict merge compatibility before checkout:
 
 <p align="center">
   <img src="./assets/product/conflict_tensor.svg" alt="Conflict Tensor Matrix" width="100%">
@@ -338,47 +365,36 @@ flowchart TB
 
 ```mermaid
 flowchart TD
-    subgraph Input["📥 Input Layer"]
+    subgraph Input["Input"]
         Git[Git Repository]
         Files[Source Files]
     end
-    
-    subgraph Processing["⚙️ Processing Pipeline"]
+
+    subgraph Live["Live today"]
         AST[AST Parser]
-        Embed[Semantic Embedder]
+        TX[Transform Operators]
         Graph[Dependency Graph]
-        Manifold[Manifold Builder]
+        Embed[Embeddings FAISS]
+        Status[status diff log similar]
     end
-    
-    subgraph Analysis["📈 Analysis Layer"]
-        Drift[Drift Monitor]
-        Tensor[Conflict Tensor]
-        Predict[Predictive Engine]
+
+    subgraph Planned["Planned"]
+        Drift[Drift Monitor Phase3]
+        Tensor[Conflict Tensor Phase4]
+        Suggest[AI Suggestions Phase5]
     end
-    
-    subgraph Output["💡 Output Layer"]
-        Status[Branch Status]
-        Warnings[Conflict Warnings]
-        Suggestions[Resolution Suggestions]
-    end
-    
-    Input --> Processing
-    Processing --> Analysis
-    Analysis --> Output
-    
-    style Input fill:#1e293b,stroke:#475569,color:#fff
-    style Processing fill:#1e40af,stroke:#3b82f6,color:#fff
-    style Analysis fill:#7c3aed,stroke:#a78bfa,color:#fff
-    style Output fill:#065f46,stroke:#10b981,color:#fff
+
+    Input --> Live
+    Live --> Planned
 ```
 
 </details>
 
 ---
-### Next Milestones:
-1. **Phase 2 (Embeddings)**: Integrate local all-MiniLM-L6-v2 ONNX embeddings to represent codebase symbols in $\mathbb{R}^d$.
-2. **Phase 3 (Drift Monitoring)**: Compute branch drift energy: $I(B_i) = \int \|B_i(t) - D(t)\| dt$.
-3. **Phase 4 (Conflict Tensor)**: Compute branch interaction matrix $\Omega_{ij}$ to predict merge compatibility before checkout.
+### Next Milestones
+1. **Phase 3 (Drift Monitoring)**: Continuous branch drift energy \(I(B_i)\), velocity, alerts, daemon.
+2. **Phase 4 (Conflict Tensor)**: Interaction matrix \(\Omega_{ij}\) and commutativity table before merge.
+3. **Phase 5+**: AI suggestions (never auto-merge), validation sandbox, geometric research.
 
 ---
 

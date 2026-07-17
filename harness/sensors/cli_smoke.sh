@@ -86,6 +86,8 @@ echo "$status_out" | grep -qi "Trajectory since reference" \
   || fail "status missing trajectory section"
 run_gdss log --repo "$fixture" -n 5 >/dev/null 2>&1 \
   || fail "gdss log --repo $fixture -n 5"
+run_gdss similar process_payment --repo "$fixture" -k 3 >/dev/null 2>&1 \
+  || fail "gdss similar process_payment"
 
 # 3) Synchronized path: status on the reference branch itself.
 GIT checkout -q "$base" || fail "checkout base failed"

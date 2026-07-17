@@ -66,6 +66,23 @@ def analyze(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository pat
     run_shell(repo, "analyze")
 
 @app.command()
+def similar(
+    symbol: str = typer.Argument(..., help="Symbol name to search neighbors for"),
+    repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
+    k: int = typer.Option(5, "-k", help="Number of neighbors"),
+):
+    """Find assistive semantic neighbors (FAISS / bag embeddings)."""
+    run_shell(repo, f"similar {symbol} {k}")
+
+
+@app.command()
+def reindex(
+    repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
+):
+    """Rebuild the local embedding vector index under .gdss/vectors/."""
+    run_shell(repo, "reindex")
+
+@app.command()
 def watch(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path")):
     """Real-time monitoring of the distributed event bus."""
     run_shell(repo, "watch")

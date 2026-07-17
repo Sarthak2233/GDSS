@@ -20,6 +20,8 @@ venv/
 
 # Project specific
 .gdss/runtime.db
+.gdss/vectors/
+.gdss/models/
 *.egg-info/
 build/
 dist/

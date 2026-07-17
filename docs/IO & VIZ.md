@@ -134,10 +134,12 @@ invert_operator(op: SemanticOperator) -> SemanticOperator
 | `gdss start` | Repo path | Interactive shell |
 | `gdss status --repo PATH [--ref main]` | merge_base(ref)..HEAD + working tree | Attractor/remote + trajectory operators + uncommitted semantic delta |
 | `gdss log -n 5 --repo PATH` | Last N commits | Semantic operators per commit |
-| `gdss analyze --repo PATH` | All `.py/.js/.ts` files | Graph node/edge counts + symbol breakdown |
+| `gdss analyze --repo PATH` | All supported source files | Graph node/edge counts + symbol breakdown |
+| `gdss similar SYMBOL --repo PATH [-k 5]` | Symbol embeddings + FAISS/numpy index | Assistive top-k neighbors |
+| `gdss reindex --repo PATH` | All supported source files | Rebuild `.gdss/vectors/` |
 | `gdss diff TARGET --repo PATH` | Branch diff vs target | File changes + semantic operators |
 | `gdss watch --repo PATH` | Event bus | Live monitor panel |
-| `gdss graph export --repo PATH -o FILE` | All `.py/.js/.ts` files | DOT or JSON graph file on disk |
+| `gdss graph export --repo PATH -o FILE` | All supported source files | DOT or JSON graph file on disk |
 
 **Interactive-only** (inside `gdss start`):
 
@@ -147,6 +149,8 @@ invert_operator(op: SemanticOperator) -> SemanticOperator
 | `impact <symbol>` | Downstream impact table for a symbol name |
 | `hierarchy` | Branch priority chain as a Rich tree |
 | `log`, `status`, `diff`, `watch` | Same as above |
+| `similar <name> [k]` | Assistive embedding neighbors |
+| `reindex` | Rebuild local vector index |
 
 ---
 
@@ -288,8 +292,8 @@ graph.get_summary()
 - `impact` is not exposed as `gdss impact ...` — only inside the interactive shell
 - Working tree ≠ drift energy: `status` labels WT as **uncommitted semantic delta**; branch drift integral I(B_i) is Phase 3
 - `--ref` selects the attractor branch (glossary `dev` is configurable; default often `main`)
-- Phase 2+ (embeddings, drift vectors) is not wired to CLI yet
-
+- Embeddings (`gdss similar` / FAISS under `.gdss/vectors/`) are **assistive**; continuous drift monitoring is Phase 3
+- Optional extras: `pip install -e ".[embeddings]"` for `faiss-cpu` + `onnxruntime` (bag encoder works offline without them)
 ---
 
 ## Quick reference: core data types

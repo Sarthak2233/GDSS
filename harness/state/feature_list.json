@@ -87,12 +87,13 @@
       "phase": "1.2",
       "title": "Semantic Embedding Layer: encoder, similarity, branch vectors",
       "layer": "embeddings",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "phase1-transform",
         "phase1-graph"
       ],
-      "done_criteria": "gdss/embeddings/* with tests; phi(C) embeddings + cosine similarity"
+      "done_criteria": "gdss/embeddings/* with tests; phi(C) bag/ONNX + cosine; FAISS VectorStore; gdss similar/reindex; verify.sh green",
+      "evidence": "verify.sh ALL LAYERS GREEN (55 pytest, 1 skipped ONNX integration); cli-smoke includes gdss similar; FAISS IndexFlatIP + numpy fallback; architecture fitness OK (no core\u2192embeddings)"
     },
     {
       "id": "phase3-drift",

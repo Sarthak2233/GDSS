@@ -42,6 +42,13 @@ from gdss.storage.db import RuntimeDB
 # GDSS Watcher imports - USED
 from gdss.watcher.git_observer import GitObserver
 from gdss.core.trajectory import extract_trajectory_operators, is_single_attractor_trajectory
+from gdss.embeddings.encoder import get_encoder
+from gdss.embeddings.service import find_similar_symbols, rebuild_vector_index
+from gdss.embeddings.branch_vector import (
+    aggregate_branch_tip,
+    embed_symbols,
+)
+from gdss.embeddings.service import collect_repo_symbols
 
 # Initialize Rich Console
 console = Console()
@@ -367,6 +374,65 @@ class GDSSShell(cmd.Cmd):
 
         wt_ops = self._extract_uncommitted_operators()
         self._print_operator_table("Uncommitted semantic delta (working tree)", wt_ops, "warning")
+
+        # Assistive embedding tip (not continuous I(B_i) / Phase 3 drift)
+        try:
+            enc = get_encoder()
+            symbols = collect_repo_symbols(self.repo_path, self.parser)
+            if symbols:
+                emb = embed_symbols(symbols, enc)
+                tip = aggregate_branch_tip(
+                    emb.values(), branch=self.active_branch, reference_branch=ref
+                )
+                console.print(
+                    f"\n[dim]Embedding tip (assistive): {tip.symbol_count} symbols, "
+                    f"backend={enc.name}, dim={tip.dim}. Not drift energy I(B_i).[/]"
+                )
+        except Exception:
+            pass
+
+    def do_reindex(self, _):
+        """Rebuild local FAISS/numpy vector index under .gdss/vectors/."""
+        console.print(f"\n[bold {self.theme['primary']}]━━━ REBUILD EMBEDDING INDEX ━━━[/]")
+        try:
+            store, n = rebuild_vector_index(self.repo_path)
+            console.print(
+                f"[bold {self.theme['success']}]✓ Indexed {n} symbols "
+                f"(backend={store.backend}, dim={store.dim}) → .gdss/vectors/[/]"
+            )
+        except Exception as exc:
+            console.print(f"[bold {self.theme['error']}]✗ {exc}[/]")
+
+    def do_similar(self, arg):
+        """Find semantically similar symbols via FAISS/numpy index.
+
+        Usage: similar <symbol_name> [k]
+        """
+        parts = arg.split()
+        if not parts:
+            console.print(f"[bold {self.theme['error']}]Usage: similar <symbol_name> [k][/]")
+            return
+        name = parts[0]
+        k = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 5
+        console.print(f"\n[bold {self.theme['primary']}]━━━ SIMILAR TO {name} (assistive) ━━━[/]")
+        try:
+            hits = find_similar_symbols(self.repo_path, name, k=k)
+        except Exception as exc:
+            console.print(f"[bold {self.theme['error']}]✗ {exc}[/]")
+            return
+        if not hits:
+            console.print(f"[dim]No symbol named '{name}' found (or index empty).[/]")
+            return
+        table = Table(box=box.MINIMAL, border_style=self.theme["info"])
+        table.add_column("Score")
+        table.add_column("Symbol")
+        table.add_column("Location")
+        for sid, score, sym in hits:
+            label = sym.name if sym else sid
+            loc = (sym.chart_location or "") if sym else ""
+            table.add_row(f"{score:.3f}", label, loc)
+        console.print(table)
+        console.print("[dim]Probabilistic neighbors — not a merge oracle.[/]")
 
     def do_log(self, arg):
         """Show semantic commit log. Usage: log [count] [--type=operator_type]"""

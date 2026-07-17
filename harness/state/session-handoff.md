@@ -1,30 +1,24 @@
-# Session Handoff: Phase 1.1 Transcendence Complete
+# Session Handoff: Phase 2 Embeddings Complete
 
 ## Current State
-Phase 1.1 Transcendence (`phase1-transcendence`) is **done**. Foundation is trustworthy for observation:
+`phase2-embeddings` is **done**. Probabilistic brain Layer 6 is live and assistive only:
 
-- AST UTF-8 text extraction is correct; rename garbage from byte/str slicing is fixed.
-- Transform maps use `(parent_class, name)`; rename matching uses fingerprint buckets + stub/identifier gates.
-- `gdss status [--ref]` shows:
-  1. Branch / attractor / remote ahead-behind (or N/A)
-  2. Trajectory since reference (`merge_base..HEAD` operators)
-  3. Uncommitted semantic delta (WT vs HEAD) — **not** called drift energy
-- `config ref <branch>` persists via `ContextEngine.set_reference_branch` → hierarchy DB.
-- Go grammar wired; content-hash LRU parser cache; analyze reports skipped unsupported files.
-- `bash harness/verify.sh` is ALL LAYERS GREEN (37 pytest).
-
-## Explicitly still out of scope (next phases)
-- Phase 2 embeddings / ONNX (`phase2-embeddings`)
-- Continuous drift integral I(B_i) (`phase3-drift`)
-- Conflict tensor Ω_ij (`phase4-tensor`)
+- `gdss/embeddings/` — bag encoder (default), optional ONNX MiniLM, cosine, branch tips
+- FAISS (or numpy fallback) index under `.gdss/vectors/`
+- CLI: `gdss similar <symbol>`, `gdss reindex`
+- Deterministic brain does **not** import embeddings
+- `bash harness/verify.sh` ALL LAYERS GREEN (55 pytest)
 
 ## Next Steps
-1. Pick `phase2-embeddings` only when ready for probabilistic brain work.
-2. Optional follow-ups (not blocking): Rust/Java grammars; disk-backed parse cache; deeper call-resolution DSA remaining in `finding-call-resolution-quadratic`.
+1. **`phase3-drift`** — continuous drift engine I(B_i), alerts, daemon (depends on embeddings)
+2. Optional: ship real MiniLM ONNX under `.gdss/models/` + `GDSS_EMBEDDING_BACKEND=onnx`
+3. Optional later: Qdrant for multi-repo SaaS (not required for local CLI)
 
 ## How to resume
 ```bash
 bash harness/init.sh
+source venv/bin/activate  # if using project venv
+pip install -e ".[embeddings]"  # faiss-cpu + onnxruntime
 bash harness/verify.sh
-gdss status --repo . --ref main
+gdss similar process_payment --repo . -k 5
 ```

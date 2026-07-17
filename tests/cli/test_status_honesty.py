@@ -1,12 +1,14 @@
 """Public-behavior checks for status labeling helpers."""
 
-from gdss.watcher.git_observer import GitObserver
-from gdss.core.trajectory import is_single_attractor_trajectory
-import git
 import os
-import tempfile
 import shutil
+import tempfile
+
+import git
 import pytest
+
+from gdss.core.trajectory import is_single_attractor_trajectory
+from gdss.watcher.git_observer import GitObserver
 
 
 @pytest.fixture

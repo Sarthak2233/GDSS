@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Sequence
+from collections.abc import Iterable, Sequence
 
 import numpy as np
 
@@ -22,19 +22,19 @@ def _symbol_text(sym: CodeSymbol) -> str:
 def embed_symbols(
     symbols: Sequence[CodeSymbol],
     encoder: CodeEncoder,
-) -> Dict[str, EmbeddingVector]:
+) -> dict[str, EmbeddingVector]:
     """Embed symbol bodies in one batch. Keys are symbol_id (ensured if missing)."""
     if not symbols:
         return {}
-    texts: List[str] = []
-    ids: List[str] = []
+    texts: list[str] = []
+    ids: list[str] = []
     for sym in symbols:
         sym.ensure_identity(sym.chart_location)
         sid = sym.symbol_id or f"{sym.parent_class or ''}::{sym.name}"
         ids.append(sid)
         texts.append(_symbol_text(sym))
     matrix = encoder.encode_texts(texts)
-    result: Dict[str, EmbeddingVector] = {}
+    result: dict[str, EmbeddingVector] = {}
     for i, sid in enumerate(ids):
         result[sid] = EmbeddingVector(
             vector=matrix[i].astype(np.float32),

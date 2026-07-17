@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Optional
 
 from gdss.core.transform_types import CodeSymbol, SymbolType
 
@@ -22,7 +21,7 @@ def compute_symbol_id(
     return hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
 
 
-def _normalize_signature(signature: Optional[str]) -> str:
+def _normalize_signature(signature: str | None) -> str:
     if not signature:
         return ""
     return " ".join(signature.split())

@@ -1,6 +1,5 @@
-import pytest
-from gdss.graph.code_graph import CodeGraph
 from gdss.core.transform_types import CodeSymbol, SymbolType
+from gdss.graph.code_graph import CodeGraph
 
 
 def _helper_symbol() -> CodeSymbol:

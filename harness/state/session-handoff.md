@@ -1,24 +1,20 @@
-# Session Handoff: Phase 2 Embeddings Complete
+# Session Handoff: Verify Gate Green
 
 ## Current State
-`phase2-embeddings` is **done**. Probabilistic brain Layer 6 is live and assistive only:
+`bash harness/verify.sh` is **ALL LAYERS GREEN** after lint/typecheck cleanup.
 
-- `gdss/embeddings/` — bag encoder (default), optional ONNX MiniLM, cosine, branch tips
-- FAISS (or numpy fallback) index under `.gdss/vectors/`
-- CLI: `gdss similar <symbol>`, `gdss reindex`
-- Deterministic brain does **not** import embeddings
-- `bash harness/verify.sh` ALL LAYERS GREEN (55 pytest)
+- Root cause of prior red: ruff/mypy now installed; ~475 style + 20 type errors
+- App/runtime was already fine (pytest + cli-smoke OK before the cleanup)
+- Fixed via ruff autofix + targeted mypy annotation fixes
 
 ## Next Steps
-1. **`phase3-drift`** — continuous drift engine I(B_i), alerts, daemon (depends on embeddings)
-2. Optional: ship real MiniLM ONNX under `.gdss/models/` + `GDSS_EMBEDDING_BACKEND=onnx`
-3. Optional later: Qdrant for multi-repo SaaS (not required for local CLI)
+1. **`phase3-drift`** — continuous drift engine I(B_i), alerts, daemon
+2. Optional: register `@pytest.mark.integration` to silence the onnx encoder warning
+3. Optional: ship real MiniLM ONNX under `.gdss/models/`
 
 ## How to resume
 ```bash
+source venv/bin/activate
 bash harness/init.sh
-source venv/bin/activate  # if using project venv
-pip install -e ".[embeddings]"  # faiss-cpu + onnxruntime
 bash harness/verify.sh
-gdss similar process_payment --repo . -k 5
 ```

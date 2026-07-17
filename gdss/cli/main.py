@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-import sys
 import os
+import sys
+from unittest.mock import patch
+
 import typer
+
 from gdss.cli.start import GDSSShell, console
 from gdss.graph.graph_builder import build_code_graph_from_repo
 from gdss.graph.graph_export import UnsupportedGraphFormatError, export_graph
-from unittest.mock import patch
 
 app = typer.Typer(help="GDSS: Geometric Distributed Software Synchronizer", no_args_is_help=False)
 graph_app = typer.Typer(help="Dependency graph operations")
 app.add_typer(graph_app, name="graph")
 
-def run_shell(repo_path: str, command: str = None):
+def run_shell(repo_path: str, command: str | None = None):
     status_code = 0
     try:
         if not os.path.exists(repo_path):
@@ -22,9 +24,9 @@ def run_shell(repo_path: str, command: str = None):
             patcher = patch('rich.prompt.Prompt.ask', return_value='default')
             if command:
                 patcher.start()
-                
+
             shell = GDSSShell(repo_path)
-            
+
             if command:
                 shell.onecmd(command)
                 shell.do_quit(None)
@@ -36,7 +38,7 @@ def run_shell(repo_path: str, command: str = None):
     except Exception as e:
         console.print(f"[bold red]✗ Fatal error:[/] {e}")
         status_code = 1
-    
+
     if status_code != 0:
         sys.exit(status_code)
 
@@ -86,7 +88,7 @@ def reindex(
 def watch(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path")):
     """Real-time monitoring of the distributed event bus."""
     run_shell(repo, "watch")
-    
+
 @app.command()
 def diff(target: str = typer.Argument("main"), repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path")):
     """Semantic diff from merge-base(target) through the working tree."""

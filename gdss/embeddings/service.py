@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, Sequence, Tuple
+import os
+from collections.abc import Sequence
 
-from gdss.core.ast_parser import ASTParser, SOURCE_EXTENSIONS
+from gdss.core.ast_parser import SOURCE_EXTENSIONS, ASTParser
 from gdss.core.transform_types import CodeSymbol
 from gdss.embeddings.branch_vector import embed_symbols
 from gdss.embeddings.cache import EmbeddingCache
@@ -12,14 +13,12 @@ from gdss.embeddings.encoder import CodeEncoder, get_encoder
 from gdss.embeddings.vector_store import VectorStore, default_vectors_dir, index_symbols
 from gdss.graph.graph_builder import SKIP_DIR_NAMES
 
-import os
 
-
-def collect_repo_symbols(repo_path: str, parser: Optional[ASTParser] = None) -> List[CodeSymbol]:
+def collect_repo_symbols(repo_path: str, parser: ASTParser | None = None) -> list[CodeSymbol]:
     """Parse supported source files under repo_path into CodeSymbols."""
     parser = parser or ASTParser()
     root_path = os.path.abspath(repo_path)
-    symbols: List[CodeSymbol] = []
+    symbols: list[CodeSymbol] = []
     for root, dirs, files in os.walk(root_path):
         dirs[:] = [name for name in dirs if name not in SKIP_DIR_NAMES]
         for filename in files:
@@ -39,9 +38,9 @@ def collect_repo_symbols(repo_path: str, parser: Optional[ASTParser] = None) -> 
 
 def rebuild_vector_index(
     repo_path: str,
-    encoder: Optional[CodeEncoder] = None,
-    symbols: Optional[Sequence[CodeSymbol]] = None,
-) -> Tuple[VectorStore, int]:
+    encoder: CodeEncoder | None = None,
+    symbols: Sequence[CodeSymbol] | None = None,
+) -> tuple[VectorStore, int]:
     """Embed symbols and persist VectorStore under .gdss/vectors/."""
     encoder = encoder or get_encoder()
     symbols = list(symbols) if symbols is not None else collect_repo_symbols(repo_path)
@@ -58,7 +57,7 @@ def rebuild_vector_index(
 
 def load_or_build_index(
     repo_path: str,
-    encoder: Optional[CodeEncoder] = None,
+    encoder: CodeEncoder | None = None,
 ) -> VectorStore:
     encoder = encoder or get_encoder()
     path = default_vectors_dir(repo_path)
@@ -78,8 +77,8 @@ def find_similar_symbols(
     repo_path: str,
     query_name: str,
     k: int = 5,
-    encoder: Optional[CodeEncoder] = None,
-) -> List[Tuple[str, float, Optional[CodeSymbol]]]:
+    encoder: CodeEncoder | None = None,
+) -> list[tuple[str, float, CodeSymbol | None]]:
     """
     Return top-k (symbol_id, score, CodeSymbol|None) neighbors for a symbol name.
     Rebuilds index if missing.
@@ -103,7 +102,7 @@ def find_similar_symbols(
 
     hits = store.search(q_vec, k=k + 1)
     id_to_sym = {s.symbol_id: s for s in symbols}
-    results: List[Tuple[str, float, Optional[CodeSymbol]]] = []
+    results: list[tuple[str, float, CodeSymbol | None]] = []
     for sid, score in hits:
         if query_sym.symbol_id and sid == query_sym.symbol_id:
             continue

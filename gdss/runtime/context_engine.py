@@ -1,8 +1,10 @@
 import json
 import time
+
 from gdss.runtime.event_bus import EventBus
-from gdss.runtime.registry import RepositoryRegistry
 from gdss.runtime.hierarchy import HierarchyManager
+from gdss.runtime.registry import RepositoryRegistry
+
 
 class ContextEngine:
     def __init__(self, repo_id: int, registry: RepositoryRegistry, bus: EventBus):
@@ -15,7 +17,7 @@ class ContextEngine:
     def on_any_event(self, event_packet: dict):
         topic = event_packet['topic']
         data = event_packet['data']
-        
+
         # Construct Awareness Packet
         packet = {
             "source": topic,
@@ -26,7 +28,7 @@ class ContextEngine:
             "remote_aware": topic == "remote",
             "semantic_operators": data.get("semantic_operators", [])
         }
-        
+
         # Log to DB
         self.log_context(packet)
 

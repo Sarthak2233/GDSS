@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 from gdss.graph.code_graph import CodeGraph
 
@@ -56,7 +56,7 @@ def render_json(graph: CodeGraph) -> str:
     return json.dumps(graph.snapshot(), indent=2, sort_keys=True) + "\n"
 
 
-def _node_label(graph: CodeGraph, node_id: str, data: Dict[str, Any]) -> str:
+def _node_label(graph: CodeGraph, node_id: str, data: dict[str, Any]) -> str:
     if data.get("type") == "file":
         return str(data.get("chart_location") or data.get("file") or node_id)
     return graph.get_display_id(node_id)

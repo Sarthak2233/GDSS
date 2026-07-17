@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import os
-from typing import Dict
 
-from gdss.core.ast_parser import ASTParser, SOURCE_EXTENSIONS
+from gdss.core.ast_parser import SOURCE_EXTENSIONS, ASTParser
 from gdss.graph.code_graph import CodeGraph
 
 SKIP_DIR_NAMES = {".git", "venv", "__pycache__", "node_modules", ".venv"}
@@ -26,7 +25,7 @@ def build_code_graph_from_repo(
     root_path = os.path.abspath(repo_path)
 
     file_list = []
-    skipped_unsupported: Dict[str, int] = {}
+    skipped_unsupported: dict[str, int] = {}
     for root, dirs, files in os.walk(root_path):
         dirs[:] = [name for name in dirs if name not in SKIP_DIR_NAMES]
         for filename in files:

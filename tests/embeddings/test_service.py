@@ -1,8 +1,8 @@
 """CLI-facing find_similar smoke via public service helpers."""
 
 import os
-import tempfile
 import shutil
+import tempfile
 
 from gdss.embeddings.encoder import DeterministicBagEncoder
 from gdss.embeddings.service import find_similar_symbols, rebuild_vector_index

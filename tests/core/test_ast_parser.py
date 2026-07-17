@@ -1,6 +1,6 @@
-import pytest
 from gdss.core.ast_parser import ASTParser
 from gdss.core.transform_types import SymbolType
+
 
 def test_parse_python_code():
     code = """
@@ -37,7 +37,7 @@ def global_helper():
 
     # Verify functions
     assert len(funcs) == 2
-    
+
     # Method add inside Calculator
     add_method = next(f for f in funcs if f.name == "add")
     assert add_method.parent_class == "Calculator"

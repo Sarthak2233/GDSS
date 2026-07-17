@@ -1,10 +1,9 @@
-import copy
 
 import pytest
 
-from gdss.core.transform_types import CodeSymbol, SymbolType, SemanticOperator, OperatorType
-from gdss.graph.operator_engine import UnsupportedOperatorError, apply_operator, invert_operator
+from gdss.core.transform_types import CodeSymbol, OperatorType, SemanticOperator, SymbolType
 from gdss.graph.code_graph import CodeGraph
+from gdss.graph.operator_engine import UnsupportedOperatorError, apply_operator, invert_operator
 
 
 def _make_graph_with_helper() -> tuple[CodeGraph, CodeSymbol]:

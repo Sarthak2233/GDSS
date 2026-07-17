@@ -5,6 +5,22 @@ output), not just claims.
 
 ---
 
+## 2026-07-17 - Verify gate: lint + typecheck cleanup
+
+`bash harness/verify.sh` was failing at Layer 1 because ruff/mypy are now
+installed (previously SKIP) and reported pre-existing style/type debt.
+
+Fixed:
+- `ruff check --fix .` (~484 autofixes) plus 7 manual lint fixes
+- 20 mypy errors (annotations, Optional narrowing, unused type: ignore, etc.)
+
+Evidence (`bash harness/verify.sh`):
+- Layer 1: lint OK; typecheck OK; architecture OK; DSA OK
+- Layer 2: pytest 53 passed, 3 skipped
+- Layer 3: cli-smoke OK
+- Result: ALL LAYERS GREEN (exit 0)
+
+---
 ## 2026-07-17 - Phase 2: Semantic Embedding Layer
 
 Implemented probabilistic Layer 6 (`gdss/embeddings/`):

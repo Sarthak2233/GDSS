@@ -1,10 +1,13 @@
 import hashlib
 import os
 from collections import OrderedDict
-from typing import Callable, Dict, List, Optional, Tuple, Set
-from tree_sitter import Parser, Node, Language
-from gdss.core.transform_types import BodyBlock, CodeSymbol, SymbolType
+from collections.abc import Callable
+
+from tree_sitter import Language, Node, Parser
+
 from gdss.core.structural_fingerprint import extract_tokens_from_body_text
+from gdss.core.transform_types import BodyBlock, CodeSymbol, SymbolType
+
 
 # Pluggable Tree-sitter grammar registry: ext -> (language_name, import_loader)
 def _load_python():
@@ -32,7 +35,7 @@ def _load_go():
     return Language(tree_sitter_go.language())
 
 
-LANGUAGE_REGISTRY: Dict[str, Tuple[str, Callable[[], Language]]] = {
+LANGUAGE_REGISTRY: dict[str, tuple[str, Callable[[], Language]]] = {
     ".py": ("python", _load_python),
     ".js": ("javascript", _load_javascript),
     ".jsx": ("javascript", _load_javascript),
@@ -41,7 +44,7 @@ LANGUAGE_REGISTRY: Dict[str, Tuple[str, Callable[[], Language]]] = {
     ".go": ("go", _load_go),
 }
 
-SOURCE_EXTENSIONS: Tuple[str, ...] = tuple(LANGUAGE_REGISTRY.keys())
+SOURCE_EXTENSIONS: tuple[str, ...] = tuple(LANGUAGE_REGISTRY.keys())
 
 _CONTENT_CACHE_MAX = 256
 
@@ -54,14 +57,14 @@ class ASTParser:
 
     def __init__(self, content_cache_max: int = _CONTENT_CACHE_MAX):
         # filepath -> (mtime, symbols)
-        self._cache: Dict[str, Tuple[float, List[CodeSymbol]]] = {}
+        self._cache: dict[str, tuple[float, list[CodeSymbol]]] = {}
         # content_hash -> symbols (LRU)
-        self._content_cache: OrderedDict[str, List[CodeSymbol]] = OrderedDict()
+        self._content_cache: OrderedDict[str, list[CodeSymbol]] = OrderedDict()
         self._content_cache_max = content_cache_max
-        self._skipped_extensions: Dict[str, int] = {}
+        self._skipped_extensions: dict[str, int] = {}
 
     @staticmethod
-    def get_parser_for_ext(ext: str) -> Optional[Parser]:
+    def get_parser_for_ext(ext: str) -> Parser | None:
         try:
             ext_cleaned = ext.lower().strip()
             if not ext_cleaned.startswith("."):
@@ -75,23 +78,23 @@ class ASTParser:
         except Exception:
             return None
 
-    def consume_skipped_summary(self) -> Dict[str, int]:
+    def consume_skipped_summary(self) -> dict[str, int]:
         """Return and clear counts of files skipped due to missing parsers."""
         summary = dict(self._skipped_extensions)
         self._skipped_extensions.clear()
         return summary
 
-    def _remember_content(self, cache_key: str, symbols: List[CodeSymbol]) -> None:
+    def _remember_content(self, cache_key: str, symbols: list[CodeSymbol]) -> None:
         self._content_cache[cache_key] = symbols
         self._content_cache.move_to_end(cache_key)
         while len(self._content_cache) > self._content_cache_max:
             self._content_cache.popitem(last=False)
 
-    def parse_file(self, filepath: str, content: Optional[str] = None) -> List[CodeSymbol]:
+    def parse_file(self, filepath: str, content: str | None = None) -> list[CodeSymbol]:
         """
         Parses a file path or direct string content and returns a list of extracted CodeSymbols.
         """
-        mtime: Optional[float] = None
+        mtime: float | None = None
         # Check cache if content is not provided
         if content is None:
             if not os.path.exists(filepath):
@@ -103,7 +106,7 @@ class ASTParser:
                     if mtime == cached_mtime:
                         return cached_symbols
 
-                with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                with open(filepath, encoding="utf-8", errors="ignore") as f:
                     content = f.read()
             except Exception:
                 return []
@@ -113,10 +116,10 @@ class ASTParser:
         cache_key = f"{filepath}:{content_hash}"
         if cache_key in self._content_cache:
             self._content_cache.move_to_end(cache_key)
-            symbols = self._content_cache[cache_key]
+            cached = self._content_cache[cache_key]
             if mtime is not None:
-                self._cache[filepath] = (mtime, symbols)
-            return symbols
+                self._cache[filepath] = (mtime, cached)
+            return cached
 
         ext = os.path.splitext(filepath)[1].lower()
         language = self._language_for_ext(ext)
@@ -132,7 +135,7 @@ class ASTParser:
         except Exception:
             return []
 
-        symbols: List[CodeSymbol] = []
+        symbols: list[CodeSymbol] = []
 
         if language == "python":
             self._parse_python(root, content_bytes, symbols, language=language, chart_location=filepath)
@@ -147,7 +150,7 @@ class ASTParser:
 
         return symbols
 
-    def get_indexed_symbols(self, symbols: List[CodeSymbol]) -> Dict[Tuple[str, str], CodeSymbol]:
+    def get_indexed_symbols(self, symbols: list[CodeSymbol]) -> dict[tuple[str, str], CodeSymbol]:
         """Index symbols by (parent_class, name) for O(1) lookups without collisions."""
         return {(s.parent_class or "", s.name): s for s in symbols}
 
@@ -166,20 +169,20 @@ class ASTParser:
         entry = LANGUAGE_REGISTRY.get(cleaned)
         return entry[0] if entry else "unknown"
 
-    def _extract_structural_tokens(self, node: Optional[Node]) -> List[str]:
+    def _extract_structural_tokens(self, node: Node | None) -> list[str]:
         if not node:
             return []
-        tokens: List[str] = []
+        tokens: list[str] = []
         for child in node.children:
             if child.is_named:
                 tokens.append(child.type)
         return tokens
 
-    def _extract_body_blocks(self, body_node: Optional[Node], content_bytes: bytes) -> List[BodyBlock]:
+    def _extract_body_blocks(self, body_node: Node | None, content_bytes: bytes) -> list[BodyBlock]:
         if not body_node:
             return []
-        blocks: List[BodyBlock] = []
-        counters: Dict[str, int] = {}
+        blocks: list[BodyBlock] = []
+        counters: dict[str, int] = {}
         for child in body_node.children:
             if not child.is_named:
                 continue
@@ -198,7 +201,7 @@ class ASTParser:
             )
         return blocks
 
-    def _extract_calls(self, node: Node, content_bytes: bytes, calls: List[str]):
+    def _extract_calls(self, node: Node, content_bytes: bytes, calls: list[str]):
         """Recursively traverses a node to find all function and method call names."""
         if node.type in {"call", "call_expression"}:
             func_node = node.child_by_field_name("function")
@@ -219,9 +222,9 @@ class ASTParser:
 
     def _append_symbol(
         self,
-        symbols: List[CodeSymbol],
+        symbols: list[CodeSymbol],
         sym: CodeSymbol,
-        chart_location: Optional[str],
+        chart_location: str | None,
     ) -> None:
         sym.ensure_identity(chart_location)
         symbols.append(sym)
@@ -230,28 +233,28 @@ class ASTParser:
         self,
         root: Node,
         content_bytes: bytes,
-        symbols: List[CodeSymbol],
-        parent_class: Optional[str] = None,
+        symbols: list[CodeSymbol],
+        parent_class: str | None = None,
         language: str = "python",
-        chart_location: Optional[str] = None,
+        chart_location: str | None = None,
     ):
         """Recursively parses a Python AST root node."""
         for child in root.children:
-            child_text = self._get_node_text(child, content_bytes) # dsa:ignore
+            child_text = self._get_node_text(child, content_bytes)  # dsa:ignore
             ctype = child.type
             name_node = child.child_by_field_name("name")
             body_node = child.child_by_field_name("body")
-            
+
             name_text = self._get_node_text(name_node, content_bytes) if name_node else ""
             body_text = self._get_node_text(body_node, content_bytes) if body_node else ""
-            
+
             if ctype == "function_definition":
                 if name_node:
                     params_node = child.child_by_field_name("parameters")
                     sig = self._get_node_text(params_node, content_bytes) if params_node else "()"
-                    
+
                     # Extract calls inside function body
-                    calls = []
+                    calls: list[str] = []
                     docstring = None
                     if body_node:
                         self._extract_calls(body_node, content_bytes, calls)
@@ -262,7 +265,7 @@ class ASTParser:
                                 expr = first_stmt.children[0]
                                 if expr.type == "string":
                                     docstring = self._get_node_text(expr, content_bytes).strip('"\'')
-                    
+
                     body_blocks = self._extract_body_blocks(body_node, content_bytes)
                     structural_tokens = (
                         [b.node_type for b in body_blocks]
@@ -285,7 +288,7 @@ class ASTParser:
                         chart_location=chart_location,
                     )
                     self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
-            
+
             elif ctype == "class_definition":
                 if name_node:
                     # Extract superclasses for signature
@@ -324,7 +327,7 @@ class ASTParser:
                         name = self._get_node_text(left_node, content_bytes)
                         # Heuristic: ALL_CAPS = Constant
                         stype = SymbolType.CONSTANT if name.isupper() else SymbolType.VARIABLE
-                        
+
                         symbols.append(CodeSymbol(
                             name=name,
                             type=stype,
@@ -358,14 +361,14 @@ class ASTParser:
                 if dotted_nodes:
                     module_name = self._get_node_text(dotted_nodes[0], content_bytes)
                     imported_names = []
-                    
+
                     # Find if there is an 'import' keyword index
                     import_keyword_idx = -1
                     for idx, sub in enumerate(child.children):
                         if sub.type == "import":
                             import_keyword_idx = idx
                             break
-                    
+
                     if import_keyword_idx != -1:
                         for sub in child.children[import_keyword_idx + 1:]:
                             stype = sub.type
@@ -386,7 +389,7 @@ class ASTParser:
                         module=module_name,
                         imported_names=imported_names
                     ))
-            
+
             else:
                 # Recurse for general containers (e.g. if statements, try/except block, etc. - unless already handled)
                 if ctype not in {"function_definition", "class_definition", "import_statement", "import_from_statement"} and child.children:
@@ -403,29 +406,28 @@ class ASTParser:
         self,
         root: Node,
         content_bytes: bytes,
-        symbols: List[CodeSymbol],
-        parent_class: Optional[str] = None,
+        symbols: list[CodeSymbol],
+        parent_class: str | None = None,
         language: str = "javascript",
-        chart_location: Optional[str] = None,
+        chart_location: str | None = None,
     ):
         """Recursively parses a Javascript/Typescript AST root node."""
         for child in root.children:
-            child_text = self._get_node_text(child, content_bytes) # dsa:ignore
             ctype = child.type
             name_node = child.child_by_field_name("name")
             body_node = child.child_by_field_name("body")
-            
+
             # DSA: cache text extraction to avoid repeated calls across branches
             name_text = self._get_node_text(name_node, content_bytes) if name_node else ""
             body_text = self._get_node_text(body_node, content_bytes) if body_node else ""
-            
+
             if ctype in {"function_declaration", "method_definition"}:
                 if name_node:
                     params_node = child.child_by_field_name("parameters")
                     sig = self._get_node_text(params_node, content_bytes) if params_node else "()"
-                    
+
                     # Extract calls inside function body
-                    calls = []
+                    calls: list[str] = []
                     if body_node:
                         self._extract_calls(body_node, content_bytes, calls)
 
@@ -450,7 +452,7 @@ class ASTParser:
                         chart_location=chart_location,
                     )
                     self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
-            
+
             elif ctype == "class_declaration":
                 if name_node:
                     # Inheritance
@@ -485,7 +487,7 @@ class ASTParser:
                 # 'import { foo, bar } from "mod"' or 'import defaultExport from "mod"'
                 source_node = next((c for c in child.children if c.type == "string"), None)
                 module_name = self._get_node_text(source_node, content_bytes).strip("'\"") if source_node else ""
-                
+
                 imported_names = []
                 clause = next((c for c in child.children if c.type == "import_clause"), None)
                 if clause:
@@ -502,7 +504,7 @@ class ASTParser:
                                     id_nodes = [n for n in spec.children if n.type == "identifier"]
                                     if id_nodes:
                                         imported_names.append(self._get_node_text(id_nodes[0], content_bytes))
-                    
+
                     # check for namespace import (e.g. * as utils)
                     namespace = next((c for c in clause.children if c.type == "namespace_import"), None)
                     if namespace:
@@ -523,7 +525,7 @@ class ASTParser:
                     module=module_name,
                     imported_names=imported_names
                 ))
-            
+
             else:
                 if ctype not in {"function_declaration", "method_definition", "class_declaration", "import_statement"} and child.children:
                     self._parse_js_ts(
@@ -539,10 +541,10 @@ class ASTParser:
         self,
         root: Node,
         content_bytes: bytes,
-        symbols: List[CodeSymbol],
-        parent_class: Optional[str] = None,
+        symbols: list[CodeSymbol],
+        parent_class: str | None = None,
         language: str = "go",
-        chart_location: Optional[str] = None,
+        chart_location: str | None = None,
     ):
         """Recursively parse Go AST nodes (functions, methods, types)."""
         for child in root.children:
@@ -556,7 +558,7 @@ class ASTParser:
                 if name_node:
                     params_node = child.child_by_field_name("parameters")
                     sig = self._get_node_text(params_node, content_bytes) if params_node else "()"
-                    calls: List[str] = []
+                    calls: list[str] = []
                     if body_node:
                         self._extract_calls(body_node, content_bytes, calls)
                     body_blocks = self._extract_body_blocks(body_node, content_bytes)

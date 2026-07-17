@@ -1,11 +1,10 @@
 """FAISS / numpy VectorStore round-trips."""
 
-import numpy as np
 import pytest
 
 from gdss.embeddings.encoder import DeterministicBagEncoder
-from gdss.embeddings.vector_store import VectorStore, index_symbols
 from gdss.embeddings.types import EmbeddingVector
+from gdss.embeddings.vector_store import VectorStore, index_symbols
 
 
 @pytest.fixture(params=[False, True])

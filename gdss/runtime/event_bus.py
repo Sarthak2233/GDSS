@@ -1,8 +1,9 @@
-from typing import Callable, Dict, List
+from collections.abc import Callable
+
 
 class EventBus:
     def __init__(self):
-        self.subscribers: Dict[str, List[Callable]] = {}
+        self.subscribers: dict[str, list[Callable]] = {}
 
     def subscribe(self, topic: str, callback: Callable):
         if topic not in self.subscribers:

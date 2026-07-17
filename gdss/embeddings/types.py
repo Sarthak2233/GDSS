@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -32,4 +31,4 @@ class BranchTipVector:
     dim: int
     branch: str
     symbol_count: int
-    reference_branch: Optional[str] = None
+    reference_branch: str | None = None

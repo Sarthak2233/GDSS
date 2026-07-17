@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence
 
 import numpy as np
 
@@ -24,9 +24,9 @@ class OnnxMiniLMEncoder:
     Requires ``onnxruntime`` and a local ONNX file (see default_model_path).
     """
 
-    def __init__(self, model_path: Optional[str | Path] = None, dim: int = DEFAULT_DIM):
+    def __init__(self, model_path: str | Path | None = None, dim: int = DEFAULT_DIM):
         try:
-            import onnxruntime as ort  # type: ignore
+            import onnxruntime as ort
         except ImportError as exc:
             raise RuntimeError(
                 "WHAT: onnxruntime is not installed.\n"
@@ -103,7 +103,7 @@ class OnnxMiniLMEncoder:
 
     def _tokenize(self, texts: list[str]) -> tuple[np.ndarray, np.ndarray]:
         try:
-            from transformers import AutoTokenizer  # type: ignore
+            from transformers import AutoTokenizer
 
             tok = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
             encoded = tok(

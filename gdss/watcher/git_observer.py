@@ -1,6 +1,7 @@
 import os
+
 import git
-from typing import Dict, List, Tuple, Optional
+
 
 class GitObserver:
     """
@@ -19,7 +20,7 @@ class GitObserver:
     def is_valid(self) -> bool:
         return self.repo is not None
 
-    def get_active_branch(self) -> Optional[str]:
+    def get_active_branch(self) -> str | None:
         if not self.repo:
             return None
         try:
@@ -28,7 +29,7 @@ class GitObserver:
             # Head is detached
             return "DETACHED"
 
-    def get_merge_base(self, branch_name: str, ref_branch: str = "main") -> Optional[str]:
+    def get_merge_base(self, branch_name: str, ref_branch: str = "main") -> str | None:
         """Calculates the merge base commit hash between active branch and reference branch."""
         if not self.repo:
             return None
@@ -42,7 +43,7 @@ class GitObserver:
             pass
         return None
 
-    def get_parent_sha(self, commit_sha: str) -> Optional[str]:
+    def get_parent_sha(self, commit_sha: str) -> str | None:
         """Retrieves the parent commit SHA for a given commit."""
         if not self.repo:
             return None
@@ -54,7 +55,7 @@ class GitObserver:
             pass
         return None
 
-    def get_file_content_at_commit(self, commit_sha: str, file_path: str) -> Optional[str]:
+    def get_file_content_at_commit(self, commit_sha: str, file_path: str) -> str | None:
         """Retrieves file text content at a specific historical commit."""
         if not self.repo:
             return None
@@ -67,7 +68,7 @@ class GitObserver:
         except Exception:
             return None
 
-    def get_file_diffs_between_commits(self, commit_sha_a: str, commit_sha_b: str) -> Dict[str, List[str]]:
+    def get_file_diffs_between_commits(self, commit_sha_a: str, commit_sha_b: str) -> dict[str, list[str]]:
         """
         Calculates file list changes between commit A and commit B.
         Returns dictionary mapping:
@@ -75,10 +76,10 @@ class GitObserver:
         - "deleted": [filepath]
         - "modified": [filepath]
         """
-        changes = {"added": [], "deleted": [], "modified": []}
+        changes: dict[str, list[str]] = {"added": [], "deleted": [], "modified": []}
         if not self.repo:
             return changes
-        
+
         try:
             commit_a = self.repo.commit(commit_sha_a)
             commit_b = self.repo.commit(commit_sha_b)
@@ -95,9 +96,9 @@ class GitObserver:
             pass
         return changes
 
-    def get_working_tree_changes(self) -> Dict[str, List[str]]:
+    def get_working_tree_changes(self) -> dict[str, list[str]]:
         """Retrieves unstaged and staged changes in working tree against HEAD."""
-        changes = {"added": [], "deleted": [], "modified": []}
+        changes: dict[str, list[str]] = {"added": [], "deleted": [], "modified": []}
         if not self.repo:
             return changes
         try:
@@ -137,7 +138,7 @@ class GitObserver:
         """Installs pre-push and post-commit hooks in .git/hooks directory."""
         if not self.repo:
             return False
-        
+
         hooks_dir = os.path.join(self.repo_path, ".git", "hooks")
         if not os.path.exists(hooks_dir):
             return False
@@ -162,7 +163,7 @@ class GitObserver:
 
         return True
 
-    def list_local_branches(self) -> List[str]:
+    def list_local_branches(self) -> list[str]:
         """Return local branch names."""
         if not self.repo:
             return []
@@ -173,14 +174,14 @@ class GitObserver:
 
     def get_remote_sync_status(
         self, ref_branch: str, remote: str = "origin"
-    ) -> Dict[str, object]:
+    ) -> dict[str, object]:
         """
         Compare HEAD to origin/<ref> (or configured remote).
 
         Returns ahead/behind counts. label is N/A when the remote ref is missing.
         Never infers semantic drift from remote event topic flags.
         """
-        result: Dict[str, object] = {
+        result: dict[str, object] = {
             "label": "N/A",
             "ahead": 0,
             "behind": 0,

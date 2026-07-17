@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, Optional
 
 from gdss.core.transform_types import CodeSymbol, OperatorType, SemanticOperator, SymbolType
 from gdss.graph.code_graph import CodeGraph
@@ -38,7 +37,8 @@ def _apply_rename_function(op: SemanticOperator, graph: CodeGraph) -> None:
         graph._symbol_index[old_name].discard(node_id)
         if not graph._symbol_index[old_name]:
             del graph._symbol_index[old_name]
-    graph._symbol_index.setdefault(op.to_name, set()).add(node_id)
+    if op.to_name:
+        graph._symbol_index.setdefault(op.to_name, set()).add(node_id)
 
 
 def _apply_delete_function(op: SemanticOperator, graph: CodeGraph) -> None:

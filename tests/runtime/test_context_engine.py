@@ -1,7 +1,7 @@
-from gdss.storage.db import RuntimeDB
-from gdss.runtime.registry import RepositoryRegistry
-from gdss.runtime.event_bus import EventBus
 from gdss.runtime.context_engine import ContextEngine
+from gdss.runtime.event_bus import EventBus
+from gdss.runtime.registry import RepositoryRegistry
+from gdss.storage.db import RuntimeDB
 
 
 def test_reference_branch_persists_via_hierarchy(tmp_path):

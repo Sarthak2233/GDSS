@@ -67,7 +67,37 @@ bash harness/sensors/cli_smoke.sh     # gdss CLI end-to-end (Layer 3)
 gdss --help
 gdss status
 gdss log -n 5
+
+# Frontend (web/) - the visual brain
+cd web && pnpm install        # one-time: install the frontend toolchain
+cd web && pnpm dev            # local dev server
+cd web && pnpm lint           # eslint + jsx-a11y (frontend Layer F1)
+cd web && pnpm typecheck      # tsc --noEmit (frontend Layer F1)
+cd web && pnpm test           # vitest + jest-axe (frontend Layer F2)
+cd web && pnpm size           # size-limit bundle budget (frontend Layer F3)
+bash harness/verify-frontend.sh   # the full frontend gate (F1 -> F2 -> F3)
 ```
+
+---
+
+## Two brains
+
+GDSS has two harnesses, each with its own feedforward guides and feedback sensors:
+
+- **Backend brain** (correctness): `gdss/` Python. Answers *"How should an AI
+  write correct code?"* Guides: `.cursor/rules/*.mdc` (00-60). Sensors:
+  `harness/verify.sh` (ruff, mypy, architecture fitness, pytest, CLI smoke).
+- **Frontend brain** (visual quality): `web/` Next.js. Answers *"How should an
+  AI create an interface that feels polished, intuitive, and alive?"* Guides:
+  `.cursor/rules/frontend/*.mdc` (01-20) + `.cursor/skills/*` (motion,
+  animation, composition, dashboard, a11y, etc.). Sensors:
+  `harness/verify-frontend.sh` (eslint+jsx-a11y, tsc, token_fitness, vitest+
+  jest-axe, Playwright a11y/CLS, size-limit).
+
+`harness/verify.sh` runs the backend layers, then the frontend gate **only when
+`web/` exists** (no-op otherwise), so there is still one green definition of
+done. Frontend sensors degrade gracefully (skip with WHAT/WHY/FIX) when the JS
+toolchain is absent, so the gate stays runnable on a Python-only machine.
 
 ---
 
@@ -76,11 +106,16 @@ gdss log -n 5
 1. Read this file (`AGENTS.md`).
 2. Run `bash harness/init.sh` and confirm it reports healthy.
 3. Read `harness/state/progress.md` (what happened last session).
-4. Read `harness/state/feature_list.json` (what is done, what is next).
+4. Read `harness/state/feature_list.json` (shared queue: backend **and**
+   `frontend-*` product phases). For frontend vision/complementarity, also read
+   `docs/FRONTEND_ROADMAP.md`.
 5. Check recent history (`git log` if this is a git repo) for context.
-6. Select exactly **one** unfinished feature. Do not start three things at once.
-7. Implement it test-first (see TDD below).
-8. Run `bash harness/verify.sh`. It must be green.
+6. Select exactly **one** unfinished feature whose `deps` are all `done`. Do not
+   start three things at once. Backend or frontend — same queue.
+7. Implement it test-first (backend: TDD skill below; frontend product work:
+   `build-frontend-component` + `verify-frontend` skills).
+8. Run `bash harness/verify.sh`. It must be green. Frontend product features
+   (`frontend-*`) also need `bash harness/verify-frontend.sh` green.
 9. Update `harness/state/progress.md` and `harness/state/feature_list.json`.
 10. Write `harness/state/session-handoff.md` so the next session can resume cleanly.
 
@@ -99,6 +134,22 @@ A change is done only when the **three-layer validation hierarchy** is green:
 
 Each layer gates the next. `bash harness/verify.sh` runs all three. If it exits non-zero,
 the work is not done.
+
+### Frontend definition of done (web/)
+
+Frontend work is done only when the **three frontend layers** are green (or skip
+cleanly when the JS toolchain is absent):
+
+- **Layer F1 - Static**: `eslint` (+ `jsx-a11y`), `tsc --noEmit`, and the
+  `token_fitness` sensor (no raw hex/ms/`linear` outside token files; every
+  interactive motion component ships a `prefers-reduced-motion` branch).
+- **Layer F2 - Component**: `vitest` + `jest-axe` behavior and accessibility tests pass.
+- **Layer F3 - End-to-end**: optional Playwright `axe-core` (keyboard nav + a11y)
+  with CLS ~ 0, and a `size-limit` bundle budget.
+
+Run all three with `bash harness/verify-frontend.sh` (also invoked by
+`harness/verify.sh` when `web/` exists). See the `build-frontend-component` and
+`verify-frontend` skills.
 
 ### How to write code here
 
@@ -139,6 +190,10 @@ See the `tdd` skill in `.cursor/skills/tdd/` for the full loop.
 ## Where things live
 
 - Guides (feedforward): this file + `.cursor/rules/*.mdc` + `.cursor/skills/*`
-- Sensors (feedback): `.cursor/hooks/*` + `harness/verify.sh` + `harness/sensors/*`
+  - Backend: `.cursor/rules/00-60-*.mdc`; skills: `tdd`, `add-semantic-operator`, `implement-gdss-phase`, `verify-changes`, `audit-harness`, `dsa-optimize`.
+  - Frontend: `.cursor/rules/frontend/01-20-*.mdc` (globs `web/**`); skills: `motion-design`, `animation-system`, `component-composition`, `dashboard-design`, `ux-patterns`, `interaction-design`, `data-visualization`, `glass-ui`, `canvas-effects`, `webgl`, `framer-motion`, `gsap`, `svg-animation`, `build-frontend-component`, `verify-frontend`.
+- Sensors (feedback): `.cursor/hooks/*` + `harness/verify.sh` + `harness/sensors/*` (backend) + `harness/verify-frontend.sh` + `harness/sensors/frontend/*` (frontend)
+- Tokens (frontend single source of truth): `web/lib/tokens.ts` (spacing/color/type), `web/lib/motion.ts` (duration/easing/spring/8-state machine/animation levels)
+- Product scope: `harness/state/feature_list.json` (backend + `frontend-*`); roadmap narrative: `docs/FRONTEND_ROADMAP.md`
 - State + lifecycle: `harness/state/*` + `harness/init.sh`
 - Harness map and rationale: `harness/README.md`

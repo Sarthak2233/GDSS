@@ -48,6 +48,18 @@ bash "$here/cli_smoke.sh" || {
   exit 1
 }
 
+# ---------- Frontend harness (only when web/ exists) ----------
+if [[ -d "web" ]]; then
+  section "Frontend harness: verify-frontend.sh"
+  bash "harness/verify-frontend.sh" || {
+    echo "verify: stopped at the frontend harness."
+    exit 1
+  }
+else
+  section "Frontend harness"
+  echo "verify: SKIP frontend harness (web/ does not exist)."
+fi
+
 section "RESULT"
 echo "verify: ALL LAYERS GREEN. Work meets the definition of done."
 exit 0

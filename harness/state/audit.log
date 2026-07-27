@@ -1377,3 +1377,64 @@ PY
 2026-07-17T14:29:03Z	exit=?	source /home/sarakb/projects/GDSS/venv/bin/activate && bash /home/sarakb/projects/GDSS/harness/sensors/typecheck.sh 2>&1 | grep -E 'error:|Found|typecheck:'
 2026-07-17T14:29:44Z	exit=?	source /home/sarakb/projects/GDSS/venv/bin/activate && cd /home/sarakb/projects/GDSS && ruff check . 2>&1 | tail -20 && echo '====' && bash harness/sensors/typecheck.sh 2>&1 | tail -40
 2026-07-17T14:30:15Z	exit=?	source /home/sarakb/projects/GDSS/venv/bin/activate && cd /home/sarakb/projects/GDSS && bash harness/verify.sh 2>&1 | tee /tmp/verify-out.txt | grep -E '^(===|lint:|typecheck:|Architecture|DSA|tests:|cli-smoke:|verify:|Found |RESULT)' | head -40; echo EXIT:$?; tail -15 /tmp/verify-out.txt
+2026-07-21T15:37:19Z	exit=?	python -c "
+import json
+d=json.load(open('/home/sbasnet/projects/GDSS/harness/state/feature_list.json'))
+for f in d['features']:
+    print(f\"{f['status']:12} {f['id']:28} {f['title'][:70]}\")
+"
+2026-07-21T16:27:26Z	exit=?	bash harness/init.sh 2>&1 | tail -30
+2026-07-21T16:29:20Z	exit=?	python -m pytest tests/drift/test_types.py -q 2>&1
+2026-07-21T16:32:51Z	exit=?	python -m pytest tests/drift/test_engine.py -q 2>&1
+2026-07-21T16:34:06Z	exit=?	python -m pytest tests/drift/test_engine.py -q 2>&1
+2026-07-21T16:38:50Z	exit=?	python -m pytest tests/drift/ -q 2>&1
+2026-07-21T16:41:06Z	exit=?	python -m pytest tests/drift/ -q 2>&1
+2026-07-21T16:42:43Z	exit=?	python -m pytest tests/conflict/test_probability.py -q 2>&1
+2026-07-21T16:45:56Z	exit=?	python -m pytest tests/cli/test_drift_cli.py -q 2>&1
+2026-07-21T16:48:21Z	exit=?	python -m pytest tests/runtime/test_daemon_drift.py tests/drift/ tests/conflict/ -q 2>&1
+2026-07-21T16:54:37Z	exit=?	bash harness/verify.sh 2>&1
+2026-07-21T16:56:28Z	exit=?	bash harness/verify.sh 2>&1
+2026-07-21T16:57:54Z	exit=?	bash harness/verify.sh 2>&1
+2026-07-21T16:58:36Z	exit=?	bash harness/verify.sh 2>&1
+2026-07-21T16:59:27Z	exit=?	bash harness/verify.sh 2>&1
+2026-07-21T17:01:07Z	exit=?	mv tests/conflict/test_architecture.py tests/conflict/test_conflict_architecture.py && find tests -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null; bash harness/verify.sh 2>&1
+2026-07-22T14:11:33Z	exit=?	cd /home/sbasnet/projects/GDSS && ls -la && echo "---HARNESS---" && ls -R harness && echo "---CURSOR---" && ls -R .cursor 2>/dev/null | head -60
+2026-07-22T14:13:25Z	exit=?	cd /home/sbasnet/projects/GDSS && ls .cursor/rules/frontend/ | wc -l && ls .cursor/rules/frontend/
+2026-07-22T14:14:20Z	exit=?	cd /home/sbasnet/projects/GDSS && ls .cursor/skills/ && echo "---count new---" && for d in motion-design animation-system component-composition dashboard-design ux-patterns interaction-design data-visualization glass-ui canvas-effects webgl framer-motion gsap svg-animation build-frontend-component verify-frontend; do [ -f ".cursor/skills/$d/SKILL.md" ] && echo "ok $d" || echo "MISSING $d"; done
+2026-07-22T14:16:11Z	exit=?	cd /home/sbasnet/projects/GDSS && python3 harness/sensors/frontend/token_fitness.py
+2026-07-22T14:16:24Z	exit=?	cd /home/sbasnet/projects/GDSS && python3 harness/sensors/frontend/token_fitness.py
+2026-07-22T14:16:27Z	exit=?	cd /home/sbasnet/projects/GDSS && chmod +x harness/sensors/frontend/*.sh harness/sensors/frontend/*.py 2>&1; ls -la harness/sensors/frontend/
+2026-07-22T14:16:56Z	exit=?	cd /home/sbasnet/projects/GDSS && chmod +x harness/verify-frontend.sh .cursor/hooks/run-fast-frontend-sensors.sh 2>&1; echo "--- verify-frontend (no node) ---"; bash harness/verify-frontend.sh; echo "EXIT=$?"
+2026-07-22T14:17:41Z	exit=?	cd /home/sbasnet/projects/GDSS && chmod +x harness/verify-frontend.sh .cursor/hooks/run-fast-frontend-sensors.sh 2>&1; echo "--- verify-frontend (no node) ---"; bash harness/verify-frontend.sh; echo "EXIT=$?"
+2026-07-22T14:18:19Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/verify.sh 2>&1 | tail -25; echo "EXIT=${PIPESTATUS[0]}"
+2026-07-22T14:19:54Z	exit=?	cd /home/sbasnet/projects/GDSS && python3 -c "import json; json.load(open('harness/state/feature_list.json')); print('JSON OK')"
+2026-07-22T14:20:57Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/verify.sh 2>&1 | tail -12; echo "EXIT=${PIPESTATUS[0]}"
+2026-07-23T06:45:19Z	exit=?	cd /home/sbasnet/projects/GDSS && python3 -c "
+import json
+d=json.load(open('harness/state/feature_list.json'))
+fe=[f for f in d['features'] if f['id'].startswith('frontend-')]
+print('frontend features:', len(fe))
+for f in fe:
+    print(f\"  {f['id']:30} {f['phase']:6} {f['status']}\")
+print('definition_of_done:', d['definition_of_done'][:80], '...')
+"
+2026-07-23T08:13:57Z	exit=?	ls -la /home/sbasnet/projects/GDSS/web/node_modules 2>&1 | head -5; ls -la /home/sbasnet/projects/GDSS/web/.gitignore 2>&1; test -d /home/sbasnet/projects/GDSS/web/node_modules && echo "EXISTS" || echo "MISSING"; rg -n "node_modules|packageManager|engines|pnpm|node" /home/sbasnet/projects/GDSS/web/package.json /home/sbasnet/projects/GDSS/web/README.md /home/sbasnet/projects/GDSS/web/.gitignore /home/sbasnet/projects/GDSS/.gitignore 2>/dev/null; head -n 5 /home/sbasnet/projects/GDSS/harness/init.sh
+2026-07-23T08:19:45Z	exit=?	node -v 2>/dev/null; which node; which pnpm; which npm; which corepack; command -v fnm; command -v nvm; ls -la /home/sbasnet/projects/GDSS/web/ | head -30
+2026-07-23T08:20:26Z	exit=?	pnpm -v && cd /home/sbasnet/projects/GDSS/web && pnpm install
+2026-07-23T08:21:41Z	exit=?	ls -la /home/sbasnet/projects/GDSS/web/pnpm-lock.yaml /home/sbasnet/projects/GDSS/web/node_modules/.bin/eslint /home/sbasnet/projects/GDSS/web/node_modules/.bin/tsc /home/sbasnet/projects/GDSS/web/node_modules/.bin/vitest 2>&1 | head -20
+2026-07-23T08:22:51Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/sensors/frontend/lint.sh; echo "LINT_EXIT=$?"; bash harness/sensors/frontend/typecheck.sh; echo "TSC_EXIT=$?"; python3 harness/sensors/frontend/token_fitness.py; echo "TOKEN_EXIT=$?"; bash harness/sensors/frontend/component_tests.sh; echo "TEST_EXIT=$?"
+2026-07-23T08:24:24Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/sensors/frontend/lint.sh; echo "LINT=$?"; bash harness/sensors/frontend/typecheck.sh; echo "TSC=$?"; bash harness/sensors/frontend/component_tests.sh; echo "TEST=$?"
+2026-07-23T08:25:17Z	exit=?	cd /home/sbasnet/projects/GDSS/web && pnpm add -D @types/jest-axe size-limit
+2026-07-23T08:25:50Z	exit=?	cd /home/sbasnet/projects/GDSS/web && pnpm add -D size-limit@11.1.4
+2026-07-23T08:27:01Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/sensors/frontend/typecheck.sh; echo "TSC=$?"; bash harness/sensors/frontend/component_tests.sh; echo "TEST=$?"
+2026-07-23T08:28:21Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/sensors/frontend/e2e.sh; echo "E2E=$?"
+2026-07-23T08:28:59Z	exit=?	ls -la /home/sbasnet/projects/GDSS/web/node_modules/.cache/ms-playwright 2>&1 | head -5; echo "PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH:-unset}"; ls /home/sbasnet/projects/GDSS/web/*.json /home/sbasnet/projects/GDSS/web/.*limit* 2>/dev/null; head -40 /home/sbasnet/projects/GDSS/harness/sensors/frontend/e2e.sh
+2026-07-23T08:31:37Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/sensors/frontend/e2e.sh; echo "E2E=$?"
+2026-07-23T08:35:06Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/verify-frontend.sh; echo "VF_EXIT=$?"
+2026-07-23T08:37:46Z	exit=?	ls -la /home/sbasnet/projects/GDSS/.pnpm-store 2>&1 | head -5; ls /home/sbasnet/projects/GDSS/web/pnpm-lock.yaml | head -1
+2026-07-23T08:37:58Z	exit=?	ls /home/sbasnet/projects/GDSS/web/.next/static/chunks/ | head -40; ls /home/sbasnet/projects/GDSS/web/.next/static/chunks/app/ 2>/dev/null | head -20; ls /home/sbasnet/projects/GDSS/web/.next/static/chunks/main* 2>/dev/null; find /home/sbasnet/projects/GDSS/web/.next/static/chunks -name '*main*' 2>/dev/null | head
+2026-07-23T08:38:12Z	exit=?	ls -la /home/sbasnet/projects/GDSS/web/next-env.d.ts 2>&1; wc -c /home/sbasnet/projects/GDSS/web/.next/static/chunks/main-app-*.js /home/sbasnet/projects/GDSS/web/.next/static/chunks/framework-*.js /home/sbasnet/projects/GDSS/web/.next/static/chunks/app/page-*.js
+2026-07-23T08:38:56Z	exit=?	cd /home/sbasnet/projects/GDSS/web && pnpm run size; echo "SIZE=$?"
+2026-07-23T08:39:32Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/verify.sh; echo "VERIFY_EXIT=$?"
+2026-07-23T08:43:26Z	exit=?	cd /home/sbasnet/projects/GDSS && python3 -c "import json; d=json.load(open('harness/state/feature_list.json')); feats={f['id']:f for f in d['features']}; f=feats['frontend-local-api']; print('status', f['status']); print('deps', [(dep, feats[dep]['status']) for dep in f['deps']])"
+2026-07-23T08:44:01Z	exit=?	cd /home/sbasnet/projects/GDSS && bash harness/sensors/frontend/typecheck.sh && bash harness/sensors/frontend/lint.sh && echo ALL_FAST_OK

@@ -85,6 +85,22 @@ def reindex(
     run_shell(repo, "reindex")
 
 @app.command()
+def drift(
+    repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
+    ref: str = typer.Option("main", "--ref", help="Reference attractor branch"),
+):
+    """Show per-branch drift magnitude (tip proxy + trajectory integral)."""
+    run_shell(repo, f"drift {ref}")
+
+@app.command()
+def alerts(
+    repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
+    ref: str = typer.Option("main", "--ref", help="Reference attractor branch"),
+):
+    """Show drift alerts for diverging branch trajectories."""
+    run_shell(repo, f"alerts {ref}")
+
+@app.command()
 def watch(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path")):
     """Real-time monitoring of the distributed event bus."""
     run_shell(repo, "watch")

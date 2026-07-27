@@ -90,9 +90,10 @@ gdss ▶ help              # 1. see every available command
 gdss ▶ status            # 2. attractor/remote + trajectory + uncommitted semantic delta
 gdss ▶ analyze           # 3. build the dependency graph (node/edge summary)
 gdss ▶ similar <symbol>  # 4. assistive embedding neighbors (FAISS / bag)
-gdss ▶ impact <symbol>   # 5. what breaks if you change <symbol>
-gdss ▶ log 5             # 6. semantic operators for the last 5 commits
-gdss ▶ quit              # 7. exit (or press Ctrl+D)
+gdss ▶ drift             # 5. per-branch drift vs attractor (tip + trajectory integral)
+gdss ▶ impact <symbol>   # 6. what breaks if you change <symbol>
+gdss ▶ log 5             # 7. semantic operators for the last 5 commits
+gdss ▶ quit              # 8. exit (or press Ctrl+D)
 ```
 
 > Prefer one-off commands without the shell? Everything works directly too, e.g.
@@ -147,6 +148,8 @@ gdss graph export --repo . --format json -o gdss_graph.json
 | `gdss analyze` | `--repo` | Build dependency graph, print node/edge summary |
 | `gdss similar` | `SYMBOL`, `--repo`, `-k` | Assistive FAISS/bag neighbors for a symbol |
 | `gdss reindex` | `--repo` | Rebuild `.gdss/vectors/` embedding index |
+| `gdss drift` | `--repo`, `--ref` | Per-branch drift magnitude (tip + trajectory integral) |
+| `gdss alerts` | `--repo`, `--ref` | Drift alerts above severity thresholds |
 | `gdss diff` | `TARGET`, `--repo` | Semantic diff vs another branch |
 | `gdss watch` | `--repo` | Real-time event bus monitor |
 | `gdss graph export` | `--repo`, `--format`, `-o` | Export dependency graph to DOT or JSON |
@@ -164,6 +167,8 @@ Run `gdss start`, then use these at the `gdss ▶` prompt:
 | `diff [target]` | Semantic diff against a target branch (default `main`) |
 | `similar <name> [k]` | Assistive embedding neighbors (FAISS/bag) |
 | `reindex` | Rebuild `.gdss/vectors/` index |
+| `drift [ref]` | Branch drift vs attractor (combined \(d_{tip} + I_{traj}\)) |
+| `alerts [ref]` | Severity-bucketed drift notifications |
 | `watch` | Real-time monitoring of the distributed event bus |
 | `hierarchy` | Show the distributed branch priority chain |
 | `config [ref <branch>]` | View or set the reference branch |
@@ -207,7 +212,7 @@ gdss similar process_payment --repo . -k 5
 
 This section tracks the 10-layer roadmap. **Done** means `bash harness/verify.sh` green with tests.
 
-### Current Status: **Phase 0 + Phase 1 + Phase 2 Complete**
+### Current Status: **Phase 0 + Phase 1 + Phase 2 + Phase 3 Complete**
 
 | Phase | Status | What you get today |
 | :--- | :--- | :--- |
@@ -215,8 +220,8 @@ This section tracks the 10-layer roadmap. **Done** means `bash harness/verify.sh
 | **1.1 — Deterministic brain** | Done | AST (Py/JS/TS/Go), operators, CodeGraph, honest `status`/`diff`/`log` |
 | **1.1.2 — Transcendence** | Done | UTF-8 AST, rename precision, trajectory since `--ref`, no false “DRIFT DETECTED” |
 | **1.2 — Embeddings** | Done | \(\phi(C)\), cosine, FAISS index, `similar` / `reindex` (assistive) |
-| **1.3 — Drift** | Next | Continuous \(I(B_i)\), alerts, daemon monitoring |
-| **1.4+** | Planned | Conflict tensor \(\Omega_{ij}\), AI suggestions, validation |
+| **1.3 — Drift** | Done | Combined tip + trajectory integral \(I(B_i)\), alerts, daemon, `gdss drift` |
+| **1.4+** | Planned | Full conflict tensor \(\Omega_{ij}\), AI suggestions, validation |
 
 #### Phase 0 — Distributed Runtime Foundation
 
@@ -239,6 +244,13 @@ This section tracks the 10-layer roadmap. **Done** means `bash harness/verify.sh
 - **Two-brain rule**: `core` / `graph` / `watcher` never import `embeddings`. CLI may use embeddings downward.
 - **CLI**: `gdss similar`, `gdss reindex`; `status` may note an assistive embedding tip (not \(I(B_i)\)).
 
+#### Phase 3 — Continuous Drift Monitoring
+
+- **Goal**: Quantify branch divergence from the attractor and raise alerts before merge.
+- **Package**: [gdss/drift/](gdss/drift/) — `DriftEngine` (tip cosine + trajectory integral), alerts, snapshot history, `DriftMonitor`.
+- **Conflict probability (initial)**: [gdss/conflict/probability.py](gdss/conflict/probability.py) — heuristic score; does **not** import `gdss.drift` (layer direction).
+- **CLI**: `gdss drift`, `gdss alerts`; daemon emits `"drift"` events on a throttled poll.
+
 <p align="center">
     <img src="./assets/product/roadmap.svg" alt="Roadmap — Phase status" width="100%">
 </p>
@@ -252,14 +264,14 @@ graph TD
         P0["Phase 0: Distributed Runtime"]
         P1["Phase 1: AST Operators Graph"]
         P2["Phase 2: Embeddings + FAISS"]
-    end
-
-    subgraph Next["Next"]
         P3["Phase 3: Continuous Drift IBi"]
     end
 
-    subgraph Future["Planned"]
+    subgraph Next["Next"]
         P4["Phase 4: Conflict Tensor"]
+    end
+
+    subgraph Future["Planned"]
         P5["Phase 5: AI Semantic Rebase"]
         P6["Phase 6: Validation Sandbox"]
         P7["Phase 7: Geometric Research"]
@@ -281,11 +293,11 @@ graph TD
 
 ### Branch Drift Energy
 
-**Planned for Phase 3.** GDSS will quantify how far a branch has diverged from the attractor over time:
+**Implemented in Phase 3.** GDSS quantifies how far a branch has diverged from the attractor:
 
-$$I(B_i) = \int_0^T \| \dot{\gamma}_i(t) - \dot{\gamma}_{\text{main}}(t) \|_{\mathcal{M}} \, dt$$
+$$I(B_i) \approx \alpha\, d_{\mathrm{tip}} + \beta\, \widehat{I}_{\mathrm{traj}}$$
 
-Today, Phase 1 gives **deterministic** trajectory operators + uncommitted semantic delta; Phase 2 gives **assistive** embedding distance / neighbors. Continuous \(I(B_i)\) alerts are not implemented yet.
+where \(d_{\mathrm{tip}}\) is the tip-to-tip cosine distance and \(\widehat{I}_{\mathrm{traj}}\) is the ceiling-normalized discrete path length \(\sum_c \|\phi(C_{c+1})-\phi(C_c)\|\) along `merge_base..tip`. Velocity and convergence come from snapshot history under `.gdss/drift/`. Use `gdss drift` / `gdss alerts`.
 
 ### Conflict Tensor
 
@@ -376,11 +388,10 @@ flowchart TD
         TX[Transform Operators]
         Graph[Dependency Graph]
         Embed[Embeddings FAISS]
-        Status[status diff log similar]
+        Status[status diff log similar drift alerts]
     end
 
     subgraph Planned["Planned"]
-        Drift[Drift Monitor Phase3]
         Tensor[Conflict Tensor Phase4]
         Suggest[AI Suggestions Phase5]
     end
@@ -393,9 +404,8 @@ flowchart TD
 
 ---
 ### Next Milestones
-1. **Phase 3 (Drift Monitoring)**: Continuous branch drift energy \(I(B_i)\), velocity, alerts, daemon.
-2. **Phase 4 (Conflict Tensor)**: Interaction matrix \(\Omega_{ij}\) and commutativity table before merge.
-3. **Phase 5+**: AI suggestions (never auto-merge), validation sandbox, geometric research.
+1. **Phase 4 (Conflict Tensor)**: Interaction matrix \(\Omega_{ij}\) and commutativity table before merge.
+2. **Phase 5+**: AI suggestions (never auto-merge), validation sandbox, geometric research.
 
 ---
 

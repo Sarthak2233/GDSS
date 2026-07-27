@@ -137,6 +137,8 @@ invert_operator(op: SemanticOperator) -> SemanticOperator
 | `gdss analyze --repo PATH` | All supported source files | Graph node/edge counts + symbol breakdown |
 | `gdss similar SYMBOL --repo PATH [-k 5]` | Symbol embeddings + FAISS/numpy index | Assistive top-k neighbors |
 | `gdss reindex --repo PATH` | All supported source files | Rebuild `.gdss/vectors/` |
+| `gdss drift --repo PATH [--ref main]` | Local branches vs attractor | Drift table (magnitude, velocity, conflict P) |
+| `gdss alerts --repo PATH [--ref main]` | Drift snapshots | Severity-bucketed notifications |
 | `gdss diff TARGET --repo PATH` | Branch diff vs target | File changes + semantic operators |
 | `gdss watch --repo PATH` | Event bus | Live monitor panel |
 | `gdss graph export --repo PATH -o FILE` | All supported source files | DOT or JSON graph file on disk |
@@ -151,6 +153,8 @@ invert_operator(op: SemanticOperator) -> SemanticOperator
 | `log`, `status`, `diff`, `watch` | Same as above |
 | `similar <name> [k]` | Assistive embedding neighbors |
 | `reindex` | Rebuild local vector index |
+| `drift [ref]` | Per-branch drift vs attractor |
+| `alerts [ref]` | Drift alert notifications |
 
 ---
 
@@ -292,7 +296,8 @@ graph.get_summary()
 - `impact` is not exposed as `gdss impact ...` — only inside the interactive shell
 - Working tree ≠ drift energy: `status` labels WT as **uncommitted semantic delta**; branch drift integral I(B_i) is Phase 3
 - `--ref` selects the attractor branch (glossary `dev` is configurable; default often `main`)
-- Embeddings (`gdss similar` / FAISS under `.gdss/vectors/`) are **assistive**; continuous drift monitoring is Phase 3
+- Embeddings (`gdss similar` / FAISS under `.gdss/vectors/`) are **assistive**
+- Drift (`gdss drift` / `gdss alerts`) uses tip cosine + trajectory integral; conflict probability is heuristic (full \(\Omega_{ij}\) is Phase 4)
 - Optional extras: `pip install -e ".[embeddings]"` for `faiss-cpu` + `onnxruntime` (bag encoder works offline without them)
 ---
 

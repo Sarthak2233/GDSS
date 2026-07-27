@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 220" width="100%" height="220">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1260 220" width="100%" height="220">
   <defs>
     <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
       <path d="M0,0 L12,6 L0,12 z" fill="#94a3b8" />
@@ -7,41 +7,47 @@
   </defs>
 
   <!-- Repo -->
-  <rect x="20" y="55" width="150" height="80" rx="14" fill="#06b6d4" stroke="#035e66" stroke-width="2" />
-  <text x="95" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Raw Repository</text>
-  <text x="95" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Files &amp; Commits</text>
+  <rect x="16" y="55" width="130" height="80" rx="14" fill="#06b6d4" stroke="#035e66" stroke-width="2" />
+  <text x="81" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Raw Repository</text>
+  <text x="81" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Files &amp; Commits</text>
 
   <!-- AST -->
-  <rect x="200" y="55" width="140" height="80" rx="14" fill="#2563eb" stroke="#1e40af" stroke-width="2" />
-  <text x="270" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">AST Parser</text>
-  <text x="270" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Py · JS · TS · Go</text>
+  <rect x="170" y="55" width="120" height="80" rx="14" fill="#2563eb" stroke="#1e40af" stroke-width="2" />
+  <text x="230" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">AST Parser</text>
+  <text x="230" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Py · JS · TS · Go</text>
 
   <!-- TX -->
-  <rect x="370" y="55" width="150" height="80" rx="14" fill="#7c3aed" stroke="#4c1d95" stroke-width="2" />
-  <text x="445" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Transform</text>
-  <text x="445" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Operators</text>
+  <rect x="314" y="55" width="120" height="80" rx="14" fill="#7c3aed" stroke="#4c1d95" stroke-width="2" />
+  <text x="374" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Transform</text>
+  <text x="374" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Operators</text>
 
   <!-- Graph -->
-  <rect x="550" y="55" width="150" height="80" rx="14" fill="#f59e0b" stroke="#92400e" stroke-width="2" />
-  <text x="625" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Dependency</text>
-  <text x="625" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Graph</text>
+  <rect x="458" y="55" width="120" height="80" rx="14" fill="#f59e0b" stroke="#92400e" stroke-width="2" />
+  <text x="518" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Dependency</text>
+  <text x="518" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Graph</text>
 
   <!-- Embeddings -->
-  <rect x="730" y="55" width="150" height="80" rx="14" fill="#0ea5e9" stroke="#075985" stroke-width="2" />
-  <text x="805" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Embeddings</text>
-  <text x="805" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">φ(C) + FAISS</text>
+  <rect x="602" y="55" width="120" height="80" rx="14" fill="#0ea5e9" stroke="#075985" stroke-width="2" />
+  <text x="662" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Embeddings</text>
+  <text x="662" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">φ(C) + FAISS</text>
+
+  <!-- Drift -->
+  <rect x="746" y="55" width="120" height="80" rx="14" fill="#ef4444" stroke="#991b1b" stroke-width="2" />
+  <text x="806" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Drift</text>
+  <text x="806" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">I(B_i) · alerts</text>
 
   <!-- Manifold -->
-  <rect x="910" y="55" width="160" height="80" rx="14" fill="#10b981" stroke="#065f46" stroke-width="2" />
-  <text x="990" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Semantic</text>
-  <text x="990" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Manifold Model</text>
+  <rect x="890" y="55" width="140" height="80" rx="14" fill="#10b981" stroke="#065f46" stroke-width="2" />
+  <text x="960" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Semantic</text>
+  <text x="960" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Manifold Model</text>
 
   <!-- Arrows -->
-  <line x1="170" y1="95" x2="200" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
-  <line x1="340" y1="95" x2="370" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
-  <line x1="520" y1="95" x2="550" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
-  <line x1="700" y1="95" x2="730" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
-  <line x1="880" y1="95" x2="910" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="146" y1="95" x2="170" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="290" y1="95" x2="314" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="434" y1="95" x2="458" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="578" y1="95" x2="602" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="722" y1="95" x2="746" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="866" y1="95" x2="890" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
 
-  <text x="550" y="195" text-anchor="middle" fill="#334155" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">GDSS pipeline — AST → Operators → Graph → Embeddings (FAISS) → Manifold</text>
+  <text x="530" y="195" text-anchor="middle" fill="#334155" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">GDSS pipeline — AST → Operators → Graph → Embeddings → Drift → Manifold</text>
 </svg>

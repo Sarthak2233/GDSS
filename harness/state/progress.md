@@ -5,6 +5,141 @@ output), not just claims.
 
 ---
 
+## 2026-07-27 - 3dsvg skill + rule harness
+
+Created a reusable frontend skill and rule to document safe, token-driven
+usage of 3dsvg (https://github.com/renatoworks/3dsvg) inside GDSS's web/ app.
+
+Done:
+- Added `.cursor/skills/svg-3d-extrusion/SKILL.md` with API reference, use
+  cases (brand/logo, extruded labels, manifold-building blocks), SSR/lazy
+  import patterns, reduced-motion fallbacks, and testing guidance.
+- Added `.cursor/rules/frontend/21-svg-3d-extrusion.mdc` with when-to-use
+  guidance, token/bundle/CLS rules, and mapping from GDSS concepts → 3dsvg
+  props.
+- Ran frontend verification (`bash harness/verify-frontend.sh` / `bash harness/verify.sh`) — no frontend regressions observed.
+
+Evidence (`bash harness/verify.sh` / `verify-frontend.sh`):
+- New skill and rule files present under `.cursor/`.
+- Frontend F1/F2/F3 still green after the change (see verify output timestamped 2026-07-27).
+
+Next: implement `frontend-local-api` (F1) when you're ready; the 3dsvg
+skill is preparatory and will be exercised once `frontend-manifold-3d` (F10)
+is unblocked by `phase7-research`.
+
+---
+
+## 2026-07-23 - Frontend hard gates (F0.1)
+
+Installed the JS toolchain so frontend sensors enforce instead of SKIP.
+
+Done:
+- `cd web && pnpm install` → `web/pnpm-lock.yaml` + `node_modules` (gitignored).
+- Scaffold fixes so hard gates pass: quoted `"2xl"`/`"3xl"` keys in
+  `web/lib/tokens.ts`; vitest `esbuild.jsx: automatic`; jest-axe matcher in
+  `tests/setup.ts`; `@types/jest-axe` + `size-limit@11.1.4`; Button
+  `ReactNode` children typing; Tailwind theme string maps.
+- F3: `e2e.sh` runs `pnpm build` then size-limit; budgets in
+  `package.json` / `.size-limit.json` (app-route first-load + components);
+  Playwright SKIP when no `web/e2e/*.spec.ts` (config scoped via
+  `playwright.config.ts`).
+- `.pnpm-store/` gitignored.
+
+Evidence (`bash harness/verify.sh` / `verify-frontend.sh`):
+- F1 lint: running eslint → OK (not SKIP)
+- F1 typecheck: running tsc → OK
+- F1 token_fitness: OK
+- F2 vitest: 9 passed → OK
+- F3 size-limit: Initial JS ~42.98 kB / 180 kB → OK; Playwright SKIP (no e2e specs)
+- Result: ALL LAYERS GREEN (exit 0)
+
+`frontend-hard-gates` → done. Next: `frontend-local-api` (deps satisfied) or
+`phase4-tensor`.
+
+---
+
+## 2026-07-23 - Frontend product roadmap queued (shared feature_list)
+
+Authored phase-wise frontend integration into the shared harness queue (no UI/API
+implementation yet — roadmap only).
+
+Created/updated:
+- `harness/state/feature_list.json` — `frontend-hard-gates` … `frontend-manifold-3d`
+  (F0.1–F10) with deps on backend phases; shared-queue `definition_of_done` note;
+  `frontend-harness` remains done (F0).
+- `docs/FRONTEND_ROADMAP.md` — complementarity map + phase table + API contract.
+- `AGENTS.md`, `harness/README.md` — shared queue + roadmap pointers.
+
+Next recommended pick: **`frontend-hard-gates`** (`cd web && pnpm install`, then
+hard `verify-frontend.sh`), then **`frontend-local-api`**.
+
+Evidence: JSON validates (12 `frontend-*` features); docs authored. No change to
+`gdss/` runtime. Full `verify.sh` unchanged in intent (roadmap-only session).
+
+---
+
+## 2026-07-22 - Frontend Harness (the visual brain)
+
+Added a second "visual brain" beside the backend harness, teaching agents how to
+build a world-class frontend with the same rigor as backend correctness. No
+changes to `gdss/` Python source.
+
+Created:
+- **Tokens (single source of truth)**: `web/lib/tokens.ts` (spacing/color/type
+  scale), `web/lib/motion.ts` (duration/easing/spring/8-state interaction
+  machine/animation levels 0-10/revealStagger), `web/tailwind.config.ts` wired
+  to the tokens, `.cursor/skills/motion-design/motion.md` reference.
+- **Guides (feedforward)**: `.cursor/rules/frontend/01-20-*.mdc` (globs `web/**`)
+  - design language, layout, motion, animation, state transitions, visual
+  hierarchy, color, typography, composition, glassmorphism, data viz, dashboard,
+  loading/empty/error, mobile, accessibility, performance, threejs, framer-motion.
+- **Skills (on-demand)**: 13 knowledge skills (motion-design, animation-system,
+  component-composition, dashboard-design, ux-patterns, interaction-design,
+  data-visualization, glass-ui, canvas-effects, webgl, framer-motion, gsap,
+  svg-animation) + 2 workflow skills (build-frontend-component, verify-frontend).
+- **Scaffold (`web/`)**: minimal Next.js + TS + Tailwind + Framer Motion app with
+  reference `Button` (full 8-state machine, reduced-motion) and `MetricCard`
+  (animated counter + sparkline + trend + comparison) + vitest/jest-axe tests +
+  eslint/jsx-a11y/tsc/size-limit config.
+- **Sensors (feedback)**: `harness/sensors/frontend/*` (lint, typecheck,
+  token_fitness.py, component_tests, e2e) + `harness/verify-frontend.sh`
+  (F1 static -> F2 component -> F3 e2e), wired into `harness/verify.sh` (runs
+  only when `web/` exists). Fast hook `.cursor/hooks/run-fast-frontend-sensors.sh`
+  added to `.cursor/hooks.json` for `web/**` edits.
+
+Harness self-test: `token_fitness.py` caught raw hex/durations in the reference
+components on first run; fixed them to use tokens (the ratchet working as
+designed).
+
+Evidence (`bash harness/verify.sh`):
+- Backend Layers 1-3: green (unchanged).
+- Frontend F1 token_fitness: OK. F1 lint/typecheck, F2 vitest, F3 e2e: SKIP
+  cleanly (no JS toolchain installed) with WHAT/WHY/FIX install instructions.
+- Result: ALL LAYERS GREEN (exit 0). `verify-frontend.sh` exit 0 standalone.
+
+Next: install `cd web && pnpm install` to turn the SKIP sensors into hard gates,
+then build the animated semantic-graph dashboard (documented next step).
+
+---
+
+## 2026-07-21 - Phase 3: Continuous Drift Monitoring
+
+Implemented Layer 8 (`gdss/drift/`) and initial Layer 7 probability:
+- Combined drift magnitude: tip cosine + ceiling-normalized trajectory integral
+- `DriftEngine.snapshot` with velocity + convergence; JSON `SnapshotHistory`
+- `DriftAlerts` severity buckets (low/medium/high) in roadmap alert format
+- `ConflictProbabilityEstimator` (heuristic; **no** `gdss.drift` import)
+- CLI: `gdss drift`, `gdss alerts`; daemon `DriftMonitor` emits `"drift"` events
+- ContextEngine stores drift summary on drift topic packets
+
+Evidence (`bash harness/verify.sh`):
+- Layer 1: architecture OK; DSA OK
+- Layer 2: pytest 78 passed, 3 skipped
+- Layer 3: cli-smoke OK (includes `gdss drift` / `gdss alerts`)
+- Result: ALL LAYERS GREEN (exit 0)
+
+---
+
 ## 2026-07-17 - Verify gate: lint + typecheck cleanup
 
 `bash harness/verify.sh` was failing at Layer 1 because ruff/mypy are now

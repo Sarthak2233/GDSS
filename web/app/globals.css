@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: theme("colors.bg");
+  color: theme("colors.text");
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible focus ring using the accent token (replace, never remove). */
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid theme("colors.accent");
+  outline-offset: 2px;
+  border-radius: theme("borderRadius.sm");
+}
+
+/* Reduced motion: keep state changes, drop ambient/physics. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

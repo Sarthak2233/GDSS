@@ -1,0 +1,23 @@
+[
+  {
+    "path": [
+      ".next/static/chunks/main-app-*.js",
+      ".next/static/chunks/framework-*.js",
+      ".next/static/chunks/webpack-*.js",
+      ".next/static/chunks/app/page-*.js",
+      ".next/static/chunks/app/layout-*.js"
+    ],
+    "limit": "180 KB",
+    "name": "Initial JS (app route first load)"
+  },
+  {
+    "path": "components/ui/button.tsx",
+    "limit": "8 KB",
+    "name": "Button component"
+  },
+  {
+    "path": "components/ui/metric-card.tsx",
+    "limit": "12 KB",
+    "name": "MetricCard component"
+  }
+]

@@ -12,6 +12,10 @@
       {
         "command": ".cursor/hooks/run-fast-sensors.sh",
         "matcher": "Write"
+      },
+      {
+        "command": ".cursor/hooks/run-fast-frontend-sensors.sh",
+        "matcher": "Write"
       }
     ],
     "afterShellExecution": [

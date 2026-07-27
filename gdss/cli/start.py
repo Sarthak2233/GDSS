@@ -25,10 +25,14 @@ from rich.text import Text
 from rich.tree import Tree
 
 # GDSS Core imports - USED
+from gdss.conflict.probability import ConflictProbabilityEstimator
 from gdss.core.ast_parser import SOURCE_EXTENSIONS, ASTParser
 from gdss.core.trajectory import extract_trajectory_operators, is_single_attractor_trajectory
 from gdss.core.transform_extractor import TransformExtractor
 from gdss.core.transform_types import CodeSymbol, OperatorType, SemanticOperator, SymbolType
+from gdss.drift.alerts import DriftAlerts
+from gdss.drift.engine import DriftEngine
+from gdss.drift.history import SnapshotHistory, default_history_path
 from gdss.embeddings.branch_vector import (
     aggregate_branch_tip,
     embed_symbols,
@@ -432,6 +436,119 @@ class GDSSShell(cmd.Cmd):
             table.add_row(f"{score:.3f}", label, loc)
         console.print(table)
         console.print("[dim]Probabilistic neighbors — not a merge oracle.[/]")
+
+    def do_drift(self, arg):
+        """Show per-branch drift magnitude vs the attractor.
+
+        Usage: drift [reference_branch]
+        """
+        ref = self._resolve_reference_branch(arg)
+        console.print(f"\n[bold {self.theme['primary']}]━━━ BRANCH DRIFT vs {ref} ━━━[/]")
+
+        single, only_branch = is_single_attractor_trajectory(self.observer, ref)
+        if single:
+            console.print(
+                f"[dim]Single attractor trajectory ({only_branch or ref}). "
+                f"No other local branches to measure drift against.[/]"
+            )
+            return
+
+        branches = [
+            b for b in self.observer.list_local_branches() if b != ref
+        ]
+        if not branches:
+            console.print("[dim]No other local branch trajectories found.[/]")
+            return
+
+        engine = DriftEngine(
+            observer=self.observer,
+            parser=self.parser,
+            extractor=self.extractor,
+            history=SnapshotHistory(default_history_path(self.repo_path)),
+        )
+        alerts = DriftAlerts()
+        conflict_est = ConflictProbabilityEstimator()
+
+        table = Table(box=box.MINIMAL, border_style=self.theme["info"])
+        table.add_column("Branch")
+        table.add_column("Magnitude")
+        table.add_column("d_tip")
+        table.add_column("I_traj")
+        table.add_column("Velocity")
+        table.add_column("Convergence")
+        table.add_column("Conflict P")
+        table.add_column("Top affected")
+
+        for branch in branches:
+            snap = engine.snapshot(branch, ref)  # dsa:ignore
+            branch_ops = extract_trajectory_operators(
+                self.observer, self.parser, self.extractor, ref_branch=ref, head=branch
+            )
+            ref_ops = extract_trajectory_operators(
+                self.observer, self.parser, self.extractor, ref_branch=branch, head=ref
+            )
+            shared = sorted(
+                {op.file for op in branch_ops} & {op.file for op in ref_ops}
+            )
+            conflict = conflict_est.estimate(
+                branch_ops, ref_ops, shared, snap.magnitude.magnitude
+            )
+            top = snap.affected[0].name if snap.affected else "—"
+            table.add_row(
+                branch,
+                f"{snap.magnitude.magnitude:.3f}",
+                f"{snap.magnitude.tip_distance:.3f}",
+                f"{snap.magnitude.trajectory_integral:.3f}",
+                f"{snap.velocity:.4f}",
+                f"{snap.convergence:.3f}",
+                f"{conflict.score:.3f}",
+                top,
+            )
+            alert = alerts.evaluate(snap)
+            if alert is not None:
+                console.print(f"[bold {self.theme['warning']}]{alerts.format(alert)}[/]")
+
+        console.print(table)
+        console.print(
+            "[dim]Combined tip proxy + trajectory integral. "
+            "Conflict P is heuristic (not Omega tensor).[/]"
+        )
+
+    def do_alerts(self, arg):
+        """Evaluate drift alerts for all non-reference local branches.
+
+        Usage: alerts [reference_branch]
+        """
+        ref = self._resolve_reference_branch(arg)
+        console.print(f"\n[bold {self.theme['primary']}]━━━ DRIFT ALERTS vs {ref} ━━━[/]")
+
+        single, only_branch = is_single_attractor_trajectory(self.observer, ref)
+        if single:
+            console.print(
+                f"[dim]Single attractor ({only_branch or ref}) — no drift alerts.[/]"
+            )
+            return
+
+        engine = DriftEngine(
+            observer=self.observer,
+            parser=self.parser,
+            extractor=self.extractor,
+            history=SnapshotHistory(default_history_path(self.repo_path)),
+        )
+        alerts = DriftAlerts()
+        found = False
+        for branch in self.observer.list_local_branches():
+            if branch == ref:
+                continue
+            snap = engine.snapshot(branch, ref)  # dsa:ignore
+            alert = alerts.evaluate(snap)
+            if alert is None:
+                continue
+            found = True
+            console.print(alerts.format(alert))
+            console.print()
+        if not found:
+            console.print("[dim]No alerts above the low threshold.[/]")
 
     def do_log(self, arg):
         """Show semantic commit log. Usage: log [count] [--type=operator_type]"""

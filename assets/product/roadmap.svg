@@ -7,47 +7,47 @@
   </defs>
 
   <!-- Column: Completed -->
-  <rect x="24" y="24" width="300" height="280" rx="14" fill="#16a34a" stroke="#15803d" stroke-width="2"/>
+  <rect x="24" y="24" width="300" height="312" rx="14" fill="#16a34a" stroke="#15803d" stroke-width="2"/>
   <text x="174" y="52" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="15">Completed</text>
 
-  <rect x="48" y="72" width="252" height="44" rx="10" fill="#22c55e" stroke="#166534" stroke-width="2"/>
-  <text x="174" y="100" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 0: Distributed Runtime</text>
+  <rect x="48" y="72" width="252" height="40" rx="10" fill="#22c55e" stroke="#166534" stroke-width="2"/>
+  <text x="174" y="98" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 0: Distributed Runtime</text>
 
-  <rect x="48" y="132" width="252" height="44" rx="10" fill="#22c55e" stroke="#166534" stroke-width="2"/>
-  <text x="174" y="160" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 1: AST · Operators · Graph</text>
+  <rect x="48" y="122" width="252" height="40" rx="10" fill="#22c55e" stroke="#166534" stroke-width="2"/>
+  <text x="174" y="148" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 1: AST · Operators · Graph</text>
 
-  <rect x="48" y="192" width="252" height="44" rx="10" fill="#22c55e" stroke="#166534" stroke-width="2"/>
-  <text x="174" y="220" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 2: Embeddings + FAISS</text>
+  <rect x="48" y="172" width="252" height="40" rx="10" fill="#22c55e" stroke="#166534" stroke-width="2"/>
+  <text x="174" y="198" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 2: Embeddings + FAISS</text>
 
-  <text x="174" y="270" text-anchor="middle" fill="#dcfce7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">verify.sh green · live in CLI</text>
+  <rect x="48" y="222" width="252" height="40" rx="10" fill="#22c55e" stroke="#166534" stroke-width="2"/>
+  <text x="174" y="248" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 3: Continuous Drift</text>
+
+  <text x="174" y="300" text-anchor="middle" fill="#dcfce7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">verify.sh green · live in CLI</text>
 
   <!-- Column: Next -->
   <rect x="350" y="24" width="280" height="160" rx="14" fill="#2563eb" stroke="#1e40af" stroke-width="2"/>
   <text x="490" y="52" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="15">Next</text>
 
   <rect x="374" y="80" width="232" height="60" rx="10" fill="#3b82f6" stroke="#1e3a8a" stroke-width="2"/>
-  <text x="490" y="106" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 3: Continuous Drift</text>
-  <text x="490" y="126" text-anchor="middle" fill="#dbeafe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">I(B_i) · alerts · daemon</text>
+  <text x="490" y="106" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 4: Conflict Tensor Ω</text>
+  <text x="490" y="126" text-anchor="middle" fill="#dbeafe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">commutativity · geometry</text>
 
   <!-- Column: Planned -->
   <rect x="656" y="24" width="320" height="280" rx="14" fill="#475569" stroke="#334155" stroke-width="2"/>
   <text x="816" y="52" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="15">Planned</text>
 
   <rect x="680" y="72" width="272" height="36" rx="8" fill="#64748b" stroke="#334155" stroke-width="2"/>
-  <text x="816" y="95" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Phase 4: Conflict Tensor Ω</text>
+  <text x="816" y="95" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Phase 5: AI Semantic Rebase</text>
 
   <rect x="680" y="120" width="272" height="36" rx="8" fill="#64748b" stroke="#334155" stroke-width="2"/>
-  <text x="816" y="143" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Phase 5: AI Semantic Rebase</text>
+  <text x="816" y="143" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Phase 6: Validation Sandbox</text>
 
   <rect x="680" y="168" width="272" height="36" rx="8" fill="#64748b" stroke="#334155" stroke-width="2"/>
-  <text x="816" y="191" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Phase 6: Validation Sandbox</text>
+  <text x="816" y="191" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Phase 7: Geometric Research</text>
 
-  <rect x="680" y="216" width="272" height="36" rx="8" fill="#64748b" stroke="#334155" stroke-width="2"/>
-  <text x="816" y="239" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Phase 7: Geometric Research</text>
-
-  <!-- Flow arrows: Done P2 -> Next P3 -> Planned P4 -->
-  <line x1="324" y1="214" x2="350" y2="120" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+  <!-- Flow arrows: Done P3 -> Next P4 -> Planned P5 -->
+  <line x1="324" y1="242" x2="350" y2="120" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
   <line x1="630" y1="110" x2="656" y2="90" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
 
-  <text x="500" y="340" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">Roadmap — Phase 0–2 complete; Phase 3 (drift) is next</text>
+  <text x="500" y="340" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">Roadmap — Phase 0–3 complete; Phase 4 (conflict tensor) is next</text>
 </svg>

@@ -28,6 +28,16 @@ class ContextEngine:
             "remote_aware": topic == "remote",
             "semantic_operators": data.get("semantic_operators", [])
         }
+        if topic == "drift":
+            packet["drift"] = {
+                "branch": data.get("branch"),
+                "magnitude": data.get("magnitude"),
+                "severity": data.get("severity"),
+                "velocity": data.get("velocity"),
+                "convergence": data.get("convergence"),
+                "tip_distance": data.get("tip_distance"),
+                "trajectory_integral": data.get("trajectory_integral"),
+            }
 
         # Log to DB
         self.log_context(packet)

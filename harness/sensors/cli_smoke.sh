@@ -88,6 +88,10 @@ run_gdss log --repo "$fixture" -n 5 >/dev/null 2>&1 \
   || fail "gdss log --repo $fixture -n 5"
 run_gdss similar process_payment --repo "$fixture" -k 3 >/dev/null 2>&1 \
   || fail "gdss similar process_payment"
+run_gdss drift --repo "$fixture" --ref "$base" >/dev/null 2>&1 \
+  || fail "gdss drift --repo $fixture --ref $base"
+run_gdss alerts --repo "$fixture" --ref "$base" >/dev/null 2>&1 \
+  || fail "gdss alerts --repo $fixture --ref $base"
 
 # 3) Synchronized path: status on the reference branch itself.
 GIT checkout -q "$base" || fail "checkout base failed"

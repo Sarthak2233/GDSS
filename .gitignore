@@ -36,7 +36,7 @@ dist/
 # Others
 FROM WHERE IT ALL STARTED..txt
 research.md
-.cursor/plans/**/*.md
+
 
 diff.txt
 my_graph.dot

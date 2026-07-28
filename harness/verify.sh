@@ -44,7 +44,13 @@ bash "$here/run_tests.sh" || {
 # ---------- Layer 3: end-to-end ----------
 section "Layer 3 / end-to-end: cli smoke"
 bash "$here/cli_smoke.sh" || {
-  echo "verify: stopped at Layer 3 (end-to-end)."
+  echo "verify: stopped at Layer 3 (cli smoke)."
+  exit 1
+}
+
+section "Layer 3 / end-to-end: api smoke"
+bash "harness/sensors/api_smoke.sh" || {
+  echo "verify: stopped at Layer 3 (api smoke)."
   exit 1
 }
 

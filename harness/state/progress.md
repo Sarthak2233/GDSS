@@ -5,6 +5,28 @@ output), not just claims.
 
 ---
 
+## 2026-07-27 - Local HTTP API (F1)
+
+Implemented Phase F1 Local HTTP API via FastAPI for exposing metadata-only privacy-safe endpoints to the upcoming web dashboard.
+
+Done:
+- Added `fastapi`, `uvicorn[standard]`, `pydantic` and `httpx` dependencies.
+- Created `gdss/api/models.py` with strict Pydantic model response envelopes ensuring no source code/PII gets out.
+- Implemented `gdss/api/service.py` to adapt `GitObserver`, `build_code_graph_from_repo`, `DriftEngine` and `find_similar_symbols` to the endpoints format while enforcing metadata-only constraints.
+- Created `gdss/api/server.py` defining `/v1/status`, `/v1/graph`, `/v1/drift`, `/v1/alerts`, `/v1/log`, and `/v1/similar`.
+- Extracted and integrated `gdss serve` to `gdss/cli/main.py`.
+- Solved DSA logic inside API adapter logic iteratively.
+- Added API endpoints rigorous safety tests under `tests/api`.
+- Added end-to-end `harness/sensors/api_smoke.sh` and hooked it to `harness/verify.sh`.
+
+Evidence (`bash harness/verify.sh`):
+- Layer 1 static: architecture OK, DSA fitness OK (0 unsuppressed violations).
+- Layer 2 runtime: tests OK (96 passed).
+- Layer 3 end-to-end: API smoke test creates a temp repo, launches `gdss serve`, and curls all endpoints, including a privacy-envelope check, which completed and passed.
+- Result: ALL LAYERS GREEN.
+
+Next: Proceed to `frontend-app-shell` (Phase F2).
+
 ## 2026-07-27 - 3dsvg skill + rule harness
 
 Created a reusable frontend skill and rule to document safe, token-driven

@@ -1,38 +1,21 @@
-# Session Handoff: Frontend hard gates done (F0.1)
+# Session Handoff
+
+## What was completed
+- Bootstrapped and implemented Phase F1 Local HTTP API using FastAPI.
+- Configured dependencies (`fastapi`, `uvicorn[standard]`, `pydantic`, `httpx`).
+- Setup privacy-safe models preventing any payload leakage of source code or author signatures.
+- Implemented `/v1/status`, `/v1/graph`, `/v1/drift`, `/v1/alerts`, `/v1/log`, and `/v1/similar` using backend deterministic adapters (`GitObserver`, `DriftEngine`, etc.).
+- Wired up a rigorous testing safety suite (`tests/api/test_handlers.py`, `tests/api/test_privacy.py`, `tests/api/test_server.py`) wrapping all endpoints in rigid contracts.
+- Wired Layer 3 end-to-end `harness/sensors/api_smoke.sh` proving out daemon background serve commands and endpoints behavior under stress constraints.
+- Resolved Python AST parser caching violations dictated by Layer 1 DSA tests.
+- Formally marked `frontend-local-api` as `done` in `harness/state/feature_list.json` and `progress.md`.
 
 ## Current State
-- `frontend-harness` (F0) — **done**
-- `frontend-hard-gates` (F0.1) — **done** (`web/node_modules` via pnpm; F1/F2
-  enforce; size-limit runs; Playwright SKIP until `web/e2e/*.spec.ts` exists)
-- Remaining `frontend-*` (F1–F10) — **pending**
-- Decisions: same queue as backend; **API-first** (`gdss serve` / `gdss/api`
-  before live UIs); no CLI scraping.
+- The `gdss serve` CLI is totally compliant and functional on `http://127.0.0.1:8787`.
+- All `verify.sh` tests and tests pass (`exit 0`), and the workspace meets definition of done across 3 layers.
+- The next step available in `feature_list.json` is Phase `F2`, `frontend-app-shell`.
 
-## 2026-07-27 - 3dsvg skill + rule harness
-
-- Created `.cursor/skills/svg-3d-extrusion/SKILL.md` and `.cursor/rules/frontend/21-svg-3d-extrusion.mdc`.
-- Updated `harness/state/feature_list.json` and appended an entry to `harness/state/progress.md` recording the work and verification evidence.
-- Frontend verify (F1/F2/F3) ran and reported no regressions.
-
-Next: when ready, pick `frontend-local-api` (F1) or request a small reference component using `3dsvg` to be added under `web/components/ui`.
-
-Backend next unfinished product phase with deps satisfied: `phase4-tensor`.
-Frontend next with deps satisfied: none until backend deps for
-`frontend-local-api` (`phase1-graph`, `phase2-embeddings`, `phase3-drift` —
-already done) — so **`frontend-local-api`** is now unblocked.
-
-## Next Steps (pick ONE)
-1. **`frontend-local-api`** (recommended for visual brain) — additive
-   `gdss/api/` + `gdss serve` JSON for status/graph/drift/alerts/log/similar.
-2. **`phase4-tensor`** — full `Omega_{ij}` conflict tensor (backend track).
-
-## How to resume
-```bash
-source venv/bin/activate
-bash harness/init.sh
-bash harness/verify.sh
-# Frontend toolchain (already installed locally):
-cd web && pnpm install   # if node_modules missing
-bash harness/verify-frontend.sh
-# Recommended next: frontend-local-api
-```
+## Next Steps for Next Session
+1. Source `AGENTS.md` and check `bash harness/init.sh`.
+2. Grab the `frontend-app-shell` feature from `feature_list.json`.
+3. Proceed building the Web App shell structure in `web/` routing using Next.js & TanStack Query wrapping the Local API JSON payload results.

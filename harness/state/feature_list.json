@@ -207,14 +207,15 @@
       "phase": "F1",
       "title": "Local HTTP API: gdss serve / gdss/api JSON for status, graph, drift, alerts, log, similar (metadata only)",
       "layer": "frontend",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "frontend-hard-gates",
         "phase1-graph",
         "phase2-embeddings",
         "phase3-drift"
       ],
-      "done_criteria": "Additive gdss/api/ + CLI gdss serve --repo PATH --port 8787; GET /v1/status|/v1/graph|/v1/drift|/v1/alerts|/v1/log|/v1/similar return JSON (no source bodies/PII); pytest for API handlers; cli or API smoke; privacy rule (60-telemetry-privacy); verify.sh green. Authorizes additive gdss/api/ only."
+      "done_criteria": "Additive gdss/api/ + CLI gdss serve --repo PATH --port 8787; GET /v1/status|/v1/graph|/v1/drift|/v1/alerts|/v1/log|/v1/similar return JSON (no source bodies/PII); pytest for API handlers; cli or API smoke; privacy rule (60-telemetry-privacy); verify.sh green. Authorizes additive gdss/api/ only.",
+      "evidence": "API tests + api smoke pass; endpoints implemented safely using GitObserver/DriftEngine/etc.; API strict JSON envelopes (no source code/PII); verify.sh ALL LAYERS GREEN"
     },
     {
       "id": "frontend-app-shell",

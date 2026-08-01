@@ -1,12 +1,14 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
+
 
 class APIResponseBase(BaseModel):
     version: str = "1.0"
     timestamp: str
     repo: str
     status: str = "ok"
-    warnings: List[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 class ErrorDetails(BaseModel):
     what: str
@@ -21,23 +23,24 @@ class ErrorResponse(BaseModel):
     error: APIError
 
 class StatusResponse(APIResponseBase):
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
 class GraphResponse(APIResponseBase):
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
 class DriftResponse(APIResponseBase):
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
 class AlertsResponse(APIResponseBase):
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
 class LogResponse(APIResponseBase):
-    data: List[Dict[str, Any]]
+    data: list[dict[str, Any]]
 
 class SimilarResponse(APIResponseBase):
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
 class HealthResponse(BaseModel):
     version: str = "1.0"
     status: str = "ok"
+    repo: str | None = None

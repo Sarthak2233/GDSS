@@ -26,6 +26,7 @@ from rich.tree import Tree
 
 # GDSS Core imports - USED
 from gdss.conflict.probability import ConflictProbabilityEstimator
+from gdss.conflict.tensor import TensorEngine
 from gdss.core.ast_parser import SOURCE_EXTENSIONS, ASTParser
 from gdss.core.trajectory import extract_trajectory_operators, is_single_attractor_trajectory
 from gdss.core.transform_extractor import TransformExtractor
@@ -514,6 +515,86 @@ class GDSSShell(cmd.Cmd):
             "Conflict P is heuristic (not Omega tensor).[/]"
         )
 
+    def do_tensor(self, arg):
+        """Show sparse conflict tensor Omega_ij vs the attractor.
+
+        Usage: tensor [reference_branch]
+        """
+        ref = self._resolve_reference_branch(arg)
+        console.print(f"\n[bold {self.theme['primary']}]━━━ CONFLICT TENSOR Ω vs {ref} ━━━[/]")
+
+        single, only_branch = is_single_attractor_trajectory(self.observer, ref)
+        if single:
+            console.print(
+                f"[dim]Single attractor trajectory ({only_branch or ref}). "
+                f"No other local branches for Omega tensor.[/]"
+            )
+            return
+
+        branches = [b for b in self.observer.list_local_branches() if b != ref]
+        if not branches:
+            console.print("[dim]No other local branch trajectories found.[/]")
+            return
+
+        # Include reference as a trajectory column so matrix is complete
+        all_branches = [ref, *branches]
+        drift_engine = DriftEngine(
+            observer=self.observer,
+            parser=self.parser,
+            extractor=self.extractor,
+            history=SnapshotHistory(default_history_path(self.repo_path)),
+        )
+        branch_ops: dict[str, list] = {}
+        drift_magnitudes: dict[str, float] = {}
+
+        for branch in all_branches:
+            if branch == ref:
+                # Reference self-energy: tip vs itself is zero; still extract ops empty vs self
+                branch_ops[branch] = []
+                drift_magnitudes[branch] = 0.0
+            else:
+                snap = drift_engine.snapshot(branch, ref)  # dsa:ignore
+                drift_magnitudes[branch] = snap.magnitude.magnitude
+                branch_ops[branch] = extract_trajectory_operators(
+                    self.observer,
+                    self.parser,
+                    self.extractor,
+                    ref_branch=ref,
+                    head=branch,
+                )
+
+        tensor = TensorEngine().compute(branch_ops, drift_magnitudes)
+        labels = list(tensor.branches)
+        table = Table(
+            title="Ω_ij (sparse; blank = 0)",
+            box=box.MINIMAL,
+            border_style=self.theme["info"],
+        )
+        table.add_column("")
+        for lab in labels:
+            table.add_column(lab, justify="right")
+
+        def _omega(i: str, j: str) -> float:
+            if (i, j) in tensor.entries:
+                return tensor.entries[(i, j)].omega
+            if (j, i) in tensor.entries:
+                return tensor.entries[(j, i)].omega
+            return 0.0
+
+        for row in labels:
+            cells = [row]
+            for col in labels:  # dsa:ignore — dense N×N matrix render; N = local branch count
+                val = _omega(row, col)
+                cells.append(f"{val:.3f}" if val > 0 else "—")
+            table.add_row(*cells)
+
+        console.print(table)
+        console.print(f"[bold]R_merge[/] = {tensor.merge_risk:.4f}")
+        console.print(
+            "[dim]Deterministic Omega from operator overlap + interference; "
+            "diagonal = drift self-energy. Never auto-merges.[/]"
+        )
+
     def do_alerts(self, arg):
         """Evaluate drift alerts for all non-reference local branches.
 
@@ -568,6 +649,8 @@ class GDSSShell(cmd.Cmd):
                 count = int(a)
 
         console.print(f"\n[bold {self.theme['primary']}]━━━ 📜 SEMANTIC LOG (Last {count}) ━━━[/]")
+        if not self.observer.repo:
+            return
 
         commits = list(self.observer.repo.iter_commits("HEAD", max_count=count))
 
@@ -694,6 +777,8 @@ class GDSSShell(cmd.Cmd):
             return
 
         # Get diff between base_sha and working directory (including staged/unstaged changes)
+        if not self.observer.repo:
+            return
         diffs: dict[str, list] = {"added": [], "deleted": [], "modified": []}
         try:
             commit_base = self.observer.repo.commit(base_sha)

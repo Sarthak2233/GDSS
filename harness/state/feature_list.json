@@ -107,18 +107,19 @@
         "phase2-embeddings"
       ],
       "done_criteria": "gdss/drift/* computes divergence + alerts; tests green",
-      "evidence": "verify.sh ALL LAYERS GREEN (78 pytest, 3 skipped); tip+traj I(B_i); DriftAlerts; ConflictProbabilityEstimator (no conflict→drift); DriftMonitor+daemon; gdss drift/alerts in cli-smoke"
+      "evidence": "verify.sh ALL LAYERS GREEN (78 pytest, 3 skipped); tip+traj I(B_i); DriftAlerts; ConflictProbabilityEstimator (no conflict\u2192drift); DriftMonitor+daemon; gdss drift/alerts in cli-smoke"
     },
     {
       "id": "phase4-tensor",
       "phase": "1.4",
-      "title": "Conflict Tensor Engine: Omega matrix, commutativity, geometry",
+      "title": "Flat rank-2 Conflict Tensor: pairwise Omega marginal + commutativity",
       "layer": "conflict",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "phase3-drift"
       ],
-      "done_criteria": "gdss/conflict/* computes Omega_{ij} + commutativity table; tests green"
+      "done_criteria": "Flat rank-2 conflict tensor: gdss/conflict/{commutativity,tensor}.py compute sparse Omega_{ij} (pairwise marginal, vision-doc weights) + commutativity table + R_merge; no gdss.drift import; gdss tensor CLI; tests + verify.sh green. Geometric form (metric G, transport P, <v_i,P(v_j)>_G) deferred to phase4a-d.",
+      "evidence": "commutativity.py + tensor.py + gdss tensor CLI; tests/conflict/test_commutativity|interference|tensor + test_tensor_cli; no conflict\u2192drift import; verify.sh ALL LAYERS GREEN; cli_smoke includes gdss tensor"
     },
     {
       "id": "phase5-ai",
@@ -143,19 +144,8 @@
       "done_criteria": "gdss/validation/* validates suggestions before presentation; tests green"
     },
     {
-      "id": "phase7-research",
-      "phase": "1.7",
-      "title": "Geometric Merge Research: trajectories, transport, geodesics",
-      "layer": "geometry",
-      "status": "pending",
-      "deps": [
-        "phase4-tensor"
-      ],
-      "done_criteria": "gdss/geometry/* experimental trajectory + parallel transport prototypes"
-    },
-    {
       "id": "sp1-telemetry",
-      "phase": "1.8",
+      "phase": "1.7",
       "title": "Sub-Phase: Telemetry & Privacy Integration",
       "layer": "cli",
       "status": "pending",
@@ -164,7 +154,7 @@
     },
     {
       "id": "sp1-distribution",
-      "phase": "1.8",
+      "phase": "1.7",
       "title": "Sub-Phase: CLI Stabilization & Distribution",
       "layer": "cli",
       "status": "pending",
@@ -173,12 +163,80 @@
     },
     {
       "id": "sp1-cicd",
-      "phase": "1.8",
+      "phase": "1.7",
       "title": "Sub-Phase: CI/CD Pipeline",
       "layer": "validation",
       "status": "pending",
       "deps": [],
       "done_criteria": "GitHub Actions workflow running verify.sh"
+    },
+    {
+      "id": "phase4a-riemannian-metric",
+      "phase": "1.9a",
+      "title": "Riemannian metric G on M (pullback from embeddings)",
+      "layer": "geometry",
+      "status": "pending",
+      "deps": [
+        "phase4-tensor"
+      ],
+      "done_criteria": "Open-ended: define Riemannian metric G on M as pullback from embeddings phi: M -> R^m, G_C(u,v)=(D phi_C u)^T (D phi_C v); replace flat cosine where used for geometric drift/Omega. See docs/MANIFOLD_TENSOR_GUIDE.md."
+    },
+    {
+      "id": "phase4b-parallel-transport",
+      "phase": "1.9b",
+      "title": "Parallel transport P_j->i (semantic rebase)",
+      "layer": "geometry",
+      "status": "pending",
+      "deps": [
+        "phase4a-riemannian-metric"
+      ],
+      "done_criteria": "Open-ended: implement P_{j->i} semantic rebase \u2014 re-extract branch j operators on top of branch i tip via sandbox; never auto-merge. See docs/MANIFOLD_TENSOR_GUIDE.md."
+    },
+    {
+      "id": "phase4c-geometric-tensor",
+      "phase": "1.9c",
+      "title": "Geometric Omega: <v_i, P_j->i(v_j)>_G",
+      "layer": "geometry",
+      "status": "pending",
+      "deps": [
+        "phase4a-riemannian-metric",
+        "phase4b-parallel-transport"
+      ],
+      "done_criteria": "Open-ended: Omega_{ij} = <v_i, P_{j->i}(v_j)>_G using metric G and transport P; coexist with flat rank-2 tensor. See docs/MANIFOLD_TENSOR_GUIDE.md."
+    },
+    {
+      "id": "phase4d-geodesic-merge",
+      "phase": "1.9d",
+      "title": "Geodesic merge optimum plane (minimize R_merge)",
+      "layer": "geometry",
+      "status": "pending",
+      "deps": [
+        "phase4c-geometric-tensor"
+      ],
+      "done_criteria": "Open-ended: search/minimize R_merge over merge orders (Hopf-Rinow existence; sandbox); never auto-merge. See docs/MANIFOLD_TENSOR_GUIDE.md."
+    },
+    {
+      "id": "phase4e-config-tensor",
+      "phase": "1.9e",
+      "title": "Rank-N config tensor on M^N (N-way / octopus merges)",
+      "layer": "geometry",
+      "status": "pending",
+      "deps": [
+        "phase4c-geometric-tensor"
+      ],
+      "done_criteria": "Open-ended research: rank-N tensor on M^N for simultaneous N-way merges; rank-2 flat Omega is its pairwise marginal. See docs/MANIFOLD_TENSOR_GUIDE.md."
+    },
+    {
+      "id": "phase7-research",
+      "phase": "1.10",
+      "title": "Geometric Merge Research: umbrella for metric/transport/geodesic/rank-N refinements",
+      "layer": "geometry",
+      "status": "pending",
+      "deps": [
+        "phase4d-geodesic-merge",
+        "phase4e-config-tensor"
+      ],
+      "done_criteria": "Umbrella for experimental refinements after phase4a-e; gdss/geometry/* prototypes as needed. Math source: docs/MANIFOLD_TENSOR_GUIDE.md."
     },
     {
       "id": "frontend-harness",
@@ -222,67 +280,87 @@
       "phase": "F2",
       "title": "App shell: nav, repo/ref picker, routes, loading/empty/error patterns, TanStack Query over the API",
       "layer": "frontend",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "frontend-local-api"
       ],
-      "done_criteria": "web/ app shell with nav + repo/ref picker; routes for dashboard/graph/drift/similar; loading/empty/error UX per frontend rules 13-15; TanStack Query client using NEXT_PUBLIC_GDSS_API; vitest+jest-axe; verify-frontend.sh green"
+      "done_criteria": "web/ app shell with nav + repo/ref picker; routes for dashboard/graph/drift/similar; loading/empty/error UX per frontend rules 13-15; TanStack Query client using NEXT_PUBLIC_GDSS_API; vitest+jest-axe; verify-frontend.sh green",
+      "evidence": "Web app shell built with navigation, repo/ref picker, and route groups (app/(dashboard)); TanStack Query Providers + RepoContext + web/lib/api.ts configured for NEXT_PUBLIC_GDSS_API; loading.tsx & error.tsx UX implemented; 22 vitest tests + jest-axe passed; verify-frontend.sh ALL LAYERS GREEN"
     },
     {
       "id": "frontend-status-dashboard",
       "phase": "F3",
       "title": "Status dashboard: MetricCards for trajectory, drift vs attractor, conflicts wired to /status + /drift",
       "layer": "frontend",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "frontend-app-shell"
       ],
-      "done_criteria": "Dashboard route shows Trend+Context+Comparison+Animation MetricCards fed by /v1/status and /v1/drift (not bare numbers); complements gdss status/drift; component tests + verify-frontend.sh green"
+      "done_criteria": "Dashboard route shows Trend+Context+Comparison+Animation MetricCards fed by /v1/status and /v1/drift (not bare numbers); complements gdss status/drift; component tests + verify-frontend.sh green",
+      "evidence": "Dashboard route (/dashboard) with DashboardGrid and transcendental widgets (TrajectoryCard, DriftAttractorCard, ConflictTreeCard, GlobalHealthDialCard, IntegrityRibbon) fed by /v1/status and /v1/drift; all motion tokens and reduced-motion handling verified by token_fitness; 16 vitest suites (53 tests) including jest-axe passed; verify-frontend.sh and verify.sh ALL LAYERS GREEN"
     },
     {
       "id": "frontend-semantic-graph",
       "phase": "F4",
       "title": "Semantic graph: React Flow view with breathe/pulse motion; select node shows impact; data from /graph",
       "layer": "frontend",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "frontend-app-shell"
       ],
-      "done_criteria": "React Flow graph from /v1/graph; nodes breathe, edges pulse (tokens + reduced-motion); node select shows impact; complements analyze/graph export/impact; lazy-loaded; verify-frontend.sh green"
+      "done_criteria": "React Flow graph from /v1/graph; nodes breathe, edges pulse (tokens + reduced-motion); node select shows impact; complements analyze/graph export/impact; lazy-loaded; verify-frontend.sh green",
+      "evidence": "3D Semantic Constellation (/graph) built with React Three Fiber + d3-force-3d layout engine; interactive node selection opens NodeDetailPanel with Connected Symbols (imports/defines/calls) for graph traversal; interactive ConstellationLegend with Two-Brain Guide modal; SymbolSearchPicker autocomplete; HTML floating tooltips on canvas hover; verified by token_fitness.py, 23 vitest suites (77 tests), jest-axe, and verify-frontend.sh green"
     },
     {
       "id": "frontend-drift-alerts",
       "phase": "F5",
       "title": "Drift timeline + severity alerts UI from /drift + /alerts",
       "layer": "frontend",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "frontend-app-shell"
       ],
-      "done_criteria": "Drift route with timeline/sparklines and severity-bucketed alerts from /v1/drift + /v1/alerts; complements gdss drift/alerts; loading/empty/error covered; verify-frontend.sh green"
+      "done_criteria": "Drift route with timeline/sparklines and severity-bucketed alerts from /v1/drift + /v1/alerts; complements gdss drift/alerts; loading/empty/error covered; verify-frontend.sh green",
+      "evidence": "Drift Monitor (/drift) route implemented with TanStack Query over /v1/drift and /v1/alerts; interactive DriftTimelineChart displaying per-branch geodesic divergence magnitude, velocity, convergence badge, and sparklines; SeverityAlertsMatrix with interactive severity-bucket filter pills (ALL, CRITICAL, HIGH, MEDIUM, LOW) and branch selector bar; clicking affected symbol chips navigates to /graph?symbol=ID; WHAT/WHY/FIX agent error anatomy in DriftErrorState; verified by token_fitness.py, 25 vitest suites (85 tests), jest-axe a11y, size-limit bundle budget (6.58 kB for /drift), and full verify.sh & verify-frontend.sh green"
     },
     {
       "id": "frontend-similarity",
       "phase": "F6",
       "title": "Assistive similarity explorer from /similar (labeled assistive; never authoritative)",
       "layer": "frontend",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "frontend-app-shell"
       ],
-      "done_criteria": "Similarity explorer UI over /v1/similar; UI copy labels results as assistive/probabilistic; never presented as deterministic truth; complements gdss similar; verify-frontend.sh green"
+      "done_criteria": "Similarity explorer UI over /v1/similar; UI copy labels results as assistive/probabilistic; never presented as deterministic truth; complements gdss similar; verify-frontend.sh green",
+      "evidence": "Assistive Similarity Explorer (/similar) integrated into 3D Constellation view; features glassmorphic AssistiveBadge explicitly labeling similarity as assistive/probabilistic with explanation tooltip; interactive SymbolSearchPicker autocomplete and ConstellationLegend Two-Brain guide; interactive search filters and highlights neighbor nodes in 3D space via /v1/similar; verified by token_fitness.py, 23 vitest suites (77 tests), jest-axe, and verify-frontend.sh green"
+    },
+    {
+      "id": "frontend-embedding-space",
+      "phase": "F6.1",
+      "title": "Embedding-space visualizer on /similar (PCA cloud + ranked neighbors; not dependency graph)",
+      "layer": "frontend",
+      "status": "done",
+      "deps": [
+        "frontend-similarity",
+        "phase2-embeddings",
+        "frontend-local-api"
+      ],
+      "done_criteria": "/similar uses GET /v1/embeddings/projection for 2D PCA layout + /v1/similar for ranked neighbors; AssistiveBadge; no ConstellationCanvas/graph edges as primary; link to /graph; verify.sh + verify-frontend.sh green",
+      "evidence": "GET /v1/embeddings/projection (PCA via VectorStore.export_matrix); /similar redesigned with EmbeddingSpaceCanvas + NeighborRankPanel; AssistiveBadge retained; Open in Semantic Graph link; nav label Embedding Space; docs/f1_api_contract + FRONTEND_ROADMAP updated; verify.sh ALL LAYERS GREEN (110 pytest passed, frontend gate green)"
     },
     {
       "id": "frontend-conflict-tensor",
       "phase": "F7",
       "title": "Conflict tensor UI: Omega_ij heatmap + commutativity table; conflicts glow",
       "layer": "frontend",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "frontend-app-shell",
         "phase4-tensor"
       ],
-      "done_criteria": "Heatmap + commutativity table for Omega_ij from conflict API once phase4-tensor lands; conflict cells use danger/glow motion tokens; verify-frontend.sh green"
+      "done_criteria": "Heatmap + commutativity table for Omega_ij from conflict API once phase4-tensor lands; conflict cells use danger/glow motion tokens; verify-frontend.sh green",
+      "evidence": "GET /v1/tensor (flat form + R_merge + commutativity); /tensor page (OmegaHeatmap, cell detail, commutativity table, MergeRiskCard); nav + ConflictRiskCard link; verify.sh ALL LAYERS GREEN 2026-07-30"
     },
     {
       "id": "frontend-ai-suggestions",

@@ -5,6 +5,290 @@ output), not just claims.
 
 ---
 
+## 2026-07-30 - F7 Conflict Tensor UI (flat Ω heatmap)
+
+Shipped `frontend-conflict-tensor`:
+
+- **API:** `GET /v1/tensor?ref=` — same composition as `gdss tensor` (DriftEngine
+  magnitudes + trajectory ops → `TensorEngine.compute`); serializes sparse
+  entries, `R_merge`, full commutativity table; single-attractor → 200 + warning
+- **UI:** `/tensor` — `OmegaHeatmap`, `OmegaCellDetail`, `CommutativityTable`,
+  `MergeRiskCard` (deterministic badge; “flat rank-2 Ω (not geometric)”);
+  nav “Conflict Tensor”; dashboard Conflict Risk keeps heuristic badge + link
+  “View flat Ω matrix”
+- **Docs:** `docs/f1_api_contract.md`, `api-types.ts`, gap/roadmap
+
+Evidence: `bash harness/verify.sh` → **ALL LAYERS GREEN** (backend + frontend).
+
+Next unfinished with deps done: `phase5-ai` (or geometry 4a if research).
+
+---
+
+## 2026-07-30 - Reorder feature_list: product path before geometry
+
+Reordered [`harness/state/feature_list.json`](feature_list.json):
+
+1. Core `phase0`–`phase4-tensor` (done)
+2. Product path `phase5-ai` → `phase6-validation` → `sp1-*` (1.5–1.7)
+3. Geometry research `phase4a`–`e` renumbered **1.9a–e**, `phase7-research` → **1.10**
+4. Frontend F0+ unchanged after backend block
+
+Deps unchanged. Next unfinished with deps done: `phase5-ai` (or F7 after tensor API).
+
+---
+
+## 2026-07-30 - Align MANIFOLD_TENSOR_GUIDE to flat Ω + phase4a–e
+
+Updated [`docs/MANIFOLD_TENSOR_GUIDE.md`](../../docs/MANIFOLD_TENSOR_GUIDE.md):
+
+- Flat rank-2 Ω marked **done**; geometric form deferred to feature ids
+- Rank-2 vs rank-N (`M^N`) rationale from the flat-tensor plan
+- Gap table + path-forward mapped to `phase4a`–`phase4e` + `phase7-research`
+- Product path (F7 / phase5) called out as orthogonal to geometry research
+
+Docs-only; no verify required.
+
+---
+
+## 2026-07-30 - Phase4 flat Ω reframed + geometric phases registered
+
+- Confirmed flat rank-2 Ω already shipped (`commutativity` + `tensor` + `gdss tensor`).
+- Refined `phase4-tensor` done_criteria to pairwise marginal; geometric form deferred.
+- Registered open-ended geometry phases: `phase4a`–`phase4e` (metric G, transport P,
+  geometric Ω, geodesic merge, rank-N on M^N). Math source: `docs/MANIFOLD_TENSOR_GUIDE.md`.
+- `phase7-research` now depends on `phase4d` + `phase4e` (umbrella).
+
+Evidence: `bash harness/verify.sh` ALL LAYERS GREEN.
+
+Next product pick: `phase5-ai` or `GET /v1/tensor` + F7 (not phase4a yet unless researching geometry).
+
+---
+
+## 2026-07-30 - Phase 4 Conflict Tensor (Ω_ij)
+
+Delivered deterministic conflict tensor engine (layer 7, no drift import):
+
+- `gdss/conflict/commutativity.py` — CommutativityClass, table, classify, operator_interference
+- `gdss/conflict/tensor.py` — TensorEngine sparse Ω_ij + R_merge + drift diagonal
+- CLI: `gdss tensor` / `do_tensor` Rich matrix
+- Tests: test_commutativity, test_interference, test_tensor, test_tensor_cli
+- cli_smoke includes `gdss tensor`
+
+Evidence (`bash harness/verify.sh`): ALL LAYERS GREEN; pytest 123 passed, 3 skipped.
+
+Next: `phase5-ai` or `frontend-conflict-tensor` (F7; needs tensor API wiring).
+
+---
+
+## 2026-07-30 - Product Intent + Implementation Gap (docs)
+
+Aligned living markdown to the clarified North Star:
+
+- Added `docs/PRODUCT_INTENT.md` (goal / non-goals / unit of analysis / success metric)
+- Added `docs/IMPLEMENTATION_GAP.md` (matrix; **phase4-tensor** = largest gap)
+- Updated `AGENTS.md`, `00-gdss-context.mdc`, `README.md` (fixed GeomWhat typo;
+  intent-aligned merge wording), `FRONTEND_ROADMAP.md`, `IO & VIZ.md`, `web/README.md`
+
+Docs-only; no `verify.sh` required. Next implementation: `phase4-tensor`.
+
+---
+
+## 2026-07-30 - Embedding Space Visualizer (F6.1)
+
+Differentiated `/similar` from `/graph`: embedding PCA cloud instead of dependency constellation.
+
+**Backend:**
+- `VectorStore.vectors_for_ids` / `export_matrix`
+- `project_symbol_embeddings` (numpy SVD PCA) in `gdss/embeddings/service.py`
+- `GET /v1/embeddings/projection?dims=&limit=` via `get_embeddings_projection`
+
+**Frontend:**
+- `EmbeddingSpaceCanvas` + `NeighborRankPanel`
+- `/similar` loads projection + `/v1/similar` neighbors; AssistiveBadge; link to `/graph`
+- Removed ConstellationCanvas as primary view on `/similar`
+
+**Deferred (after phase4-tensor):** `/v1/tensor`, F7 heatmap, similar→Ω bridge, embedding-aware risk footnote.
+
+Evidence (`bash harness/verify.sh`):
+- ALL LAYERS GREEN (exit 0)
+- pytest 110 passed, 3 skipped; frontend gate green
+
+---
+
+## 2026-07-29 - Frontend-API Accuracy Overhaul
+
+Made frontend depiction match backend reality (single-repo + multi-branch):
+
+**Backend API (`gdss/api/`):**
+- Drift: `convergence_score` + `convergence_label`, `tip_distance`,
+  `trajectory_integral`, `conflict_probability` (flat heuristic)
+- Alerts: rich `message`, severity string, affected distance/reason
+- New: `GET /v1/branches`, `GET /v1/drift/history`, `/health` returns `repo`
+
+**Frontend (`web/`):**
+- Read-only repo picker + ref dropdown from `/v1/branches`; removed dead `?repo=`
+- Shared `web/lib/api-types.ts` contract
+- Dashboard: ConflictRiskCard (real conflict_p), Operator Breakdown, Remote Sync
+  & Drift; honesty footer; EvidencePhaseBadge on cards
+- Drift page uses score+label; Semantic Log view (`/log`); `/v1/symbols` pickers
+- Landing Ω claim caveated; docs synced
+
+Evidence (`bash harness/verify.sh`):
+- Layer 1–3 + frontend gate: ALL LAYERS GREEN (exit 0)
+- pytest API 27 passed; vitest 98 passed
+
+---
+
+## 2026-07-29 - Constellation Always-Visible Node Labels & Traversal Trace HUD
+
+Enhanced the 3D/2D Semantic Constellation (`web/components/constellation/constellation-canvas.tsx`) with always-visible node labels and interactive graph traversal tracing.
+
+Done:
+- **Always-Visible 3D Node Labels (`<NodeLabels />`)**: Used `@react-three/drei` `<Html>` to render a small, crisp glassmorphic label badge (`font-mono text-[9px]`) above every node sphere in 3D space, showing symbol name and color-coded symbol type border.
+- **Interactive Traversal Tracing (`<EdgeLines />` & Traversal HUD)**: When a symbol is clicked in 3D or 2D mode, the canvas computes its **Traversal Trace** (direct incoming caller edges and outgoing dependency edges). Traversed edges glow in bright accent color with increased opacity, while unrelated nodes/edges dim (`opacity = 0.15`).
+- **Traversal Trace HUD**: Added a top-left HUD ribbon displaying active traversal statistics (`Active Traversal Trace: <symbol>`, caller count, dependency count, and total connected symbols) with a `Clear Trace` button. Fully integrated with `TableFallback` for `prefers-reduced-motion`.
+- **TDD Verification**: Added unit tests in `web/tests/constellation/constellation-canvas.test.tsx` verifying label rendering and Traversal Trace HUD behavior.
+
+Evidence (`bash harness/verify.sh` and `bash harness/verify-frontend.sh`):
+- Backend Layer 1 static: ruff OK, mypy OK (0 errors across 47 source files), architecture fitness OK, DSA fitness OK.
+- Backend Layer 2 runtime: pytest OK (166+ tests passed).
+- Backend Layer 3 end-to-end: cli_smoke OK.
+- Frontend Layer F1 static: eslint + jsx-a11y OK, typecheck (`tsc --noEmit`) OK, token_fitness OK.
+- Frontend Layer F2 component: vitest + jest-axe OK (27 test suites, 96 tests passed, 0 accessibility violations).
+- Frontend Layer F3 end-to-end: Next.js production build OK, size-limit bundle budget OK (`/graph` route at 2.19 kB / 180 kB budget).
+
+
+## 2026-07-28 - Phase F5+ Transcendental Enhancement: Geodesic Trajectory Manifold & Orbital Radar
+
+Enhanced the Drift Monitor (`/drift`) route with state-of-the-art geometric visualizations aligning with the GDSS core philosophy (Riemannian manifold `M`, trajectories `gamma_i(t)`, divergence `\Delta s`, velocity `v`, and commutator equilibrium `[T_i, T_j] = 0`).
+
+Done:
+- **Geodesic Orbital Radar (`web/components/drift/drift-manifold-radar.tsx`)**: Created an interactive Riemannian orbital radar visualizing the reference attractor at origin (0,0) with concentric geodesic distance rings (0.25, 0.50, 0.75, 1.00) and orbiting branch trajectory nodes with velocity vectors. Features full keyboard accessibility, SVG motion animations, and accessible HTML list fallback for `prefers-reduced-motion`.
+- **Upgraded Drift Timeline Chart (`web/components/drift/drift-timeline-chart.tsx`)**: Added a top-level **Manifold Summary Ribbon** displaying total trajectories, average divergence percentage, converging/diverging ratio, and System Entropy badge (`LOW ENTROPY` vs `HIGH ENTROPY`). Replaced basic rows with **Rich Geodesic Trajectory Cards** featuring a Geodesic Energy Gauge bar (`b.magnitude * 100%`) and a **Philosophical Context Box** explaining non-symbol structural drift when `b.magnitude > 0` but `b.affected.length === 0`.
+- **Upgraded Severity-Bucketed Alerts Matrix (`web/components/drift/severity-alerts-matrix.tsx` & `drift-empty-state.tsx`)**: Added a glowing **Attractor Equilibrium Shield** (`[T_i, T_j] = 0` Commutative Equilibrium) for 0-alert states and enriched alert cards with a horizontal **Semantic Drift Gauge** bar and a **Geometric Remediation Guide** footer explaining non-commutative vs commutative transformations.
+- **Drift Route Architectural Polish (`web/app/(dashboard)/drift/page.tsx`)**: Removed duplicate `<RepoRefPicker />` from header in favor of a clean Reference Attractor badge, added an expandable **"How to Read this Manifold (Geodesic Mathematics)"** educational drawer, and prominently embedded `<DriftManifoldRadar />`.
+- **Unit & Accessibility Verification**: Created `web/tests/drift/drift-manifold-radar.test.tsx` and `web/tests/drift/drift-timeline-chart.test.tsx`, and upgraded `severity-alerts-matrix.test.tsx` and `drift-page.test.tsx`. All 17 drift tests pass with zero `jest-axe` accessibility violations.
+
+Evidence (`bash harness/verify-frontend.sh` and `bash harness/verify.sh`):
+- Backend Layer 1 static: ruff OK, mypy OK (47 source files 0 errors), architecture fitness OK, DSA fitness OK.
+- Backend Layer 2 runtime: pytest OK across all core, api, drift, and embeddings test suites.
+- Backend Layer 3 end-to-end: cli_smoke OK.
+- Frontend Layer F1 static: eslint + jsx-a11y OK, typecheck (`tsc --noEmit`) OK, token_fitness OK.
+- Frontend Layer F2 component: vitest + jest-axe OK (27 test suites, 94 tests passed).
+- Frontend Layer F3 end-to-end: Next.js production build OK, size-limit bundle budget OK (`/drift` route at 10.6 kB / 180 kB budget).
+
+
+## 2026-07-28 - Drift Timeline & Severity-Bucketed Alerts UI (Phase F5)
+
+Implemented `frontend-drift-alerts` (Phase F5) with a comprehensive Drift Monitor (`/drift`) route, interactive trend sparklines, and severity-bucketed alerts console.
+
+Done:
+- **Drift Timeline Chart (`web/components/drift/drift-timeline-chart.tsx`)**: Displays per-branch geodesic divergence magnitude, velocity, convergence status (`converging` vs `diverging`), interactive `<Sparkline />` history trajectories, and affected AST symbol pills.
+- **Severity-Bucketed Alerts Matrix (`web/components/drift/severity-alerts-matrix.tsx`)**: Evaluates real-time conflict and drift severity buckets (`ALL`, `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`) from `/v1/alerts`. Features danger glow tokens for `CRITICAL` alerts, interactive severity & branch filter pills, and affected symbol navigation.
+- **Drift State Management (`web/components/drift/drift-empty-state.tsx` & `drift-error-state.tsx`)**: Implemented accessible empty states (`Repository geometry is stable around the attractor`) and agent-oriented error boundaries with `WHAT / WHY / FIX` anatomy per `15-error-ui.mdc`.
+- **Drift Route Integration (`web/app/(dashboard)/drift/page.tsx`)**: Integrated `/drift` page with TanStack Query (`/v1/drift` + `/v1/alerts`), interactive `<RepoRefPicker />`, and symbol navigation linking symbol chips directly to `/graph?symbol=ID`.
+- **Unit & Accessibility Verification**: Authored test suites in `web/tests/drift/severity-alerts-matrix.test.tsx` and `web/tests/drift/drift-page.test.tsx` covering filtering, count badges, symbol navigation, and `jest-axe` zero violations.
+
+Evidence (`bash harness/verify-frontend.sh` and `bash harness/verify.sh`):
+- Backend Layer 1 static: ruff OK, mypy OK (47 source files 0 errors), architecture fitness OK, DSA fitness OK.
+- Backend Layer 2 runtime: pytest OK (166+ tests passed).
+- Backend Layer 3 end-to-end: cli_smoke OK.
+- Frontend Layer F1 static: eslint + jsx-a11y OK, typecheck (`tsc --noEmit`) OK, token_fitness OK.
+- Frontend Layer F2 component: vitest + jest-axe OK (25 test suites, 85 tests passed).
+- Frontend Layer F3 end-to-end: Next.js production build OK, size-limit bundle budget OK (6.58 kB for `/drift` route / 180 kB budget).
+- Result: ALL LAYERS GREEN across both brains.
+
+---
+
+## 2026-07-28 - UI Transcendental Redesign, Two-Brain Guide Modal, Interactive Search Autocomplete, 3D Hover Tooltips & AST Connected Traversal
+
+Implemented comprehensive UX transcendence across `/graph` and `/similar` routes to simplify user understanding of layout, symbol traversal, and the "Two-Brain" architecture.
+
+Done:
+- **Universal Exclusions & Backend Noise Reduction**: Filtered out `node_modules`, `venv`, `.venv`, `.next`, `dist`, `build`, and minified files in `gdss/graph/graph_builder.py` and `gdss/embeddings/service.py`. Pinned dependencies in `requirements.txt` and `pyproject.toml`.
+- **Interactive Constellation Legend & Two-Brain Guide (`web/components/constellation/constellation-legend.tsx`)**: Created mode-switching legend banner with an interactive modal explaining the complement between the Deterministic Brain (`/graph`) and the Probabilistic Brain (`/similar`).
+- **Symbol Search Autocomplete (`web/components/constellation/symbol-search-picker.tsx` & `/v1/symbols` API)**: Built searchable symbol combobox with fuzzy filtering, type badges, and keyboard navigation.
+- **3D Canvas Hover Tooltips (`web/components/constellation/constellation-canvas.tsx`)**: Added floating HTML tooltips for 3D sphere nodes and fallback table rows.
+- **Interactive Node Traversal (`web/components/constellation/node-detail-panel.tsx`)**: Displayed AST edges (`imports`, `calls`, `called by`) in `<NodeDetailPanel />` for single-click symbol traversal across `/graph` and `/similar` routes.
+
+Evidence (`bash harness/verify-frontend.sh` and `bash harness/verify.sh`):
+- Backend Layer 1 static: ruff OK, mypy OK (47 source files 0 errors), architecture fitness OK, DSA fitness OK.
+- Backend Layer 2 runtime: pytest OK.
+- Backend Layer 3 end-to-end: cli_smoke OK.
+- Frontend Layer F1 static: lint OK, typecheck (`tsc --noEmit`) OK, token_fitness OK.
+- Frontend Layer F2 component: vitest + jest-axe OK (23 test suites, 77 tests passed).
+- Frontend Layer F3 end-to-end: Next.js production build OK, size-limit bundle budget OK (53.24 kB brotlied / 180 kB budget).
+- Result: ALL LAYERS GREEN across both brains.
+
+---
+
+## 2026-07-28 - 3D Semantic Constellation & Assistive Similarity Explorer (Phases F4 + F6)
+
+Implemented `frontend-semantic-graph` (F4) and `frontend-similarity` (F6) as a unified, transcendental 3D code constellation experience using React Three Fiber (`@react-three/fiber`), `@react-three/drei`, and `d3-force-3d`.
+
+Done:
+- **3D Constellation Engine (`web/lib/constellation/constellation-engine.ts`)**: Defines type interfaces, node color/scale/opacity mappings tied directly to `@/lib/tokens` (`colors.success`, `colors.merge`, etc.), and d3-force-3d simulation structures.
+- **Constellation Canvas (`web/components/constellation/constellation-canvas.tsx`)**: High-performance Three.js instanced mesh sphere rendering (`<instancedMesh>`) for 800+ symbols, edge lines, slow auto-rotation, orbit controls, and an accessible HTML table fallback when `prefers-reduced-motion: reduce` is active.
+- **Node Detail Panel (`web/components/constellation/node-detail-panel.tsx`)**: Floating glassmorphic sidebar (`surfaceGlass` + `backdrop-blur-xl`) with semantic ARIA attributes (`role="region"`), symbol metadata, and a top-5 nearest neighbors list displaying percentage similarity scores.
+- **Assistive Similarity Badge (`web/components/constellation/assistive-badge.tsx`)**: Glass badge prominently labeled *"Assistive · Probabilistic"* with explanation tooltip and screen reader text (`sr-only`), ensuring similarity embeddings are never presented as deterministic truth.
+- **Semantic Graph Page (`web/app/(dashboard)/graph/page.tsx`)**: Live `/v1/graph` TanStack Query integration with interactive node selection and direct-neighbor edge highlighting.
+- **Similar Symbols Page (`web/app/(dashboard)/similar/page.tsx`)**: Live `/v1/similar` query interface with search bar, assistive badge, and 3D neighborhood highlighting.
+- **Harness & Verification Gate**: Verified zero raw hex literals or linear easings via `harness/sensors/frontend/token_fitness.py`; authored 5 new test suites (14 tests) with vitest + jest-axe.
+
+Evidence (`bash harness/verify-frontend.sh` and `bash harness/verify.sh`):
+- Backend Layer 1 static: ruff OK, mypy OK (47 source files 0 errors), architecture fitness OK, DSA fitness OK.
+- Backend Layer 2 runtime: pytest 166+ tests OK.
+- Backend Layer 3 end-to-end: cli_smoke OK.
+- Frontend Layer F1 static: lint OK, typecheck (`tsc --noEmit`) OK, token_fitness OK.
+- Frontend Layer F2 component: vitest + jest-axe OK (21 test files, 67 tests passed).
+- Frontend Layer F3 end-to-end: Next.js production build OK, size-limit bundle budget OK (53.24 kB brotlied / 180 kB budget).
+- Result: ALL LAYERS GREEN across both brains.
+
+---
+
+## 2026-07-28 - Frontend Status Dashboard (F3) & Token Fitness Rigor
+
+Implemented `frontend-status-dashboard` (F3) with transcendental widgets wired to `/v1/status` and `/v1/drift`, and enforced strict compliance across both backend and frontend brains.
+
+Done:
+- **Transcendental MetricCards (`web/components/dashboard/*.tsx`)**: Implemented `TrajectoryCard`, `DriftAttractorCard`, `ConflictTreeCard`, `GlobalHealthDialCard`, `ResolutionProbabilityCard`, and `IntegrityRibbon`.
+- **Dashboard Grid (`web/components/dashboard/dashboard-grid.tsx`)**: Integrates all widgets and displays `IntegrityRibbon` with dynamic status (`HEALTHY` vs `INTEGRITY DEGRADED`).
+- **Token Fitness Compliance (`harness/sensors/frontend/token_fitness.py`)**: Replaced raw numeric durations and `"linear"` easing across all dashboard components with token-based calculations (`duration.slow`) and `"easeInOut"` from `@/lib/motion`.
+- **Harness Verification & Python Type Invariants**: Resolved Python 3.11/mypy/GitPython nullable type warnings in `gdss/watcher/git_observer.py`, `gdss/drift/engine.py`, `gdss/api/service.py`, and `gdss/cli/start.py`.
+
+Evidence (`bash harness/verify.sh` and `bash harness/verify-frontend.sh`):
+- Backend Layer 1 static: ruff OK, mypy OK (47 source files 0 errors), architecture fitness OK, DSA fitness OK.
+- Backend Layer 2 runtime: pytest 166+ tests OK.
+- Backend Layer 3 end-to-end: cli_smoke OK.
+- Frontend Layer F1 static: lint OK, typecheck OK, token_fitness OK.
+- Frontend Layer F2 component: vitest + jest-axe OK (16 test files, 53 tests passed).
+- Frontend Layer F3 end-to-end: Next.js production build OK, size-limit bundle budget OK (50.11 kB brotlied / 180 kB budget).
+- Result: ALL LAYERS GREEN across both brains.
+
+---
+
+## 2026-07-28 - Transcendental Landing Page & Floating Box Layout
+
+Implemented a full-bleed transcendental landing page for GDSS and restructured the frontend layout into isolated floating card panels.
+
+Done:
+- **Floating Box Layout**: Detached Logo (Box 1), Header Bar (Box 2), Sidebar Nav (Box 3), and Main Content (Box 4) into isolated rounded card panels (`bg-surface border border-border rounded-xl shadow-md`) floating over the canvas with independent internal scroll containers (`overflow-y-auto`, `overflow-auto`).
+- **Animated Manifold Canvas (`web/components/landing/manifold-canvas.tsx`)**: Full-screen 2D canvas with 36 breathing nodes, pulsing trajectory edges, flowing particles, glowing conflict halos ($\Omega_{ij} = [T_i, T_j] \neq 0$), mouse parallax, and static SVG fallback for `prefers-reduced-motion`.
+- **Glassmorphic Hero Panel (`web/components/landing/hero-panel.tsx`)**: Centered glass surface (`surfaceGlass` + `backdrop-blur-xl`) with staggered reveal animation, conflict tensor math formula, and primary CTA ("Explore Dashboard").
+- **Orbital Dock Navigation (`web/components/landing/orbital-dock.tsx`)**: Floating bottom-center navigation bar with magnetic hover scaling (`whileHover={{ scale: 1.18, y: -3 }}`), spring physics (`spring.bouncy`), and Framer Motion `layoutId` active indicators.
+- **Capability Stat Pills (`web/components/landing/stat-pills.tsx`)**: 4 animated capability metric pills with count-up counter animations over `duration.slow`.
+- **Scroll-Triggered Deep Dive Sections (`web/components/landing/scroll-sections.tsx`)**: Below-the-fold content explaining semantic differential geometry, architectural mathematics, and 3 deployment tiers.
+- **Next.js App Route Grouping**: Created `web/app/(dashboard)/layout.tsx` to separate the full-bleed landing page (`/`) from the dashboard shell layout (`/dashboard`, `/graph`, `/drift`, `/similar`).
+- **Testing**: Added 4 unit test suites (`tests/manifold-canvas.test.tsx`, `tests/hero-panel.test.tsx`, `tests/orbital-dock.test.tsx`, `tests/stat-pills.test.tsx`). 21 total tests passing in vitest with 0 a11y violations.
+
+Evidence (`bash harness/verify-frontend.sh`):
+- F1 static: lint OK, typecheck OK, token_fitness OK.
+- F2 component: 21 passed (8 test files green).
+- F3 size-limit: Initial JS 49.04 kB / 180 kB → OK.
+- Result: ALL FRONTEND LAYERS GREEN (exit 0).
+
+---
+
 ## 2026-07-27 - Local HTTP API (F1)
 
 Implemented Phase F1 Local HTTP API via FastAPI for exposing metadata-only privacy-safe endpoints to the upcoming web dashboard.

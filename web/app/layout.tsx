@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "@/components/providers";
-import { Navigation } from "@/components/navigation";
-import { RepoRefPicker } from "@/components/repo-ref-picker";
 
 export const metadata: Metadata = {
-  title: "GDSS",
+  title: "GDSS - Geometric Distributed Software Synchronizer",
   description:
-    "Geometric Distributed Software Synchronizer - a semantic intelligence layer above Git.",
+    "A semantic intelligence layer above Git. Treat software development as a continuous geometric-semantic dynamical system.",
 };
 
 export default function RootLayout({
@@ -17,16 +15,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="flex h-screen w-screen overflow-hidden bg-background text-foreground font-sans">
-        <Providers>
-          <Navigation />
-          <div className="flex flex-col flex-1 h-full relative">
-            <RepoRefPicker />
-            <main className="flex-1 overflow-auto p-6 relative z-0">
-              {children}
-            </main>
-          </div>
-        </Providers>
+      <body className="h-screen w-screen overflow-hidden bg-bg text-text font-sans antialiased">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

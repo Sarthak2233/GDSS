@@ -78,7 +78,8 @@ class VectorStore:
                 self._reset()  # dsa:ignore
         self._add_new(list(ids), vectors)
 
-    def _vectors_for_ids(self, ids: Sequence[str]) -> np.ndarray:
+    def vectors_for_ids(self, ids: Sequence[str]) -> np.ndarray:
+        """Return L2-normalized vectors for the given symbol ids (public export)."""
         rows = []
         for sid in ids:
             idx = self._id_to_int[sid]
@@ -90,6 +91,16 @@ class VectorStore:
                 assert self._matrix is not None
                 rows.append(self._matrix[idx])
         return _l2_normalize(np.stack(rows, axis=0))
+
+    def _vectors_for_ids(self, ids: Sequence[str]) -> np.ndarray:
+        return self.vectors_for_ids(ids)
+
+    def export_matrix(self) -> tuple[list[str], np.ndarray]:
+        """Return (ids_in_index_order, matrix) for all indexed vectors."""
+        if self.size == 0:
+            return [], np.zeros((0, self.dim), dtype=np.float32)
+        ids = [self._int_to_id[i] for i in sorted(self._int_to_id.keys())]
+        return ids, self.vectors_for_ids(ids)
 
     def _reset(self) -> None:
         self._id_to_int.clear()

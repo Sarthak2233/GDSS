@@ -101,19 +101,29 @@ def alerts(
     run_shell(repo, f"alerts {ref}")
 
 @app.command()
+def tensor(
+    repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
+    ref: str = typer.Option("main", "--ref", help="Reference attractor branch"),
+):
+    """Show sparse conflict tensor Omega_ij and R_merge."""
+    run_shell(repo, f"tensor {ref}")
+
+@app.command()
 def serve(
     repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
     port: int = typer.Option(8787, "--port", help="Port to bind to"),
 ):
     """Serve the local API (Local HTTP FastAPI service)."""
-    import uvicorn
     from pathlib import Path
+
+    import uvicorn
+
     from gdss.api.server import create_app
-    
+
     if not os.path.exists(repo):
         console.print(f"[bold red]✗ Error:[/] Path '{repo}' does not exist!")
         raise typer.Exit(code=1)
-        
+
     app_instance = create_app(Path(repo))
     console.print(f"[bold green]Starting GDSS Local API on http://127.0.0.1:{port}[/]")
     uvicorn.run(app_instance, host="127.0.0.1", port=port, log_level="info")

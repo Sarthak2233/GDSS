@@ -6,15 +6,17 @@
 ![Architecture](https://img.shields.io/badge/Architecture-10--Layer-blueviolet.svg)
 
 </div>
-A Semantic Intelligence Layer Above Git that transforms traditional, text-based software collaboration into continuous geometric-semantic manifold synchronization. 
+A Semantic Intelligence Layer Above Git that transforms traditional, text-based software collaboration into continuous geometric-semantic manifold synchronization.
+
+**North Star:** detect semantic branch drift, name affected symbols, and predict likely merge interference **before** merge — raise collaboration odds. **Not** a perfect-code factory or universal merge oracle. See [`docs/PRODUCT_INTENT.md`](docs/PRODUCT_INTENT.md) and [`docs/IMPLEMENTATION_GAP.md`](docs/IMPLEMENTATION_GAP.md).
 
 ---
 
 ## 📖 Project Overview
 
-### The Philosophy: Code as a Semantic Manifold 
+### The Philosophy: Code as a Semantic Manifold
 
-The geodesic output for Merge is what I believe. 
+GDSS predicts interference and convergence **signals** on a semantic manifold so teams can act before a painful merge — it does not claim an optimal perfect merge path.
 
 Traditional version control systems (like Git) treat code as static, flat lines of text. Merges are done by string matching (diffs), which frequently leads to syntax breaks, silent semantic failures, and costly merge conflicts.
 
@@ -26,7 +28,7 @@ GDSS reframes software evolution through **Differential Geometry** and **Operato
 | **Commit** | String diff patch | Tangent vector/operator $dC$ |
 | **Branch** | Commits list | Trajectory $\gamma_i(t) = \int dC_i$ |
 | **Conflict** | Text overlap | Non-commutativity $[\mathcal{T}_i, \mathcal{T}_j] \neq 0$ |
-| **Merge** | String alignment | GeomWhat etric path convergence |
+| **Merge** | String alignment | Geometric path-convergence **signals** (predict; never auto-merge) |
 
 <p align="center">
   <img src="./assets/product/pipeline.svg" alt="GDSS pipeline" width="100%">

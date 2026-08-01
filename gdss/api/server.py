@@ -3,14 +3,23 @@ import datetime
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from gdss.api import service
 from gdss.api.models import HealthResponse
 
+
 def create_app(repo_path: Path) -> FastAPI:
     repo_path_str = str(Path(repo_path).resolve())
     app = FastAPI(title="GDSS Local API")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     def format_resp(resp: dict) -> dict | JSONResponse:
         if resp.get("status") == "error":
@@ -24,7 +33,7 @@ def create_app(repo_path: Path) -> FastAPI:
 
     @app.get("/health", response_model=HealthResponse)
     def health():
-        return {"version": "1.0", "status": "ok"}
+        return {"version": "1.0", "status": "ok", "repo": repo_path_str}
 
     @app.get("/v1/status")
     def status(ref: str | None = None):
@@ -38,6 +47,10 @@ def create_app(repo_path: Path) -> FastAPI:
     def drift(ref: str | None = None, branch: str | None = None):
         return format_resp(service.get_drift(repo_path_str, ref, branch))
 
+    @app.get("/v1/drift/history")
+    def drift_history(branch: str, n: int = 20):
+        return format_resp(service.get_drift_history(repo_path_str, branch, n))
+
     @app.get("/v1/alerts")
     def alerts(ref: str | None = None):
         return format_resp(service.get_alerts(repo_path_str, ref))
@@ -49,5 +62,23 @@ def create_app(repo_path: Path) -> FastAPI:
     @app.get("/v1/similar")
     def similar(symbol: str, k: int = 5):
         return format_resp(service.get_similar(repo_path_str, symbol, k))
+
+    @app.get("/v1/embeddings/projection")
+    def embeddings_projection(dims: int = 2, limit: int = 500):
+        return format_resp(
+            service.get_embeddings_projection(repo_path_str, dims=dims, limit=limit)
+        )
+
+    @app.get("/v1/tensor")
+    def tensor(ref: str | None = None):
+        return format_resp(service.get_tensor(repo_path_str, ref))
+
+    @app.get("/v1/symbols")
+    def symbols(ref: str | None = None):
+        return format_resp(service.get_symbols(repo_path_str, ref))
+
+    @app.get("/v1/branches")
+    def branches():
+        return format_resp(service.get_branches(repo_path_str))
 
     return app

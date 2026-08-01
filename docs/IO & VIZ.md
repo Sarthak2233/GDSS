@@ -2,6 +2,8 @@
 
 How data flows through the codebase today, and what you can run from the shell to inspect the dependency graph.
 
+**Intent:** these I/O paths serve early drift / merge-risk intelligence — not a perfect-code oracle. See [`PRODUCT_INTENT.md`](PRODUCT_INTENT.md).
+
 ---
 
 ## The big picture: data pipeline

@@ -23,6 +23,9 @@ export const spacing = {
   16: 64,
   20: 80,
   24: 96,
+  32: 128,
+  40: 160,
+  48: 192,
 } as const;
 
 export type SpacingToken = keyof typeof spacing;

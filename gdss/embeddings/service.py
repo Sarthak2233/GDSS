@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from collections.abc import Sequence
 
+import numpy as np
+
 from gdss.core.ast_parser import SOURCE_EXTENSIONS, ASTParser
 from gdss.core.transform_types import CodeSymbol
 from gdss.embeddings.branch_vector import embed_symbols
@@ -20,8 +22,21 @@ def collect_repo_symbols(repo_path: str, parser: ASTParser | None = None) -> lis
     root_path = os.path.abspath(repo_path)
     symbols: list[CodeSymbol] = []
     for root, dirs, files in os.walk(root_path):
-        dirs[:] = [name for name in dirs if name not in SKIP_DIR_NAMES]
+        dirs[:] = [
+            name
+            for name in dirs
+            if name not in SKIP_DIR_NAMES
+            and not name.startswith(".")
+            and not name.endswith(".egg-info")
+        ]
         for filename in files:
+            if (
+                filename.endswith(".min.js")
+                or filename.endswith(".min.css")
+                or filename.endswith(".bundle.js")
+                or filename.endswith(".chunk.js")
+            ):
+                continue
             if not filename.endswith(SOURCE_EXTENSIONS):
                 continue
             absolute_path = os.path.join(root, filename)
@@ -85,7 +100,16 @@ def find_similar_symbols(
     """
     encoder = encoder or get_encoder()
     symbols = collect_repo_symbols(repo_path)
-    by_name = [s for s in symbols if s.name == query_name]
+    by_name = [s for s in symbols if (s.name or "") == query_name]
+    if not by_name:
+        by_name = [s for s in symbols if (s.name or "").lower() == query_name.lower()]
+    if not by_name:
+        by_name = [
+            s
+            for s in symbols
+            if query_name.lower() in (s.name or "").lower()
+            or query_name.lower() in (s.symbol_id or "").lower()
+        ]
     if not by_name:
         return []
     query_sym = by_name[0]
@@ -110,3 +134,97 @@ def find_similar_symbols(
         if len(results) >= k:
             break
     return results
+
+
+def _pca_project(matrix: np.ndarray, dims: int) -> np.ndarray:
+    """Project rows of matrix to `dims` via centered SVD PCA. O(n·d·min(n,d))."""
+    n, d = matrix.shape
+    out_dims = max(1, dims)
+    if n == 0:
+        return np.zeros((0, out_dims), dtype=np.float32)
+    if n == 1 or d == 0:
+        return np.zeros((n, out_dims), dtype=np.float32)
+    rank = min(out_dims, d, n - 1)
+    centered = matrix - matrix.mean(axis=0, keepdims=True)
+    _u, _s, vt = np.linalg.svd(centered, full_matrices=False)
+    components = vt[:rank].T  # (d, rank)
+    projected = centered @ components
+    projected_f32 = projected.astype(np.float32)
+    if projected_f32.shape[1] < out_dims:
+        pad = np.zeros((n, out_dims - projected_f32.shape[1]), dtype=np.float32)
+        projected_f32 = np.hstack([projected_f32, pad])
+    return projected_f32[:, :out_dims]
+
+
+def project_symbol_embeddings(
+    repo_path: str,
+    dims: int = 2,
+    limit: int = 500,
+    encoder: CodeEncoder | None = None,
+) -> dict:
+    """
+    Build (or load) the vector index and return an assistive PCA projection.
+
+    Returns a dict with assistive metadata and points [{id, name, type, location, x, y, ...}].
+    No source bodies. Caps to `limit` symbols (stable order by id).
+    """
+    encoder = encoder or get_encoder()
+    dims = 2 if dims not in {2, 3} else dims
+    limit = max(1, min(int(limit), 2000))
+
+    symbols = collect_repo_symbols(repo_path)
+    store = load_or_build_index(repo_path, encoder=encoder)
+    if store.size == 0 and symbols:
+        embeddings = embed_symbols(symbols, encoder)
+        index_symbols(store, embeddings)
+        store.save(default_vectors_dir(repo_path))
+
+    ids, matrix = store.export_matrix()
+    n_ids = len(ids)
+    if n_ids == 0:
+        return {
+            "assistive": True,
+            "method": "pca",
+            "dims": dims,
+            "encoder": encoder.name,
+            "dim_full": encoder.dim,
+            "points": [],
+        }
+
+    # Stable cap by sorted id for deterministic UI
+    order = sorted(range(n_ids), key=lambda i: ids[i])
+    if len(order) > limit:
+        order = order[:limit]
+    capped_ids = [ids[i] for i in order]
+    capped = matrix[np.asarray(order, dtype=np.int64)]
+
+    coords = _pca_project(capped, dims)
+
+    id_to_sym = {s.symbol_id: s for s in symbols}
+    points = []
+    for i, sid in enumerate(capped_ids):
+        sym = id_to_sym.get(sid)
+        sym_type = "symbol"
+        if sym is not None:
+            t = sym.type
+            sym_type = t.value if hasattr(t, "value") else str(t)
+        point: dict = {
+            "id": sid,
+            "name": (sym.name if sym else sid) or sid,
+            "type": sym_type,
+            "location": (sym.chart_location or "") if sym else "",
+            "x": float(coords[i, 0]) if coords.shape[1] > 0 else 0.0,
+            "y": float(coords[i, 1]) if coords.shape[1] > 1 else 0.0,
+        }
+        if dims >= 3 and coords.shape[1] > 2:
+            point["z"] = float(coords[i, 2])
+        points.append(point)
+
+    return {
+        "assistive": True,
+        "method": "pca",
+        "dims": dims,
+        "encoder": encoder.name,
+        "dim_full": encoder.dim,
+        "points": points,
+    }

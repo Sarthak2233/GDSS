@@ -4,6 +4,10 @@ The GDSS frontend - the "visual brain" that makes the geometric-semantic
 manifold visible. Governed by the frontend harness in `.cursor/rules/frontend/`,
 `.cursor/skills/*`, and `harness/sensors/frontend/`.
 
+**Intent:** depict drift, structure, and assistive similarity so teams see merge
+risk earlier — not to guarantee perfect working code. See
+[`../docs/PRODUCT_INTENT.md`](../docs/PRODUCT_INTENT.md).
+
 ## Stack (installed)
 
 - Next.js (App Router) + React + TypeScript

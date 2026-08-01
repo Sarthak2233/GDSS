@@ -9,6 +9,10 @@ Visual harness (guides/sensors): `.cursor/rules/frontend/`, `harness/verify-fron
 
 ## Decisions
 
+- **Product intent**: UI depicts backend evidence for drift, graph structure, assistive
+  similarity / embedding space, and (once phase4 lands) \(\Omega_{ij}\). See
+  [`PRODUCT_INTENT.md`](PRODUCT_INTENT.md). Validated ≠ proven correct; never imply
+  GDSS guarantees working code.
 - **Same queue** as backend: pick exactly one unfinished feature whose `deps`
   are all `done` (backend or frontend).
 - **API-first**: after hard gates, build a local HTTP JSON API (`gdss/api` +
@@ -17,6 +21,8 @@ Visual harness (guides/sensors): `.cursor/rules/frontend/`, `harness/verify-fron
   features also require `bash harness/verify-frontend.sh` green.
 - **Privacy**: API payloads are metadata/symbol names only — no source bodies,
   no PII (see `.cursor/rules/60-telemetry-privacy.mdc`).
+- **Honesty**: UI cards declare evidence phase (deterministic / assistive
+  heuristic / not yet available). Fabricated metrics are forbidden.
 
 ## Complementarity map
 
@@ -33,13 +39,13 @@ flowchart LR
   end
   subgraph frontend [Frontend phases]
     F0[frontend-harness done]
-    Fg[frontend-hard-gates]
-    Fa[frontend-local-api]
-    Fs[frontend-app-shell]
-    Fd[frontend-status-dashboard]
-    Fgph[frontend-semantic-graph]
-    Fdr[frontend-drift-alerts]
-    Fsim[frontend-similarity]
+    Fg[frontend-hard-gates done]
+    Fa[frontend-local-api done]
+    Fs[frontend-app-shell done]
+    Fd[frontend-status-dashboard done]
+    Fgph[frontend-semantic-graph done]
+    Fdr[frontend-drift-alerts done]
+    Fsim[frontend-similarity done]
     Ften[frontend-conflict-tensor]
     Fai[frontend-ai-suggestions]
     Fval[frontend-validation-ui]
@@ -68,44 +74,46 @@ flowchart LR
 | id | phase | status | deps | Complements |
 | --- | --- | --- | --- | --- |
 | `frontend-harness` | F0 | done | — | Visual brain (guides + sensors + scaffold) |
-| `frontend-hard-gates` | F0.1 | pending | `frontend-harness` | Turns SKIP sensors into hard gates |
-| `frontend-local-api` | F1 | pending | hard-gates + graph + embeddings + drift | Live JSON for all UIs (`gdss serve`) |
-| `frontend-app-shell` | F2 | pending | `frontend-local-api` | Nav, routes, Query client |
-| `frontend-status-dashboard` | F3 | pending | app-shell | `gdss status` / `gdss drift` |
-| `frontend-semantic-graph` | F4 | pending | app-shell | `analyze` / `graph export` / `impact` |
-| `frontend-drift-alerts` | F5 | pending | app-shell | `gdss drift` / `gdss alerts` |
-| `frontend-similarity` | F6 | pending | app-shell | `gdss similar` (assistive only) |
-| `frontend-conflict-tensor` | F7 | pending | app-shell + `phase4-tensor` | Conflict tensor `Omega_{ij}` |
+| `frontend-hard-gates` | F0.1 | done | `frontend-harness` | Turns SKIP sensors into hard gates |
+| `frontend-local-api` | F1 | done | hard-gates + graph + embeddings + drift | Live JSON for all UIs (`gdss serve`) |
+| `frontend-app-shell` | F2 | done | `frontend-local-api` | Nav, routes, Query client |
+| `frontend-status-dashboard` | F3 | done | app-shell | `gdss status` / `gdss drift` |
+| `frontend-semantic-graph` | F4 | done | app-shell | `analyze` / `graph export` / `impact` |
+| `frontend-drift-alerts` | F5 | done | app-shell | `gdss drift` / `gdss alerts` |
+| `frontend-similarity` | F6 | done | app-shell | `gdss similar` (assistive only) |
+| `frontend-embedding-space` | F6.1 | done | similarity + embeddings API | PCA cloud on `/similar` |
+| `frontend-conflict-tensor` | F7 | done | app-shell + `phase4-tensor` | Conflict tensor `Omega_{ij}` |
 | `frontend-ai-suggestions` | F8 | pending | app-shell + `phase5-ai` | AI suggestions (never auto-merge) |
 | `frontend-validation-ui` | F9 | pending | AI UI + `phase6-validation` | Validation sandbox |
 | `frontend-manifold-3d` | F10 | pending | semantic-graph + `phase7-research` | Geometric merge / manifold |
 
-## Recommended pick order (when deps are satisfied)
-
-1. **`frontend-hard-gates`** — `cd web && pnpm install`, then green `verify-frontend.sh` without SKIP for missing `node_modules`.
-2. **`frontend-local-api`** — additive `gdss/api/` + `gdss serve` (authorized exception to no-edit for that feature only).
-3. **`frontend-app-shell`** — then parallelizable views F3–F6 (still one feature at a time).
-4. F7–F10 wait on their backend deps (`phase4-tensor` … `phase7-research`).
-
 ## Local API contract (F1)
 
-Additive under `gdss/api/` (architecture entrypoint). Example routes:
+See [`docs/f1_api_contract.md`](f1_api_contract.md). Summary:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/v1/status?repo=&ref=` | Attractor, trajectory, uncommitted delta |
-| GET | `/v1/graph?repo=` | Nodes/edges (export shape) |
-| GET | `/v1/drift?repo=&ref=` | Per-branch drift |
-| GET | `/v1/alerts?repo=&ref=` | Severity-bucketed alerts |
-| GET | `/v1/log?repo=&n=` | Semantic operators |
-| GET | `/v1/similar?repo=&symbol=&k=` | Assistive neighbors |
+| GET | `/health` | Readiness + bound `repo` path |
+| GET | `/v1/status?ref=` | Attractor, trajectory, uncommitted delta |
+| GET | `/v1/graph?ref=` | Nodes/edges |
+| GET | `/v1/drift?ref=` | Per-branch drift + conflict_probability |
+| GET | `/v1/drift/history?branch=` | SnapshotHistory time series |
+| GET | `/v1/alerts?ref=` | Severity-bucketed alerts |
+| GET | `/v1/log?n=` | Semantic operators per commit |
+| GET | `/v1/similar?symbol=&k=` | Assistive neighbors |
+| GET | `/v1/embeddings/projection` | Assistive PCA cloud for `/similar` |
+| GET | `/v1/tensor?ref=` | Flat pairwise Ω + `R_merge` + commutativity |
+| GET | `/v1/symbols` | Symbol index for pickers |
+| GET | `/v1/branches` | Local branches for ref dropdown |
 
-CLI: `gdss serve --repo PATH --port 8787`.  
-Frontend: `NEXT_PUBLIC_GDSS_API` (e.g. `http://127.0.0.1:8787`).
+CLI: `gdss serve --repo PATH --port 8787` (single repo).  
+Frontend: `NEXT_PUBLIC_GDSS_API` (e.g. `http://127.0.0.1:8787`).  
+Repo path is read-only in the UI; `ref` is a real branch dropdown.
 
 ## Visual language (every phase)
 
 - Never a bare number: Trend + Context + Comparison + Animation.
+- Evidence-phase badges on every metric card.
 - Manifold motion: nodes breathe, edges pulse, conflicts glow, drift moves,
   trajectory animates, merge converges.
 - Tokens only: `web/lib/tokens.ts`, `web/lib/motion.ts` (enforced by
@@ -115,6 +123,7 @@ Frontend: `NEXT_PUBLIC_GDSS_API` (e.g. `http://127.0.0.1:8787`).
 ## Related docs
 
 - Backend I/O today: [`docs/IO & VIZ.md`](IO%20%26%20VIZ.md)
+- Manifold honesty: [`docs/MANIFOLD_TENSOR_GUIDE.md`](MANIFOLD_TENSOR_GUIDE.md)
 - Backend roadmap plan: `.cursor/plans/gdss_complete_roadmap_e8cc388d.plan.md`
 - Frontend harness plan: `.cursor/plans/frontend_harness_f4e1bfa0.plan.md`
 - Agent operating manual: [`AGENTS.md`](../AGENTS.md)

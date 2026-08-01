@@ -3,6 +3,7 @@
 import os
 import shutil
 import tempfile
+from pathlib import Path
 
 import git
 import pytest
@@ -17,7 +18,6 @@ from gdss.runtime.event_bus import EventBus
 from gdss.runtime.registry import RepositoryRegistry
 from gdss.storage.db import RuntimeDB
 from gdss.watcher.git_observer import GitObserver
-from pathlib import Path
 
 
 @pytest.fixture

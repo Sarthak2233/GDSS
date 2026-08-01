@@ -18,11 +18,12 @@ Mental model (treat code as evolving geometry):
 - `dev` / reference branch = attractor trajectory other branches are measured against
 
 Goal: detect semantic branch drift, identify affected symbols, and predict conflicts and
-convergence **before** merge.
+convergence **before** merge. Raise merge-risk awareness — **not** a perfect-code factory.
 
 Honesty about limits: perfect semantic merge is undecidable (program equivalence, halting).
 Build probabilistic approximations for the common cases (renames, refactors, API changes);
-never claim a universal merge oracle.
+never claim a universal merge oracle; never auto-merge.
 
-Deeper sources: `FROM WHERE IT ALL STARTED..txt` and
+Canonical intent: `docs/PRODUCT_INTENT.md`. Gaps: `docs/IMPLEMENTATION_GAP.md`.
+Deeper sources: `FROM WHERE IT ALL STARTED.md` and
 `.cursor/plans/gdss_complete_roadmap_e8cc388d.plan.md`.

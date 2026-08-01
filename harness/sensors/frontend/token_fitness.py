@@ -71,7 +71,7 @@ def scan_file(path: Path) -> list[str]:
             f"theme color class) instead of a literal hex."
         )
 
-    for m in LINEAR_EASE_RE.finditer(text):
+    for _m in LINEAR_EASE_RE.finditer(text):
         findings.append(
             f"WHAT: 'linear' easing used in {rel}. "
             f"WHY: linear motion feels mechanical/dead; GDSS uses easing tokens "

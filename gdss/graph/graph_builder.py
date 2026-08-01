@@ -7,7 +7,26 @@ import os
 from gdss.core.ast_parser import SOURCE_EXTENSIONS, ASTParser
 from gdss.graph.code_graph import CodeGraph
 
-SKIP_DIR_NAMES = {".git", "venv", "__pycache__", "node_modules", ".venv"}
+SKIP_DIR_NAMES = {
+    ".git",
+    "venv",
+    ".venv",
+    "__pycache__",
+    "node_modules",
+    ".next",
+    "dist",
+    "build",
+    "out",
+    "coverage",
+    ".cache",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".cursor",
+    ".gemini",
+    "target",
+    "vendor",
+}
 
 
 def build_code_graph_from_repo(
@@ -27,8 +46,21 @@ def build_code_graph_from_repo(
     file_list = []
     skipped_unsupported: dict[str, int] = {}
     for root, dirs, files in os.walk(root_path):
-        dirs[:] = [name for name in dirs if name not in SKIP_DIR_NAMES]
+        dirs[:] = [
+            name
+            for name in dirs
+            if name not in SKIP_DIR_NAMES
+            and not name.startswith(".")
+            and not name.endswith(".egg-info")
+        ]
         for filename in files:
+            if (
+                filename.endswith(".min.js")
+                or filename.endswith(".min.css")
+                or filename.endswith(".bundle.js")
+                or filename.endswith(".chunk.js")
+            ):
+                continue
             ext = os.path.splitext(filename)[1].lower()
             absolute_path = os.path.join(root, filename)
             if ext not in SOURCE_EXTENSIONS:

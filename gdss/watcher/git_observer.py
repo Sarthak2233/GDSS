@@ -11,9 +11,10 @@ class GitObserver:
 
     def __init__(self, repo_path: str = "."):
         self.repo_path = os.path.abspath(repo_path)
+        self.repo: git.Repo | None
         try:
             self.repo = git.Repo(self.repo_path, search_parent_directories=True)
-            self.repo_path = self.repo.working_tree_dir
+            self.repo_path = str(self.repo.working_tree_dir or self.repo_path)
         except git.InvalidGitRepositoryError:
             self.repo = None
 
@@ -86,11 +87,11 @@ class GitObserver:
             diffs = commit_a.diff(commit_b)
 
             for d in diffs:
-                if d.new_file:
+                if d.new_file and d.b_path:
                     changes["added"].append(d.b_path)
-                elif d.deleted_file:
+                elif d.deleted_file and d.a_path:
                     changes["deleted"].append(d.a_path)
-                else:
+                elif d.b_path:
                     changes["modified"].append(d.b_path)
         except Exception:
             pass
@@ -112,22 +113,22 @@ class GitObserver:
             changes["added"].extend(untracked)
 
             for d in staged_diffs:
-                if d.new_file:
+                if d.new_file and d.b_path:
                     if d.b_path not in changes["added"]:
                         changes["added"].append(d.b_path)
-                elif d.deleted_file:
+                elif d.deleted_file and d.a_path:
                     changes["deleted"].append(d.a_path)
-                else:
+                elif d.b_path:
                     changes["modified"].append(d.b_path)
 
             for d in unstaged_diffs:
-                if d.new_file:
+                if d.new_file and d.b_path:
                     if d.b_path not in changes["added"]:
                         changes["added"].append(d.b_path)
-                elif d.deleted_file:
+                elif d.deleted_file and d.a_path:
                     if d.a_path not in changes["deleted"]:
                         changes["deleted"].append(d.a_path)
-                else:
+                elif d.b_path:
                     if d.b_path not in changes["modified"]:
                         changes["modified"].append(d.b_path)
         except Exception:

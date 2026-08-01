@@ -138,13 +138,15 @@ class DriftEngine:
         branch_names = self._modified_name_map(branch_ops)
         ref_names = self._modified_name_map(ref_ops)
         shared = set(branch_names.keys()) & set(ref_names.keys())
+        if not self.observer.repo:
+            raise ValueError("Invalid repository")
 
         branch_emb = embed_symbols(
-            self._symbols_at_commit(self.observer.repo.commit(branch).hexsha),  # type: ignore[union-attr]
+            self._symbols_at_commit(self.observer.repo.commit(branch).hexsha),
             self.encoder,
         )
         ref_emb = embed_symbols(
-            self._symbols_at_commit(self.observer.repo.commit(reference_branch).hexsha),  # type: ignore[union-attr]
+            self._symbols_at_commit(self.observer.repo.commit(reference_branch).hexsha),
             self.encoder,
         )
 
@@ -270,10 +272,10 @@ class DriftEngine:
             return []
         symbols: list[CodeSymbol] = []
         for blob in commit.tree.traverse():
-            if blob.type != "blob":
+            if getattr(blob, "type", None) != "blob":
                 continue
-            path = blob.path
-            if not path.endswith(SOURCE_EXTENSIONS):
+            path = str(getattr(blob, "path", ""))
+            if not path or not path.endswith(SOURCE_EXTENSIONS):
                 continue
             content = self.observer.get_file_content_at_commit(commit_sha, path)  # dsa:ignore
             if content is None:

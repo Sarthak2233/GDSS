@@ -92,6 +92,8 @@ run_gdss drift --repo "$fixture" --ref "$base" >/dev/null 2>&1 \
   || fail "gdss drift --repo $fixture --ref $base"
 run_gdss alerts --repo "$fixture" --ref "$base" >/dev/null 2>&1 \
   || fail "gdss alerts --repo $fixture --ref $base"
+run_gdss tensor --repo "$fixture" --ref "$base" >/dev/null 2>&1 \
+  || fail "gdss tensor --repo $fixture --ref $base"
 
 # 3) Synchronized path: status on the reference branch itself.
 GIT checkout -q "$base" || fail "checkout base failed"

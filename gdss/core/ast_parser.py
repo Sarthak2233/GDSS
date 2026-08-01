@@ -371,14 +371,14 @@ class ASTParser:
 
                     if import_keyword_idx != -1:
                         for sub in child.children[import_keyword_idx + 1:]:
-                            stype = sub.type
-                            if stype == "dotted_name":
+                            sub_type = sub.type
+                            if sub_type == "dotted_name":
                                 imported_names.append(self._get_node_text(sub, content_bytes))
-                            elif stype == "aliased_import":
+                            elif sub_type == "aliased_import":
                                 sub_names = [self._get_node_text(n, content_bytes) for n in sub.children if n.type in {"identifier", "dotted_name"}]
                                 if sub_names:
                                     imported_names.append(sub_names[0])
-                            elif stype == "wildcard_import":
+                            elif sub_type == "wildcard_import":
                                 imported_names.append("*")
 
                     symbols.append(CodeSymbol(

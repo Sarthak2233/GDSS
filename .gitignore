@@ -32,8 +32,7 @@ dist/
 
 # Git
 .git/
-
-# Others
+# Other files
 FROM WHERE IT ALL STARTED..txt
 research.md
 
@@ -41,5 +40,3 @@ research.md
 diff.txt
 my_graph.dot
 
-.cursor/plans/
-AGENTS.md

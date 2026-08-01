@@ -5,6 +5,18 @@ output), not just claims.
 
 ---
 
+## 2026-08-02 - Untrack AGENTS.md and .cursor/plans from Git (session)
+
+- Added `AGENTS.md` and `.cursor/plans/` to `.gitignore` to satisfy the user request.
+- Removed `AGENTS.md` and all files under `.cursor/plans/` from the Git index (`git rm --cached`) to stop tracking them while keeping them locally.
+- Fixed a pre-existing failing test in `web/tests/dashboard/global-health-dial-card.test.tsx` to match the current implementation of `GlobalHealthDialCard` (expected title text, global health score calculation fallback, and footer text).
+- Ran the full verification suite successfully.
+
+Evidence (`bash harness/verify.sh`):
+- All layers are green: Layer 1-3 (backend lint, typecheck, architecture, tests, cli smoke) and Layer F1-F3 (frontend lint, typecheck, token fitness, component tests, build, and size-limit) passed.
+
+---
+
 ## 2026-07-30 - F7 Conflict Tensor UI (flat Ω heatmap)
 
 Shipped `frontend-conflict-tensor`:

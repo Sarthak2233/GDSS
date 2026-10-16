@@ -82,6 +82,7 @@ export default function DriftPage() {
       convergence_score: b.convergence_score,
       convergence: b.convergence_label,
       affected: b.affected || [],
+      history: b.history || [],
     }));
   }, [driftQuery.data]);
 

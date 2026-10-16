@@ -66,6 +66,8 @@ class CodeSymbol:
     type: SymbolType
     start_line: int
     end_line: int
+    start_column: int = 1
+    end_column: int = 1
     signature: str = ""
     body: str = ""
     docstring: str | None = None

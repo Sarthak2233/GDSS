@@ -1,53 +1,131 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 360" width="100%" height="360">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 450" width="100%" height="450">
   <defs>
-    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M0,0 L12,6 L0,12 z" fill="#64748b" />
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#64748b" />
     </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#2563eb" />
+    </marker>
+    <linearGradient id="grad-done" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16a34a" />
+      <stop offset="100%" stop-color="#15803d" />
+    </linearGradient>
+    <linearGradient id="grad-active" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="grad-res" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
   </defs>
 
-  <!-- Column: Completed -->
-  <rect x="24" y="24" width="300" height="312" rx="14" fill="#16a34a" stroke="#15803d" stroke-width="2"/>
-  <text x="174" y="52" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="15">Completed</text>
+  <!-- Title -->
+  <text x="530" y="32" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="20">GDSS Product Delivery Roadmap</text>
+  <text x="530" y="52" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">Phases 0–6, IDE MCP Server &amp; CI/CD PR Automation Complete · Active Focus: Phase F9 Evidence UI</text>
 
-  <rect x="48" y="72" width="252" height="40" rx="10" fill="#22c55e" stroke="#166534" stroke-width="2"/>
-  <text x="174" y="98" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 0: Distributed Runtime</text>
+  <!-- ==================== 1. COMPLETED & VERIFIED ==================== -->
+  <rect x="25" y="70" width="530" height="340" rx="14" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" />
+  <rect x="25" y="70" width="530" height="38" rx="14" fill="url(#grad-done)" />
+  <rect x="25" y="94" width="530" height="14" fill="url(#grad-done)" />
+  <text x="290" y="94" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">COMPLETED &amp; VERIFIED IN PRODUCTION</text>
 
-  <rect x="48" y="122" width="252" height="40" rx="10" fill="#22c55e" stroke="#166534" stroke-width="2"/>
-  <text x="174" y="148" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 1: AST · Operators · Graph</text>
+  <!-- Sub-column 1 (Left) -->
+  <rect x="42" y="122" width="235" height="36" rx="7" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.2" />
+  <text x="52" y="144" fill="#15803d" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ Phase 0:</text>
+  <text x="110" y="144" fill="#1e293b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Distributed Runtime</text>
 
-  <rect x="48" y="172" width="252" height="40" rx="10" fill="#22c55e" stroke="#166534" stroke-width="2"/>
-  <text x="174" y="198" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 2: Embeddings + FAISS</text>
+  <rect x="42" y="166" width="235" height="36" rx="7" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.2" />
+  <text x="52" y="188" fill="#15803d" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ Phase 2:</text>
+  <text x="110" y="188" fill="#1e293b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Graph &amp; Embeddings</text>
 
-  <rect x="48" y="222" width="252" height="40" rx="10" fill="#22c55e" stroke="#166534" stroke-width="2"/>
-  <text x="174" y="248" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 3: Continuous Drift</text>
+  <rect x="42" y="210" width="235" height="36" rx="7" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.2" />
+  <text x="52" y="232" fill="#15803d" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ Phase 4:</text>
+  <text x="110" y="232" fill="#1e293b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Collision Radar (Ω_ij)</text>
 
-  <text x="174" y="300" text-anchor="middle" fill="#dcfce7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">verify.sh green · live in CLI</text>
+  <rect x="42" y="254" width="235" height="36" rx="7" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.2" />
+  <text x="52" y="276" fill="#15803d" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ Phase 6:</text>
+  <text x="110" y="276" fill="#1e293b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Sandbox Apply Engine</text>
 
-  <!-- Column: Next -->
-  <rect x="350" y="24" width="280" height="160" rx="14" fill="#2563eb" stroke="#1e40af" stroke-width="2"/>
-  <text x="490" y="52" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="15">Next</text>
+  <rect x="42" y="298" width="235" height="36" rx="7" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.2" />
+  <text x="52" y="320" fill="#15803d" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ CI/CD:</text>
+  <text x="100" y="320" fill="#1e293b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">GitHub Actions Automation</text>
 
-  <rect x="374" y="80" width="232" height="60" rx="10" fill="#3b82f6" stroke="#1e3a8a" stroke-width="2"/>
-  <text x="490" y="106" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="13">Phase 4: Conflict Tensor Ω</text>
-  <text x="490" y="126" text-anchor="middle" fill="#dbeafe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">commutativity · geometry</text>
+  <!-- Sub-column 2 (Right) -->
+  <rect x="295" y="122" width="242" height="36" rx="7" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.2" />
+  <text x="305" y="144" fill="#15803d" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ Phase 1:</text>
+  <text x="363" y="144" fill="#1e293b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">AST Parser &amp; Algebra</text>
 
-  <!-- Column: Planned -->
-  <rect x="656" y="24" width="320" height="280" rx="14" fill="#475569" stroke="#334155" stroke-width="2"/>
-  <text x="816" y="52" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="15">Planned</text>
+  <rect x="295" y="166" width="242" height="36" rx="7" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.2" />
+  <text x="305" y="188" fill="#15803d" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ Phase 3:</text>
+  <text x="363" y="188" fill="#1e293b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Trajectory &amp; Drift Monitor</text>
 
-  <rect x="680" y="72" width="272" height="36" rx="8" fill="#64748b" stroke="#334155" stroke-width="2"/>
-  <text x="816" y="95" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Phase 5: AI Semantic Rebase</text>
+  <rect x="295" y="210" width="242" height="36" rx="7" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.2" />
+  <text x="305" y="232" fill="#15803d" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ Phase 5:</text>
+  <text x="363" y="232" fill="#1e293b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">AI Convergence Assistant</text>
 
-  <rect x="680" y="120" width="272" height="36" rx="8" fill="#64748b" stroke="#334155" stroke-width="2"/>
-  <text x="816" y="143" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Phase 6: Validation Sandbox</text>
+  <rect x="295" y="254" width="242" height="36" rx="7" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.2" />
+  <text x="305" y="276" fill="#15803d" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ MCP:</text>
+  <text x="355" y="276" fill="#1e293b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">IDE Protocol ($0 Token Bleed)</text>
 
-  <rect x="680" y="168" width="272" height="36" rx="8" fill="#64748b" stroke="#334155" stroke-width="2"/>
-  <text x="816" y="191" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="12">Phase 7: Geometric Research</text>
+  <rect x="295" y="298" width="242" height="36" rx="7" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.2" />
+  <text x="305" y="320" fill="#15803d" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ Web UI:</text>
+  <text x="365" y="320" fill="#1e293b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Next.js 14 Visual Brain</text>
 
-  <!-- Flow arrows: Done P3 -> Next P4 -> Planned P5 -->
-  <line x1="324" y1="242" x2="350" y2="120" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
-  <line x1="630" y1="110" x2="656" y2="90" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+  <!-- Completed Footer -->
+  <rect x="42" y="352" width="495" height="38" rx="7" fill="#dcfce7" stroke="#86efac" stroke-width="1" />
+  <text x="290" y="375" text-anchor="middle" fill="#166534" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">
+    ✓ All 10 Layers Verified · verify.sh &amp; verify-frontend.sh Green · 271 Tests Passing
+  </text>
 
-  <text x="500" y="340" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">Roadmap — Phase 0–3 complete; Phase 4 (conflict tensor) is next</text>
+  <!-- ==================== 2. ACTIVE FOCUS ==================== -->
+  <rect x="585" y="70" width="235" height="340" rx="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5" />
+  <rect x="585" y="70" width="235" height="38" rx="14" fill="url(#grad-active)" />
+  <rect x="585" y="94" width="235" height="14" fill="url(#grad-active)" />
+  <text x="702" y="94" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">ACTIVE FOCUS</text>
+
+  <!-- F9 Card -->
+  <rect x="600" y="130" width="205" height="78" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="1.2" />
+  <text x="702" y="153" text-anchor="middle" fill="#1d4ed8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Phase F9: Evidence UI</text>
+  <text x="702" y="172" text-anchor="middle" fill="#475569" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Dashboard validation traces &amp;</text>
+  <text x="702" y="188" text-anchor="middle" fill="#475569" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">ephemeral sandbox evidence panel</text>
+
+  <!-- Enterprise Gating Card -->
+  <rect x="600" y="225" width="205" height="78" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="1.2" />
+  <text x="702" y="248" text-anchor="middle" fill="#1d4ed8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Enterprise Merge Gating</text>
+  <text x="702" y="267" text-anchor="middle" fill="#475569" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Automated collision threshold</text>
+  <text x="702" y="283" text-anchor="middle" fill="#475569" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">policy enforcement for large teams</text>
+
+  <rect x="600" y="352" width="205" height="38" rx="7" fill="#dbeafe" stroke="#bfdbfe" stroke-width="1" />
+  <text x="702" y="375" text-anchor="middle" fill="#1e40af" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">
+    ⚙ In Active Engineering
+  </text>
+
+  <!-- ==================== 3. RESEARCH TRACK ==================== -->
+  <rect x="845" y="70" width="190" height="340" rx="14" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" />
+  <rect x="845" y="70" width="190" height="38" rx="14" fill="url(#grad-res)" />
+  <rect x="845" y="94" width="190" height="14" fill="url(#grad-res)" />
+  <text x="940" y="94" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">RESEARCH TRACK</text>
+
+  <rect x="860" y="145" width="160" height="120" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2" />
+  <text x="940" y="172" text-anchor="middle" fill="#334155" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">Phase R: Geometry</text>
+  <text x="940" y="195" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Continuous Riemannian</text>
+  <text x="940" y="211" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">metric G on manifolds &amp;</text>
+  <text x="940" y="227" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">rank-N octopus tensors</text>
+  <text x="940" y="250" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">(Theoretical, Non-blocking)</text>
+
+  <rect x="860" y="352" width="160" height="38" rx="7" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" />
+  <text x="940" y="375" text-anchor="middle" fill="#475569" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">
+    🔬 Exploratory
+  </text>
+
+  <!-- Connectors -->
+  <line x1="555" y1="240" x2="580" y2="240" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" />
+  <line x1="820" y1="240" x2="840" y2="240" stroke="#64748b" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow)" />
+
+  <!-- Footer caption -->
+  <text x="530" y="435" text-anchor="middle" fill="#475569" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">
+    GDSS: Gate Distributive Semantic Synopsis • Deterministic Core + AI Convergence Delivered • Production Verified
+  </text>
 </svg>

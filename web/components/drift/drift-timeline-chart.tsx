@@ -15,7 +15,7 @@ export interface DriftBranchData {
   tip_distance?: number;
   trajectory_integral?: number;
   affected: { id: string; name: string }[];
-  history?: number[];
+  history?: { timestamp: number; magnitude: number }[] | number[];
 }
 
 export interface DriftTimelineChartProps {
@@ -128,9 +128,12 @@ export function DriftTimelineChart({
                 <td className="py-3 pr-4 font-semibold text-text">
                   {(b.magnitude * 100).toFixed(0)}%
                 </td>
-                <td className="py-3 pr-4 text-textMuted">
+                <td
+                  className="py-3 pr-4 text-textMuted"
+                  title="Drift velocity v = d(magnitude)/dt in s⁻¹"
+                >
                   {b.velocity > 0 ? "↑ +" : b.velocity < 0 ? "↓ " : "→ "}
-                  {(Math.abs(b.velocity) * 100).toFixed(1)}%
+                  {Math.abs(b.velocity).toFixed(2)}/s
                 </td>
                 <td className="py-3 pr-4">
                   <span
@@ -202,16 +205,10 @@ export function DriftTimelineChart({
         {branches.map((b) => {
           const isSelected = selectedBranch === b.branch;
           const isExpanded = expandedBranch === b.branch;
-          const historyPoints =
+          const historyPoints: number[] =
             b.history && b.history.length > 1
-              ? b.history
-              : [
-                  Math.max(0, b.magnitude - b.velocity * 4),
-                  Math.max(0, b.magnitude - b.velocity * 3),
-                  Math.max(0, b.magnitude - b.velocity * 2),
-                  Math.max(0, b.magnitude - b.velocity),
-                  b.magnitude,
-                ];
+              ? b.history.map((p) => (typeof p === "number" ? p : p.magnitude))
+              : [b.magnitude, b.magnitude];
 
           const isConverging = b.convergence === "converging" || b.velocity <= 0;
           const badgeColor: string = isConverging ? colors.accent : colors.warning;
@@ -287,13 +284,18 @@ export function DriftTimelineChart({
                     </span>
                   </div>
                   <div className="flex flex-col text-right">
-                    <span className="text-xs text-textSubtle">Velocity</span>
+                    <span
+                      className="text-xs text-textSubtle"
+                      title="Drift velocity v = d(magnitude)/dt in s⁻¹"
+                    >
+                      Velocity (rate/s)
+                    </span>
                     <span
                       className="text-sm font-medium"
                       style={{ color: b.velocity > 0 ? colors.warning : colors.success }}
                     >
                       {b.velocity > 0 ? "↑ +" : b.velocity < 0 ? "↓ " : "→ "}
-                      {(Math.abs(b.velocity) * 100).toFixed(1)}%
+                      {Math.abs(b.velocity).toFixed(2)}/s
                     </span>
                   </div>
                 </div>

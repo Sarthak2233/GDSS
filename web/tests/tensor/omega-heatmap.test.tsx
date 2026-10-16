@@ -47,6 +47,7 @@ describe("OmegaHeatmap", () => {
     expect(screen.getByLabelText(/omega feature × main/i)).toHaveTextContent(
       "0.42"
     );
+    expect(screen.getAllByText(/Self Ω_ii/i)).toHaveLength(2);
   });
 
   it("calls onSelect when a cell is activated", () => {

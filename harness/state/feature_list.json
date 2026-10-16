@@ -126,22 +126,49 @@
       "phase": "1.5",
       "title": "AI Convergence Layer: suggestions, semantic rebase, intent",
       "layer": "ai",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "phase4-tensor"
       ],
-      "done_criteria": "gdss/ai/* produces validated suggestions; never auto-merges; tests green"
+      "done_criteria": "gdss/ai/* produces validated suggestions; never auto-merges; tests green",
+      "evidence": "verify.sh ALL LAYERS GREEN; API endpoints /v1/suggestions and /v1/model/status implemented; CLI gdss suggest and gdss model * implemented"
     },
     {
       "id": "phase6-validation",
       "phase": "1.6",
       "title": "Validation Sandbox: tests, types, syntax checks",
       "layer": "validation",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "phase5-ai"
       ],
-      "done_criteria": "gdss/validation/* validates suggestions before presentation; tests green"
+      "done_criteria": "gdss/validation/* validates suggestions before presentation; tests green",
+      "evidence": "verify.sh ALL LAYERS GREEN; gdss/validation/* implemented with ephemeral worktree sandboxing, multi-language syntax AST parsing, targeted typechecking and test runners; exposed via MCP gdss_sandbox_validate_patch and CLI gdss suggest --validate --sandbox-timeout"
+    },
+    {
+      "id": "phase5a-agent-orchestration",
+      "phase": "1.5a",
+      "title": "Agent Orchestration: optional LangGraph workflow for analysis, review checkpoints, and audited suggestion state",
+      "layer": "ai",
+      "status": "done",
+      "deps": [
+        "phase5-ai"
+      ],
+      "done_criteria": "Optional gdss/ai agent graph orchestrates existing deterministic ranking, topology, optional local LLM drafting, and validation without duplicating their logic; it is model-free by default, pauses for explicit human review, records metadata-only state, never writes files or mutates Git state, and tests plus verify.sh are green. LangGraph remains an optional dependency so pip install gdss stays offline and lightweight.",
+      "evidence": "verify.sh ALL LAYERS GREEN; implemented gdss/ai/orchestration.py and gdss/ai/suggestion_store.py with pure Python state machine, immutable sug_... IDs, target commit SHA auditing, awaiting_human_review checkpoint, and optional LangGraph export; tests/ai/test_orchestration.py and tests/ai/test_suggestion_store.py 7 passed."
+    },
+    {
+      "id": "phase6-human-approved-apply",
+      "phase": "1.6a",
+      "title": "Human-Approved Patch Apply: guarded local application of a selected validated suggestion",
+      "layer": "validation",
+      "status": "done",
+      "deps": [
+        "phase6-validation",
+        "phase5a-agent-orchestration"
+      ],
+      "done_criteria": "A separate explicit local apply command/action requires a selected suggestion ID and strategy; preflight checks exact repository root, canonical path, source/AST fingerprint freshness, one approved file, and one approved symbol range; application is atomic with rollback data and post-apply syntax/AST validation. It prints the resulting diff and never runs git merge, rebase, add, commit, push, or chooses a strategy. Rejected or stale patches produce WHAT/WHY/FIX errors; tests and verify.sh are green.",
+      "evidence": "verify.sh ALL LAYERS GREEN (236 pytest, 117 vitest); implemented gdss/validation/guarded_apply.py with preflight security checks, canonical path traversal gates, Git HEAD freshness verification, AST symbol presence checks, atomic apply, post-apply syntax validation rollback, and manual undo via 'gdss apply <ID> [--strategy <S>] [--dry-run] [--rollback]'; tests/validation/test_guarded_apply.py 9 passed."
     },
     {
       "id": "sp1-telemetry",
@@ -171,72 +198,94 @@
       "done_criteria": "GitHub Actions workflow running verify.sh"
     },
     {
-      "id": "phase4a-riemannian-metric",
-      "phase": "1.9a",
-      "title": "Riemannian metric G on M (pullback from embeddings)",
-      "layer": "geometry",
-      "status": "pending",
+      "id": "phase-d-mcp-server",
+      "phase": "1.8a",
+      "title": "Delivery Interface: Model Context Protocol (MCP) Tool Server",
+      "layer": "mcp",
+      "status": "done",
       "deps": [
-        "phase4-tensor"
+        "phase5-ai"
       ],
-      "done_criteria": "Open-ended: define Riemannian metric G on M as pullback from embeddings phi: M -> R^m, G_C(u,v)=(D phi_C u)^T (D phi_C v); replace flat cosine where used for geometric drift/Omega. See docs/MANIFOLD_TENSOR_GUIDE.md."
+      "done_criteria": "Expose read-only deterministic tools (gdss_find_collisions, gdss_get_merge_order, gdss_inspect_symbol_impact, gdss_plan_semantic_rebase, gdss_validate_patch) via MCP stdio JSON-RPC 2.0 server for Cursor, Copilot, and Claude Code with zero GDSS token cost; tests green.",
+      "evidence": "Implemented gdss/mcp/{server,tools}.py and CLI 'gdss mcp'; tests/mcp/test_mcp_server.py 10 passed; two-brain purity sensor enforced; verify.sh ALL LAYERS GREEN"
+    },
+    {
+      "id": "phase-d-github-actions",
+      "phase": "1.8b",
+      "title": "Delivery Interface: GitHub Actions Automated PR Collision Audit",
+      "layer": "validation",
+      "status": "done",
+      "deps": [
+        "phase5-ai"
+      ],
+      "done_criteria": "GitHub Action workflow auditing incoming PRs for cross-branch semantic collisions with LangGraph state machine, AnalysisContext injection, sandbox-validated patches, and 1-click commit suggestions; tests green.",
+      "evidence": "verify.sh ALL LAYERS GREEN (271 backend tests pass, 117 frontend tests pass); gdss/validation/pr_audit.py and CLI 'gdss suggest' integrated with build_pr_analysis_context, GitObserver.get_commits_between, resolve_context_window (OpenRouter/Ollama/vLLM APIs + env/CLI overrides + heuristics), ConvergenceState agentic self-correction refinement loop (should_refine & refine_step), and radar refinement badge reporting; tests/ai/test_agentic_refinement_loop.py (5 passed), tests/ai/test_condensation.py (5 passed), tests/validation/test_pr_audit.py (15 passed), tests/cli/test_suggest_validation_cli.py (4 passed)."
+    },
+    {
+      "id": "phase4a-riemannian-metric",
+      "phase": "R.1",
+      "title": "Research Track: Riemannian metric G on M (pullback from embeddings)",
+      "layer": "geometry",
+      "status": "blocked",
+      "deps": [
+        "research-track-frozen"
+      ],
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
     },
     {
       "id": "phase4b-parallel-transport",
-      "phase": "1.9b",
-      "title": "Parallel transport P_j->i (semantic rebase)",
+      "phase": "R.2",
+      "title": "Research Track: Parallel transport P_j->i (semantic rebase)",
       "layer": "geometry",
-      "status": "pending",
+      "status": "blocked",
       "deps": [
-        "phase4a-riemannian-metric"
+        "research-track-frozen"
       ],
-      "done_criteria": "Open-ended: implement P_{j->i} semantic rebase \u2014 re-extract branch j operators on top of branch i tip via sandbox; never auto-merge. See docs/MANIFOLD_TENSOR_GUIDE.md."
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
     },
     {
       "id": "phase4c-geometric-tensor",
-      "phase": "1.9c",
-      "title": "Geometric Omega: <v_i, P_j->i(v_j)>_G",
+      "phase": "R.3",
+      "title": "Research Track: Geometric Omega: <v_i, P_j->i(v_j)>_G",
       "layer": "geometry",
-      "status": "pending",
+      "status": "blocked",
       "deps": [
-        "phase4a-riemannian-metric",
-        "phase4b-parallel-transport"
+        "research-track-frozen"
       ],
-      "done_criteria": "Open-ended: Omega_{ij} = <v_i, P_{j->i}(v_j)>_G using metric G and transport P; coexist with flat rank-2 tensor. See docs/MANIFOLD_TENSOR_GUIDE.md."
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
     },
     {
       "id": "phase4d-geodesic-merge",
-      "phase": "1.9d",
-      "title": "Geodesic merge optimum plane (minimize R_merge)",
+      "phase": "R.4",
+      "title": "Research Track: Geodesic merge optimum plane (minimize R_merge)",
       "layer": "geometry",
-      "status": "pending",
+      "status": "blocked",
       "deps": [
-        "phase4c-geometric-tensor"
+        "research-track-frozen"
       ],
-      "done_criteria": "Open-ended: search/minimize R_merge over merge orders (Hopf-Rinow existence; sandbox); never auto-merge. See docs/MANIFOLD_TENSOR_GUIDE.md."
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
     },
     {
       "id": "phase4e-config-tensor",
-      "phase": "1.9e",
-      "title": "Rank-N config tensor on M^N (N-way / octopus merges)",
+      "phase": "R.5",
+      "title": "Research Track: Rank-N config tensor on M^N (N-way / octopus merges)",
       "layer": "geometry",
-      "status": "pending",
+      "status": "blocked",
       "deps": [
-        "phase4c-geometric-tensor"
+        "research-track-frozen"
       ],
-      "done_criteria": "Open-ended research: rank-N tensor on M^N for simultaneous N-way merges; rank-2 flat Omega is its pairwise marginal. See docs/MANIFOLD_TENSOR_GUIDE.md."
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
     },
     {
       "id": "phase7-research",
-      "phase": "1.10",
-      "title": "Geometric Merge Research: umbrella for metric/transport/geodesic/rank-N refinements",
+      "phase": "R.6",
+      "title": "Research Track: Geometric Merge Research Umbrella",
       "layer": "geometry",
-      "status": "pending",
+      "status": "blocked",
       "deps": [
-        "phase4d-geodesic-merge",
-        "phase4e-config-tensor"
+        "research-track-frozen"
       ],
-      "done_criteria": "Umbrella for experimental refinements after phase4a-e; gdss/geometry/* prototypes as needed. Math source: docs/MANIFOLD_TENSOR_GUIDE.md."
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
     },
     {
       "id": "frontend-harness",
@@ -365,14 +414,15 @@
     {
       "id": "frontend-ai-suggestions",
       "phase": "F8",
-      "title": "AI suggestion review UI; never auto-merge; show deterministic validation status",
+      "title": "AI suggestion review UI; agent state, explicit strategy selection, and deterministic validation status",
       "layer": "frontend",
       "status": "pending",
       "deps": [
         "frontend-app-shell",
-        "phase5-ai"
+        "phase5-ai",
+        "phase5a-agent-orchestration"
       ],
-      "done_criteria": "Suggestion review UI with accept/reject only (no silent merge); shows deterministic validation status; complements phase5-ai; verify-frontend.sh green"
+      "done_criteria": "Suggestion review UI displays deterministic rationale, topology, patch strategies, validation status, and agent run/checkpoint state. Users can start or cancel a local suggestion run and select or reject a strategy, but no action writes files or mutates Git state. The API exposes metadata and IDs only, never source bodies or patch text; verify-frontend.sh green."
     },
     {
       "id": "frontend-validation-ui",
@@ -384,7 +434,19 @@
         "frontend-ai-suggestions",
         "phase6-validation"
       ],
-      "done_criteria": "UI surfaces validation sandbox results (tests/types/syntax) for suggestions; error UI WHAT/WHY/FIX; verify-frontend.sh green"
+      "done_criteria": "UI surfaces validation sandbox results (tests/types/syntax) for suggestions; error UI uses WHAT/WHY/FIX; it makes validation evidence visible before any later apply control; verify-frontend.sh green"
+    },
+    {
+      "id": "frontend-human-approved-apply",
+      "phase": "F9.1",
+      "title": "Human-approved apply UI: preflight review, explicit confirmation, diff, and rollback result",
+      "layer": "frontend",
+      "status": "pending",
+      "deps": [
+        "frontend-validation-ui",
+        "phase6-human-approved-apply"
+      ],
+      "done_criteria": "A local-only review flow lets a user explicitly apply one selected, validated suggestion strategy after showing the exact target, freshness/preflight checks, and validation evidence. Confirmation is required per apply; the UI never selects a strategy, auto-applies, stages, commits, pushes, or invokes merge/rebase. It renders the resulting diff, rollback outcome, and WHAT/WHY/FIX errors; API transport and persistence remain metadata-only; verify-frontend.sh green."
     },
     {
       "id": "frontend-manifold-3d",

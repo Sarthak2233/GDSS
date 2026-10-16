@@ -31,7 +31,7 @@ export function Navigation() {
       <div className="bg-surface border border-border rounded-xl p-3 flex flex-col items-center justify-center shrink-0 shadow-md">
         <Logo />
         <p className="text-[7px] sm:text-[7px] text-center uppercase font-bold text-textMuted tracking-[0.2em] leading-snug relative z-content w-full drop-shadow mt-1">
-          Geometric Distributed<br />Software Synchronizer
+          Gate Distributive<br />Semantic Synopsis
         </p>
       </div>
 

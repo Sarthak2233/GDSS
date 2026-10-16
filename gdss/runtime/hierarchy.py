@@ -27,7 +27,7 @@ class HierarchyManager:
                 return json.loads(row['config_payload'])
             return {}
 
-    def resolve_priority_chain(self, repo_id: int, current_branch: str) -> list[str]:
+    def resolve_priority_chain(self, repo_id: int) -> list[str]:
         config = self.get_config(repo_id)
         if not config:
             return ["main"] # Default trajectory

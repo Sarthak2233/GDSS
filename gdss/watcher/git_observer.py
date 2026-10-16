@@ -135,34 +135,6 @@ class GitObserver:
             pass
         return changes
 
-    def install_git_hooks(self) -> bool:
-        """Installs pre-push and post-commit hooks in .git/hooks directory."""
-        if not self.repo:
-            return False
-
-        hooks_dir = os.path.join(self.repo_path, ".git", "hooks")
-        if not os.path.exists(hooks_dir):
-            return False
-
-        # Post-commit hook
-        post_commit_path = os.path.join(hooks_dir, "post-commit")
-        try:
-            with open(post_commit_path, "w") as f:
-                f.write("#!/bin/sh\n\n# GDSS Trigger\ngdss status\n")
-            os.chmod(post_commit_path, 0o755)
-        except Exception:
-            return False
-
-        # Pre-push hook
-        pre_push_path = os.path.join(hooks_dir, "pre-push")
-        try:
-            with open(pre_push_path, "w") as f:
-                f.write("#!/bin/sh\n\n# GDSS Trigger\ngdss status\n")
-            os.chmod(pre_push_path, 0o755)
-        except Exception:
-            return False
-
-        return True
 
     def list_local_branches(self) -> list[str]:
         """Return local branch names."""
@@ -214,3 +186,37 @@ class GitObserver:
         except Exception:
             return result
         return result
+
+    def get_commits_between(
+        self,
+        base_ref: str,
+        head_ref: str,
+        max_count: int = 25,
+    ) -> list[dict[str, str]]:
+        """Return list of commits on head_ref added apart from base_ref.
+
+        Equivalent to `git log base_ref..head_ref`.
+        Returns dicts with:
+          - sha: short 8-char commit SHA
+          - summary: commit title / first line
+          - author: author name
+          - message: full commit message trimmed
+        """
+        if not self.repo:
+            return []
+        try:
+            commits: list[dict[str, str]] = []
+            rev_range = f"{base_ref}..{head_ref}"
+            for c in self.repo.iter_commits(rev_range, max_count=max_count):
+                commits.append(
+                    {
+                        "sha": c.hexsha[:8],
+                        "summary": str(c.summary),
+                        "author": str(c.author.name) if c.author else "unknown",
+                        "message": str(c.message).strip(),
+                    }
+                )
+            return commits
+        except Exception:
+            return []
+

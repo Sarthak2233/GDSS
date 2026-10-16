@@ -2,7 +2,7 @@
 import datetime
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -80,5 +80,24 @@ def create_app(repo_path: Path) -> FastAPI:
     @app.get("/v1/branches")
     def branches():
         return format_resp(service.get_branches(repo_path_str))
+
+    @app.get("/v1/model/status")
+    def model_status():
+        return format_resp(service.get_model_status())
+
+    @app.get("/v1/suggestions")
+    def suggestions(
+        request: Request,
+        ref: str | None = None,
+        format: str = "metadata",
+        llm: bool = False,
+        combos: int = 3,
+        max_candidates: int = 50,
+    ):
+        if format in {"prompt", "source"}:
+            token = request.headers.get("X-GDSS-Local-Token")
+            if not getattr(app.state, "allow_local_source", False) and token != getattr(app.state, "local_token", ""):
+                return JSONResponse(status_code=403, content={"error": "Source-bearing requests require --allow-local-source or valid X-GDSS-Local-Token"})
+        return format_resp(service.get_suggestions(repo_path_str, ref, format, llm, combos, max_candidates))
 
     return app

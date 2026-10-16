@@ -96,6 +96,7 @@ export function DashboardGrid() {
     velocity: b.velocity,
     convergence: b.convergence_label,
     affected: b.affected,
+    history: b.history,
   }));
 
   return (

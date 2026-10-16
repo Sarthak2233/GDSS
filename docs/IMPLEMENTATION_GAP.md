@@ -1,39 +1,30 @@
 # GDSS Implementation Gap
 
-Status of the product relative to the [North Star](PRODUCT_INTENT.md).  
+Status of the product relative to the [Master Specification](../PRODUCT_SPEC.md) and [North Star](PRODUCT_INTENT.md).  
 Machine-readable queue: [`harness/state/feature_list.json`](../harness/state/feature_list.json).  
-Do not invent phases here — this matrix mirrors that queue.
 
-## Gap matrix
+## Restructured Product Gap Matrix
 
-| Area | Status | Role toward North Star | Gap |
-| --- | --- | --- | --- |
-| Phase 1 — graph / operators / CLI | done | Structure + transforms | — |
-| Phase 2 — embeddings + `/similar` UI (F6 / F6.1) | done | Assistive neighborhood / PCA cloud | Never authoritative for merge risk |
-| Phase 3 — drift / alerts | done | Divergence from attractor | Drift CLI Conflict P still flat heuristic |
-| F0–F6.1 frontend + local API honesty | done | Visible status / graph / drift / embedding | — |
-| **phase4-tensor** | **done** | Flat rank-2 pairwise Ω marginal + commutativity + `gdss tensor` | Geometric Ω deferred to 4a–c |
-| phase4a–e geometry | pending | Metric G, transport P, geometric Ω, geodesic, rank-N | Open-ended; see MANIFOLD_TENSOR_GUIDE |
-| phase5-ai | pending | Suggest only; never auto-merge | Ready (deps satisfied) |
-| phase6-validation | pending | Evidence suggestions pass checks | Blocked on phase5; still not proof |
-| **F7 conflict-tensor UI** | **done** | `/tensor` heatmap + `GET /v1/tensor` | similar→Ω deep-link still out of scope |
-| phase7-research | pending | Umbrella after 4d+4e | Blocked on geometric phases |
-| Line-level semantics as manifold points | out of scope | — | Intentional; not a defect for this goal |
+| Product Phase | Old ID | Status | Role toward North Star | Gap / Action |
+| :--- | :--- | :--- | :--- | :--- |
+| **Phase A: Foundation** | Phase 1 & 2 | **done** | AST parser, operators, dependency graph, embeddings | Maintained |
+| **Phase B: Collision Radar** | Phase 3 & 4 | **done** | Pairwise collision matrix ($\Omega_{ij}$), commutativity, affected symbols | Maintained |
+| **Phase C: Convergence Assistant** | Phase 5 & 6 | **done** | Provider-neutral AI adapter, laser prompts, sandboxed patch validation, guarded apply (`gdss apply`) | Maintained |
+| **Phase D: Delivery Interfaces** | New | **done** | MCP server (`gdss mcp`) + GitHub Actions PR audit (`gdss audit-pr`) | Maintained |
+| **Phase E: Visual Dashboard UI** | Phase F | **active** | Next.js 14 web UI with collision heatmaps, 3D constellation, and validation evidence | Phase F9 (Validation Sandbox UI) |
+| **Phase F: Bespoke IDE Extension** | New | **deferred** | Dedicated VS Code / Copilot extension UI | Deferred until MCP adoption is established |
+| **Phase R: Geometric Research** | Phase 4a–4e | **research** | Metric $G$, parallel transport $P$, rank-$N$ octopus on $M^N$ | Frozen on research track; does not block product path |
 
-## Ordered missing work (impact on North Star)
+## Active & Next Focus Areas
 
-1. **`phase5-ai`** — suggestions after deterministic validation hooks; never auto-merge
-2. **`phase6-validation`** — evidence of working, not a guarantee
-3. **Geometric ladder (4a→4e)** — when researching beyond flat space; not blocking phase5
-4. **Small debts** — honor `ref` on `/v1/graph`; wire `/v1/drift/history` into sparklines; optional similar→Ω bridge
+1. **`frontend-validation-ui` (Phase F9)** — Surface ephemeral worktree sandbox evidence (tests passed, static types, syntax checks) and guarded apply preflight status in the Next.js visual dashboard.
+2. **`sp1-telemetry` & Policy Enforcement** — Hard merge gate controls (`fail_on_collision` based on $\Omega_{ij}$ risk threshold) and explicit telemetry opt-out flags.
+3. **`sp1-distribution`** — PyPI packaging and Homebrew release automation.
+4. **`Phase R` (Geometry research)** — Explored strictly as an offline research hypothesis, never gating product releases.
 
-## Known honesty rules
+## Known Honesty Rules
 
-- Do not invent dashboard metrics that the backend does not emit
-- Embeddings / PCA / similar = assistive only
-- Flat Ω ≠ geometric ⟨v_i, P(v_j)⟩_G until phase4c
-- Drift `/v1/drift` Conflict P remains flat heuristic; real Ω lives on `/tensor` + `/v1/tensor`
-
-## Next session default
-
-Pick **`phase5-ai`**. Geometry 4a+ only if explicitly pursuing research.
+- MCP tools do not make hidden LLM calls; the calling agent powers the conversation ($0 token bleed).
+- Deterministic analysis works 100% offline without any API keys or models.
+- Sandboxed validation tests candidate patches in temporary worktrees before showing them to humans; never auto-merges.
+- User-facing surfaces use pragmatic terminology (Collision Radar, Merge Order, Affected Symbols), not alienating geometric jargon.

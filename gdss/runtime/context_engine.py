@@ -46,7 +46,7 @@ class ContextEngine:
         config = self.hierarchy.get_config(self.repo_id)
         if config.get("reference_branch"):
             return str(config["reference_branch"])
-        chain = self.hierarchy.resolve_priority_chain(self.repo_id, "HEAD")
+        chain = self.hierarchy.resolve_priority_chain(self.repo_id)
         return chain[-1] if chain else "main"
 
     def set_reference_branch(self, branch: str) -> None:
@@ -56,6 +56,8 @@ class ContextEngine:
         # Keep production attractor aligned with the configured reference.
         hierarchy = dict(config.get("hierarchy") or {})
         hierarchy["production"] = branch
+
+        # pyrefly: ignore [unsupported-operation]
         config["hierarchy"] = hierarchy
         self.hierarchy.set_config(self.repo_id, config)
 

@@ -21,6 +21,9 @@ Visual harness (guides/sensors): `.cursor/rules/frontend/`, `harness/verify-fron
   features also require `bash harness/verify-frontend.sh` green.
 - **Privacy**: API payloads are metadata/symbol names only — no source bodies,
   no PII (see `.cursor/rules/60-telemetry-privacy.mdc`).
+- **Human control**: agent controls may start or cancel a local review run and select a
+  strategy, but cannot write files. A later apply control requires per-action confirmation,
+  visible preflight evidence, and never invokes Git merge, rebase, stage, commit, or push.
 - **Honesty**: UI cards declare evidence phase (deterministic / assistive
   heuristic / not yet available). Fabricated metrics are forbidden.
 
@@ -34,7 +37,9 @@ flowchart LR
     B3[phase3 drift]
     B4[phase4 tensor]
     B5[phase5 ai]
+    B5a[phase5a agent orchestration]
     B6[phase6 validation]
+    B6a[phase6a human-approved apply]
     B7[phase7 geometry]
   end
   subgraph frontend [Frontend phases]
@@ -49,6 +54,7 @@ flowchart LR
     Ften[frontend-conflict-tensor]
     Fai[frontend-ai-suggestions]
     Fval[frontend-validation-ui]
+    Fapply[frontend-human-approved-apply]
     F3d[frontend-manifold-3d]
   end
   F0 --> Fg --> Fa --> Fs
@@ -64,8 +70,10 @@ flowchart LR
   B3 --> Fdr
   B2 --> Fsim
   B4 --> Ften
-  B5 --> Fai
+  B5 --> B5a --> Fai
   B6 --> Fval
+  Fai --> Fval --> Fapply
+  B6 --> B6a --> Fapply
   B7 --> F3d
 ```
 
@@ -83,8 +91,9 @@ flowchart LR
 | `frontend-similarity` | F6 | done | app-shell | `gdss similar` (assistive only) |
 | `frontend-embedding-space` | F6.1 | done | similarity + embeddings API | PCA cloud on `/similar` |
 | `frontend-conflict-tensor` | F7 | done | app-shell + `phase4-tensor` | Conflict tensor `Omega_{ij}` |
-| `frontend-ai-suggestions` | F8 | pending | app-shell + `phase5-ai` | AI suggestions (never auto-merge) |
+| `frontend-ai-suggestions` | F8 | pending | app-shell + `phase5-ai` + `phase5a-agent-orchestration` | Review agent state, select/reject strategies; no writes |
 | `frontend-validation-ui` | F9 | pending | AI UI + `phase6-validation` | Validation sandbox |
+| `frontend-human-approved-apply` | F9.1 | pending | validation UI + `phase6-human-approved-apply` | Explicit one-patch apply review, confirmation, diff, and rollback result |
 | `frontend-manifold-3d` | F10 | pending | semantic-graph + `phase7-research` | Geometric merge / manifold |
 
 ## Local API contract (F1)
@@ -109,6 +118,11 @@ See [`docs/f1_api_contract.md`](f1_api_contract.md). Summary:
 CLI: `gdss serve --repo PATH --port 8787` (single repo).  
 Frontend: `NEXT_PUBLIC_GDSS_API` (e.g. `http://127.0.0.1:8787`).  
 Repo path is read-only in the UI; `ref` is a real branch dropdown.
+
+Future F8-F9.1 API additions remain local and metadata-only: suggestion IDs, agent run state,
+strategy IDs, validation evidence, preflight status, and result metadata. Source bodies and patch
+text are not exposed through the HTTP API. The apply endpoint/action is unavailable until the
+backend human-approved apply phase is complete.
 
 ## Visual language (every phase)
 

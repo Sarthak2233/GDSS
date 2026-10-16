@@ -2,7 +2,10 @@
 
 A teaching guide that builds from differential-geometry basics (MIT 18.994, Ch. 16) up to GDSS's conflict tensor, grounded in this codebase.
 
-**Status (living):** Flat rank-2 Ω is **done** (`phase4-tensor`). Product surface is **done** (`GET /v1/tensor` + `frontend-conflict-tensor` / `/tensor`). Geometric pieces (metric `G`, transport `P`, geometric Ω, geodesic merge plane, rank-N / octopus on `M^N`) are **queued** as `phase4a`–`phase4e` in [`harness/state/feature_list.json`](../harness/state/feature_list.json). Product intent: [`PRODUCT_INTENT.md`](PRODUCT_INTENT.md). Gaps: [`IMPLEMENTATION_GAP.md`](IMPLEMENTATION_GAP.md).
+> [!NOTE]
+> 🔬 **Phase R (Research Track):** This document details the mathematical and theoretical differential geometry underpinning GDSS's conceptual foundations. In production, GDSS computes collision radar and commutativity **deterministically using discrete Abstract Syntax Trees (ASTs), call graphs, and the sparse interaction matrix $\Omega_{ij}$**. Speculative continuous geometry (Riemannian metric $G$, parallel transport $P$, octopus tensors on $M^N$) belongs strictly to the offline research track and does not block production delivery.
+
+**Status (living):** Flat rank-2 Ω is **done** (`phase4-tensor`). Product surface is **done** (`GET /v1/tensor` + `frontend-conflict-tensor` / `/tensor`). Geometric pieces (metric `G`, transport `P`, geometric Ω, geodesic merge plane, rank-N / octopus on `M^N`) belong to **Phase R (Research Track)** (`phase4a`–`phase4e`). Product intent: [`PRODUCT_INTENT.md`](PRODUCT_INTENT.md). Gaps: [`IMPLEMENTATION_GAP.md`](IMPLEMENTATION_GAP.md).
 
 ---
 
@@ -10,7 +13,7 @@ A teaching guide that builds from differential-geometry basics (MIT 18.994, Ch. 
 
 `Ω_{ij}` is a **rank-2 tensor** (an N×N matrix) indexed by **branch**. With `N` local branches, `Ω` is `N×N`: `Ω_{ij}` measures how much branch `i` and branch `j` interfere. The diagonal `Ω_{ii}` is a branch's self-energy (its drift from the attractor); off-diagonals are pairwise interference. There is **one** manifold `M` (the space of all valid program states); each branch is a **trajectory** `γ_i(t)` *on* `M`, not a manifold of its own. What each branch *does* have is its own **tangent space** `T_{C_i}M` at its tip — a local coordinate frame. Comparing two branches geometrically therefore requires **parallel transport** `P_{j→i}` to move branch `j`'s tangent vector into branch `i`'s frame before taking the inner product under a **Riemannian metric** `G`.
 
-**What ships today:** the **flat** rank-2 Ω (pairwise marginal) — overlap weights + commutativity interference + drift on the diagonal — via [`gdss/conflict/tensor.py`](../gdss/conflict/tensor.py), `gdss tensor`, `GET /v1/tensor`, and the `/tensor` heatmap. **What is still missing:** `G`, `P_{j→i}`, geometric `⟨v_i, P(v_j)⟩_G`, geodesic optimum plane, and the full rank-N / octopus object on `M^N` (phases `4a`–`4e`).
+**What ships today in production:** the **flat** rank-2 Ω (pairwise marginal) — overlap weights + commutativity interference + drift on the diagonal — via [`gdss/conflict/tensor.py`](../gdss/conflict/tensor.py), `gdss tensor`, `GET /v1/tensor`, and the `/tensor` heatmap. **Research track explorations (Phase R):** `G`, `P_{j→i}`, geometric `⟨v_i, P(v_j)⟩_G`, geodesic optimum plane, and the full rank-N / octopus object on `M^N`.
 
 ---
 
@@ -321,12 +324,16 @@ North Star does not require waiting on `4a`–`4e` to surface merge risk:
 
 1. **`GET /v1/tensor` + `frontend-conflict-tensor` (F7)** — **done** (flat Ω / `R_merge` in the UI).
 2. **`phase5-ai`** — next product default; assistive suggestions; never auto-merge (can use flat Ω as context).
-3. **`phase6-validation`** — evidence suggestions pass checks; still not a proof of correctness.
+3. **`phase5a-agent-orchestration`** — optional LangGraph coordination of analysis, local-model drafting, validation, and explicit human review; it never writes files or Git state.
+4. **`phase6-validation`** — evidence suggestions pass checks; still not a proof of correctness.
+5. **`phase6-human-approved-apply`** — after validation, a user may explicitly apply one selected strategy through a freshness-checked, atomic local edit; it never chooses a strategy or performs Git operations.
 
 ### 7.4 Honest ordering
 
 ```
-Flat Ω (done)  →  F7 UI (done)  →  phase5-ai → phase6 → sp1
+Flat Ω (done)  →  F7 UI (done)  →  phase5-ai → phase5a → phase6 → phase6a → sp1
+                                      │                     │
+                                      └→ F8 review → F9 evidence → F9.1 apply review
                 ↘
                   G (4a) → P (4b) → geometric Ω (4c) → geodesic (4d)
                                               ↘ octopus / rank-N (4e) → phase7 umbrella

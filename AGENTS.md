@@ -10,72 +10,41 @@ Read this first. Then run the startup lifecycle. Do not skip the verification ga
 
 ## What GDSS is
 
-GDSS (Geometric Distributed Software Synchronizer) is a **semantic intelligence layer above
-Git**. It treats collaborative software development as a continuous geometric-semantic
-dynamical system:
+GDSS (Gate Distributive Semantic Synopsis) is a **Semantic Branch Intelligence and Merge Assistance Platform** (PR Collision Radar
+& Convergence Assistant), built as a semantic intelligence layer above Git:
 
-> ⚠️⚠️⚠️⚠️⚠️ **Important Warning**
->
->The number of branch defines the construction of the mathematics around this project.
+1. **Repository Intelligence (Deterministic Core):** Tracks branches, commits, AST symbols,
+   and dependency call/import graphs to identify affected symbols and contractual changes.
+2. **PR Collision Radar:** Computes pairwise branch interaction ($\Omega_{ij}$), detecting
+   non-commutative operations and semantic overlap across concurrent pull requests before merge.
+3. **AI Convergence Assistant:** Pinpoints collision topologies, explains risks in plain
+   English, proposes minimal conflict-free patches, and recommends optimal merge orders.
+4. **Sandboxed Validation:** Tests candidate patches in ephemeral Git worktrees (syntax,
+   types, targeted tests) before human review. Never auto-merges; humans decide what lands.
 
->You can take mathemetical reference from here in order to make the project
-https://ocw.mit.edu/courses/18-994-seminar-in-geometry-fall-2004/f8e7b8f1462fe0b3abfd22f7b79c16dd_chapter16.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/34fad8f392208544e2b1e9794c33cbe7_lecture1.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/b481a27fb1583bbaf43153bcaf0643fe_lecture2.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/8d7124c3dc9945db1eea3fbe3cf07748_lecture3.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/55a7137272a97179db2a80b6e20d5de0_lecture4.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/70904549fb8dee30e3cb4a2d028929e9_lecture5.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/f857302f467d16fa8493dc0921b86d71_lecture6.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/de18bf0029c583cacffb09810879bb54_lecture7.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/187bc6b72bf789517b042986ada54f9b_lecture8.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/86bd64ce14d5dd2ee54e157d29213a36_lecture9.pdf
-http://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/10813941582d898eeabd93f7cc0d46f4_lecture10_11.pdf
-http://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/32bfddb3cba4e5f5e7390b31f7c82155_lecture12.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/2c6952d2167748b627323ee455a6e949_lecture13.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/56a9ee64fec614c749e37517a603bde9_lecture14.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/070b537e54d424b7efbd57161f5296ae_lecture15.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/8a7e4dd837d1bdd6988e0330babb8c5e_lecture16_17.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/c71877e42e00978f03da79f558aa5892_lecture18_19.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/99d9dc3ad6837fa7e851f57d685d681b_lecture20.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/d0598b3b5ced2d2d0a9884ee14abeae3_lecture21_22.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/3ed047b0564ee97469e7d2926acc2229_lecture23_28.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/292c457f2098de38b253ff53638c52a5_lecture29.pdf
-http://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/30852f9a0a933b9df31060c8a2e748e1_lecture30.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/0ca1ef5e60dcf0244f9118869d160c2e_lecture31.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/resources/lecture32/
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/6d98c2ce8b2eafdc842caa1b1efd252e_lecture33.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/3fd765fec17898e57e716c7ef400b3f5_lecture34.pdf
-https://ocw.mit.edu/courses/18-965-geometry-of-manifolds-fall-2004/a4a2f53634631c50f0dc5133916619c2_lecture35.pdf
+Canonical specification: [`PRODUCT_SPEC.md`](PRODUCT_SPEC.md).  
+Implementation gap: [`docs/IMPLEMENTATION_GAP.md`](docs/IMPLEMENTATION_GAP.md).  
+Product intent: [`docs/PRODUCT_INTENT.md`](docs/PRODUCT_INTENT.md).
 
-Curvature tensors, Ricci, Bishop-Gromov, Bochner, Hopf-Rinow proofs — these prove existence/geometry on smooth manifolds. They belong to phase 4a–4e (metric G, geometric Ω, geodesic merge). An AI suggestion layer doesn't compute Christoffel symbols; it ranks candidate patches.
-
-- A repository state is a point on a semantic manifold `M`.
-- A branch is a trajectory `gamma_i(t)` on `M`.
-- A commit is a tangent vector / transformation `dC`.
-- A merge conflict is non-commutativity of transformations: `[T_i, T_j] != 0`.
-- Branch interaction is the conflict tensor `Omega_{ij}`.
-- The `dev`/reference branch is the attractor trajectory all branches are measured against.
-
-The product goal: detect semantic branch drift, identify affected symbols, and predict
-likely conflicts and convergence **before** merge. GDSS raises merge-risk awareness; it is
-**not** a perfect-code factory. Canonical intent: [`docs/PRODUCT_INTENT.md`](docs/PRODUCT_INTENT.md).
-Implementation gaps: [`docs/IMPLEMENTATION_GAP.md`](docs/IMPLEMENTATION_GAP.md). Source vision:
-`FROM WHERE IT ALL STARTED.md`; phased plan:
-`.cursor/plans/gdss_complete_roadmap_e8cc388d.plan.md`.
-
-GDSS is designed across three deployment tiers:
-1. **Local CLI Agent:** The core parser, extractor, and drift monitor. Runs completely offline on developer machines.
-2. **Hybrid Cloud SaaS:** Aggregates metadata for org-wide analytics, dashboards, and conflict tensor alerts.
-3. **Self-Hosted Enterprise:** On-premise turnkey appliance for absolute data sovereignty (SOC2/GDPR ready).
+### Deployment & Inference Architecture (Zero Token Bleed)
+1. **MCP Tool Server (IDE First):** Exposes deterministic analysis tools to Cursor, Claude Code,
+   and Copilot. The developer's AI client powers the chat conversation using their own account.
+   GDSS incurs $0 token cost.
+2. **GitHub Actions (PR Automation):** Audits incoming PRs, posts collision radar reports, and
+   uses repo-entitled Copilot CLI/Models or user API keys.
+3. **Local CLI Agent:** Runs completely offline on developer laptops with optional Ollama/vLLM.
+4. **Hosted / Enterprise:** Future managed service for centralized organization policies.
 
 ## What GDSS is NOT
 
-- Not a Git wrapper, chatbot, or autocomplete tool.
-- Not a perfect-code factory — it does not produce or guarantee “perfect working code.”
-- Not a "perfect universal merge oracle" - semantic equivalence and halting are undecidable.
-  GDSS builds **probabilistic approximations** for the common cases (renames, refactors, API
-  changes) and is honest about the limits.
-- Never auto-merges. Predicts and suggests; humans decide.
+- Not a Git wrapper, chatbot, or general autocomplete tool.
+- Not a perfect-code factory — it does not guarantee bug-free merges.
+- Not a "universal merge oracle" — program equivalence and halting are undecidable; GDSS builds
+  probabilistic approximations for common refactors and API shifts.
+- Never auto-merges without human approval. Proposes and validates; humans decide.
+- Theoretical differential geometry (Riemannian metric $G$, parallel transport $P$, rank-$N$
+  octopus tensors on $M^N$) belongs to **Phase R (Research Track)**; it does not block product
+  delivery.
 
 ---
 

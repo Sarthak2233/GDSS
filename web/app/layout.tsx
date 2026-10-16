@@ -3,9 +3,9 @@ import "./globals.css";
 import Providers from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "GDSS - Geometric Distributed Software Synchronizer",
+  title: "GDSS - Gate Distributive Semantic Synopsis",
   description:
-    "A semantic intelligence layer above Git. Treat software development as a continuous geometric-semantic dynamical system.",
+    "Semantic Branch Intelligence and PR Collision Radar above Git.",
 };
 
 export default function RootLayout({

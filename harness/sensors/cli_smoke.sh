@@ -94,6 +94,12 @@ run_gdss alerts --repo "$fixture" --ref "$base" >/dev/null 2>&1 \
   || fail "gdss alerts --repo $fixture --ref $base"
 run_gdss tensor --repo "$fixture" --ref "$base" >/dev/null 2>&1 \
   || fail "gdss tensor --repo $fixture --ref $base"
+run_gdss apply --help >/dev/null 2>&1 \
+  || fail "gdss apply --help"
+run_gdss audit-pr --help >/dev/null 2>&1 \
+  || fail "gdss audit-pr --help"
+run_gdss audit-pr --repo "$fixture" --dry-run >/dev/null 2>&1 \
+  || fail "gdss audit-pr --dry-run"
 
 # 3) Synchronized path: status on the reference branch itself.
 GIT checkout -q "$base" || fail "checkout base failed"

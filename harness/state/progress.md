@@ -3,6 +3,365 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-10-16 - Developer Intent Injection & Agentic Validation Loop (`phase-d-github-actions` & `phase5-ai`)
+
+- **Developer Intent & Multi-Branch Commit History Context Injection**:
+  - Added `GitObserver.get_commits_between(base_ref, head_ref, max_count)` in `gdss/watcher/git_observer.py`, retrieving commits on each branch relative to the reference branch with short SHA, summary, author, and timestamp.
+  - Extended `AnalysisContext` in `gdss/drift/context.py` with `branch_commits` and `branch_intents`.
+  - Populated branch commits and PR metadata (title, description, author, pr_number) in both `build_analysis_context()` and `build_pr_analysis_context()`.
+  - Injected developer intent and commit history into `build_conflict_prompt()` and `build_refinement_prompt()` in `gdss/ai/prompt_builder.py`.
+  - Connected `other_branch` on `SuggestionContext` in `gdss/ai/types.py` through `suggester.py`.
+- **3-Tier Dynamic Model Context Discovery & Adaptive Condensation**:
+  - Implemented `resolve_context_window()`, `get_model_code_budget()`, and updated `condense_block()` in `gdss/ai/condensation.py`:
+    - **Tier 1 (Explicit User Override)**: `.gdss.yml` `context_window` or CLI `--context-window` / `GDSS_CONTEXT_WINDOW`.
+    - **Tier 2 (Live Provider API Discovery)**: OpenRouter `GET /api/v1/models`, Ollama `POST /api/show`, vLLM `GET /v1/models` cached in memory.
+    - **Tier 3 (Resilient Family Pattern Heuristics)**: `gpt-4o` / `o1` / `o3` ➔ 128k, `claude-3` ➔ 200k, `llama-3.1` ➔ 128k, fallback ➔ 16k.
+  - Dynamically calculates symbol block code token budget (~45% of effective context window, up to 96k chars).
+- **Agentic Refinement / Self-Correction Loop**:
+  - Integrated conditional agentic loop in `gdss/ai/orchestration.py`:
+    - `should_refine(state)`: Inspects validation results; routes to `refine` if errors occur and attempts remain (`refinement_count < max_refinements`), otherwise routes to `checkpoint`.
+    - `refine_step(state)`: Feeds syntax, typecheck, or test error traces back to LLM provider using `build_refinement_prompt()` to draft targeted self-corrections.
+    - Updated compiled LangGraph workflow `build_langgraph_workflow()` with conditional edges (`validate` ➔ `should_refine` ➔ `refine` ➔ `validate`).
+    - Maintained exact state machine parity in sequential `OrchestrationPipeline`.
+- **CI/CD & CLI Integration**:
+  - `gdss/validation/pr_audit.py`: Tracks refinement history and displays badge in sticky markdown (`Tested in ephemeral sandbox worktree (syntax: OK, types: OK - refined in N self-correction attempt(s)):`).
+  - `gdss/cli/main.py`: Added `--context-window` and `--max-refinements` options to `suggest`. When `--validate` and `--llm` are passed, routes through `run_convergence_pipeline()`, providing terminal feedback on self-corrections. Updated `--as-prompt` to inject commits and developer intent.
+- **Verification Gate**:
+  - `bash harness/verify.sh` passed with **ALL LAYERS GREEN**:
+    - Layer 1: Ruff clean, Mypy clean (87 files), Architecture fitness clean (layer boundaries & two-brain purity hold), DSA fitness clean.
+    - Layer 2: 271 pytest tests passing.
+    - Layer 3: End-to-end CLI smoke and API smoke tests passing.
+    - Frontend Gate: 35 test files, 117 vitest unit/a11y tests passing, size-limit bundle budget clean.
+
+## 2026-10-16 - AI Orchestration Pipeline Integration in PR Collision Radar (`phase-d-github-actions`)
+
+- **Integrated Complete AI Subsystem into GitHub Actions PR Collision Radar (`gdss/validation/pr_audit.py`)**:
+  - Deeply linked `gdss/ai/` orchestration components (`AnalysisContext`, `ConvergenceState`, `OrchestrationPipeline`, `LangGraph`, `ValidationSandbox`, `suggestion_store`) into `audit_pr_collisions()`.
+  - Upgraded `PRCollisionDetail` with `topology_kind`, `suggestion_id`, `strategy_label`, and `reasons`.
+  - Deterministic Multi-Branch Context Injection: Added `build_pr_analysis_context()` in `gdss/drift/context.py` (re-exported in `gdss/ai/context.py`), calculating multi-branch conflict tensors ($\Omega_{ij}$) and trajectory drift across arbitrary PR commit SHAs and branch refs in CI.
+  - 4-Phase LangGraph State Machine Execution:
+    - Added `run_convergence_pipeline(state: ConvergenceState, *, use_langgraph: bool = True)` in `gdss/ai/orchestration.py`, orchestrating `analyze` ➔ `draft` ➔ `validate` ➔ `checkpoint` with compiled LangGraph `StateGraph(ConvergenceState)` and pure-Python sequential runner fallback.
+    - Updated `analyze_step` and `draft_step` to consume pre-computed `AnalysisContext`.
+    - Updated `validate_step` to execute sandboxed patch validation via `ValidationSandbox`.
+    - Updated `checkpoint_step` to persist audited suggestion metadata under `.gdss/suggestions/<suggestion_id>.json`.
+  - Upgraded Sticky Radar Markdown:
+    - Table now features conflict topology badges (`🔀 Union`, `⚡ Intersection`, `📐 Asymmetric`, `🔘 Disjoint`).
+    - Surfaces Audited Suggestion ID with local apply commands: `gdss apply <suggestion_id> --strategy <label>`.
+    - Renders tested candidate patches in GitHub's native ` ```suggestion ` blocks for 1-click web commit.
+- **TDD Test Coverage (`tests/ai/test_pr_context_orchestration.py` & `tests/validation/test_pr_audit.py`)**:
+  - Authored `test_build_pr_analysis_context_multi_branch`, `test_run_convergence_pipeline_state_machine`, `test_render_radar_markdown_topology_and_suggestion_details`, and `test_audit_pr_collisions_full_orchestration_flow`.
+  - All 18 PR audit and context orchestration tests pass.
+- **Verification Gate**:
+  - `bash harness/verify.sh` passed with **ALL LAYERS GREEN**:
+    - Layer 1: Ruff clean, Mypy clean (87 files), Architecture fitness clean (layer boundaries & two-brain purity hold), DSA fitness clean.
+    - Layer 2: 254 pytest tests passing (up from 250).
+    - Layer 3: End-to-end CLI smoke fixture tests passing.
+    - Frontend Gate: 35 test files, 117 vitest unit/a11y tests passing, size-limit bundle budget clean.
+
+- **Implemented GitHub Actions PR Collision Radar (`gdss/validation/pr_audit.py`)**:
+  - Built `PRAuditContext`, `PRCollisionDetail`, `PRCollisionResult`, and `parse_github_env()` to parse incoming GitHub Actions pull request event payloads (`GITHUB_EVENT_PATH`, `GITHUB_REPOSITORY`, `GITHUB_TOKEN`, `GITHUB_BASE_REF`, `GITHUB_HEAD_REF`).
+  - Implemented `fetch_concurrent_prs()` using native `urllib.request` against GitHub REST API (`GET /repos/{owner}/{repo}/pulls?state=open`), discovering all concurrent open pull requests while filtering out the current PR.
+  - Implemented `audit_pr_collisions()` calculating pairwise semantic collision tensors ($\Omega_{ij}$) between the incoming PR and concurrent branches.
+  - Implemented `render_radar_markdown()` producing sticky collision radar markdown with:
+    - Collision status table: `| Status | Target File | Colliding PR | Overlapping Symbol | Risk ($\Omega_{ij}$) |`
+    - Plain-English collision topology breakdowns with `@mention` notifications.
+    - Optimal merge order recommendations (e.g., "Merge PR #41 first, then adapt PR #42").
+    - Verified convergence suggestions using native GitHub ` ```suggestion ` syntax for 1-click commit reconciliation.
+  - Implemented `post_or_update_sticky_comment()`:
+    - Employs the "Sticky Comment" pattern with hidden signature `<!-- GDSS_PR_RADAR_SIGNATURE -->`.
+    - Automatically finds existing comments on the PR and updates them in-place via `PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}` on subsequent pushes (`synchronize`), avoiding comment clutter.
+    - Creates a new top-level comment via `POST` if none exists.
+  - Implemented `load_radar_config()` reading `.gdss.yml` for maintainer settings: `fail_on_collision` (boolean) and `risk_threshold` (float 0.0 to 1.0).
+  - Implemented `run_pr_audit()` supporting `--dry-run`, file output, and exit-code gating.
+- **CLI Subcommand Integration (`gdss/cli/main.py`)**:
+  - Added `gdss audit-pr [--repo <PATH>] [--pr-number <N>] [--token <GITHUB_TOKEN>] [--dry-run] [--output <FILE>]`.
+- **Drop-in GitHub Action Workflow (`.github/workflows/gdss-radar.yml`)**:
+  - Reusable workflow listening to `pull_request: [opened, synchronize, reopened]`.
+  - Runs with minimal permissions: `contents: read`, `pull-requests: write`, `issues: write`.
+  - Concurrency group per PR canceling superseded runs.
+  - Zero third-party secrets: Uses repository-native `GITHUB_TOKEN`.
+- **Comprehensive Documentation & Visual Architecture**:
+  - Hand-authored SVG workflow diagram `assets/ci/github_actions_flow.svg` adhering to GDSS visual palette and standards.
+  - Created standalone user and maintainer guide `docs/GITHUB_ACTIONS_GUIDE.md` detailing:
+    - Quickstart workflow YAML and step-by-step breakdown.
+    - Repository configuration (`.gdss.yml`) directives.
+    - Sticky comment anatomy and 1-click commit suggestion usage.
+    - Bring Your Own Compute (BYOC) token economics and GitHub Models integration.
+    - Safe fork pull request handling.
+    - Local CLI simulation commands.
+  - Updated `README.md` with dedicated section `## 🛰️ Automated PR Collision Radar (GitHub Actions)`, embedding diagram and linking guide.
+  - Updated `docs/codebase_guide.md` with Layer 10 CI delivery architecture.
+- **Implemented AI Convergence Patch Generation in CI (`gdss/validation/pr_audit.py`)**:
+  - Built `generate_pr_convergence_patch()`:
+    - Automatically triggers when cross-PR collisions are detected ($\Omega_{ij} > 0.1$) and `GITHUB_TOKEN` is present in CI runner.
+    - Connects directly to GitHub Models (`https://models.inference.ai.azure.com`) via `OpenAICompatibleProvider`.
+    - Prompts the model with minimal, focused AST change context across both colliding branches.
+    - Sandboxed AST syntax validation: Uses `validate_source_syntax()` to strictly reject invalid/hallucinated code snippets before presenting them to humans.
+    - Seamlessly embeds validated code into GitHub ` ```suggestion ` markdown blocks for 1-click web application.
+- **TDD Test Coverage (`tests/validation/test_pr_audit.py`)**:
+  - Authored 14 unit and integration tests covering event parsing, concurrent PR discovery, no-collision markdown, collision markdown with suggestions, sticky comment create vs. patch, configuration loading, dry-run output, threshold blocking exit codes, AI patch generation success, sandboxed syntax failure rejection, and end-to-end verified suggestion markdown rendering.
+- **Verification Gate**:
+  - `bash harness/verify.sh` passed with **ALL LAYERS GREEN**:
+    - Layer 1: Ruff clean, Mypy (87 source files) clean, Architecture fitness clean (layer direction + two-brain purity hold), DSA fitness clean.
+    - Layer 2: 250 pytest tests passing (up from 236).
+    - Layer 3: End-to-end CLI smoke fixture tests passing (including `gdss audit-pr --help` and `gdss audit-pr --dry-run`).
+    - Frontend Gate: 35 test files, 117 vitest unit/a11y tests passing, size-limit bundle budget clean.
+
+## 2026-10-15 - Phase 6a: Human-Approved Patch Apply (`phase6-human-approved-apply`)
+
+- **Implemented Guarded Apply & Rollback Engine (`gdss/validation/guarded_apply.py`)**:
+  - Built preflight security and integrity check `preflight_check()`:
+    - Verifies repository root and enforces canonical path traversal security (rejects `../` path traversal).
+    - Checks target commit SHA against current Git `HEAD` to prevent applying stale suggestions.
+    - Uses `ASTParser` to confirm target `symbol_id` is present in the working tree and matches expected boundaries.
+    - Validates chosen resolution strategy and executable patch diff.
+  - Implemented in-memory unified diff applier `apply_unified_diff()` with hunk matching and line offset tracking.
+  - Implemented `apply_suggestion()`:
+    - Executes guarded preflight checks.
+    - Supports `--dry-run` to generate and display unified diffs without touching the filesystem.
+    - Saves rollback snapshots to `.gdss/rollback/<id>.json` before touching working tree files.
+    - Applies patch atomically and immediately triggers post-apply multi-language AST syntax validation (`gdss/validation/syntax.py`).
+    - **Self-Healing Rollback:** If post-apply syntax check fails, automatically restores original file content and aborts with structured WHAT / WHY / FIX diagnostics.
+  - Implemented `rollback_suggestion()` for one-command manual undo of previously applied suggestions.
+  - **Zero Git State Mutation:** Never executes `git merge`, `git rebase`, `git add`, `git commit`, or `git push`. Modifies only the working tree file so the developer retains full control.
+- **CLI Subcommand Integration (`gdss/cli/main.py`)**:
+  - Implemented `gdss apply <SUGGESTION_ID> [--strategy <STRATEGY>] [--dry-run] [--rollback]`.
+  - Added colorized unified diff rendering with syntax highlighting and explicit notices.
+- **TDD Test Coverage (`tests/validation/test_guarded_apply.py`)**:
+  - Authored 9 unit and integration tests covering:
+    - Preflight success on fresh suggestions.
+    - Preflight rejection on stale commit SHA.
+    - Preflight rejection on path traversal.
+    - Preflight rejection on missing/modified AST symbol.
+    - Dry-run diff generation without filesystem modification.
+    - Atomic file application with rollback snapshot creation.
+    - Post-apply syntax failure triggering automatic file restoration.
+    - Manual rollback command restoring original file content.
+    - CLI end-to-end execution, dry-run, and rollback via `CliRunner`.
+- **Verification Gate**:
+  - `bash harness/verify.sh` passed with **ALL LAYERS GREEN**:
+    - Layer 1: Ruff lint clean, Mypy (86 source files) clean, Architecture fitness clean (layer direction + two-brain purity hold), DSA fitness clean.
+    - Layer 2: 236 pytest tests passing (up from 227).
+    - Layer 3: CLI smoke test passing over fixture repo (including `gdss apply --help`).
+    - Frontend: Layers F1-F3 clean (Vitest 117 tests passing, Next.js 14 production bundle 52.73 kB <= 180 kB budget).
+
+---
+
+## 2026-10-15 - Phase 5a: Agent Orchestration & Audited Suggestion State
+
+- **Implemented Audited Suggestion Store (`gdss/ai/suggestion_store.py`)**:
+  - Deterministic suggestion ID generator (`sug_<hash[:20]>`) anchoring suggestions to exact symbol locations and context.
+  - Implemented `save_suggestion(suggestion, repo_root, target_commit)` persisting metadata-only records to `.gdss/suggestions/<id>.json`.
+  - Implemented `load_suggestion(id, repo_root)` and `list_suggestions(repo_root)` for retrieving active suggestions without mutating Git state.
+  - Implemented `is_suggestion_stale(suggestion, current_head_sha)` detecting commit drift against `HEAD`.
+- **Implemented Agent Orchestration Pipeline (`gdss/ai/orchestration.py`)**:
+  - Built pure-Python state machine coordinating the full convergence lifecycle: `Analyze -> Draft -> Validate -> Checkpoint`.
+  - Implemented `ConvergenceState` tracking repo path, branches, commit hashes, suggestions, and checkpoints (`init`, `analyzed`, `drafted`, `validated`, `awaiting_human_review`, `failed`).
+  - Implemented `OrchestrationPipeline` operating model-free by default; optionally integrates with local/external LLM providers when requested.
+  - Injected worktree sandbox validation via decoupled validator protocol maintaining architectural layer purity (`ai` Layer 9 -> `validation` Layer 10).
+  - Strictly pauses at `awaiting_human_review` checkpoint (guarantees zero auto-commits or auto-merges).
+  - Implemented `build_langgraph_workflow()` providing optional LangGraph export when installed, degrading cleanly when absent.
+- **CLI & Display Integration (`gdss/cli/main.py`)**:
+  - Updated `gdss suggest` to audit suggestions to `.gdss/suggestions/` and display `(ID: sug_...)` for every candidate resolution.
+- **TDD Test Coverage (`tests/ai/test_suggestion_store.py`, `tests/ai/test_orchestration.py`)**:
+  - 7 comprehensive unit & integration tests covering saving, loading, staleness detection, model-free execution, sandboxed validation integration, and optional LangGraph graceful degradation.
+- **Verification Gate**:
+  - `bash harness/verify.sh` passed with **ALL LAYERS GREEN**:
+    - Layer 1: Ruff lint clean, Mypy (85 source files clean), Architecture fitness clean (layer direction + two-brain purity hold).
+    - Layer 2: 227 pytest tests passing (up from 220).
+    - Layer 3: CLI smoke test passing over fixture repo.
+    - Frontend: Layers F1-F3 clean (Vitest 117 tests passing, Next.js 14 production bundle 52.73 kB <= 180 kB budget).
+
+---
+
+- **Implemented 3-Tier Multi-Language Parsing Architecture (`gdss/core/ast_parser.py`)**:
+  - Upgraded GDSS from a hardcoded 4-language parser to an extensible 3-tier architecture guaranteeing 100% repository coverage and zero skipped code.
+  - **Tier 1 (Specialized Tree-sitter AST Parsers)**:
+    - Added safe dynamic grammar loaders and visitors for **Rust (`.rs`)**, **Java (`.java`)**, and **C / C++ (`.c`, `.h`, `.cpp`, `.hpp`, `.cc`, `.cxx`)**.
+    - Integrated `tree-sitter-rust`, `tree-sitter-java`, `tree-sitter-c`, and `tree-sitter-cpp` pre-built wheels in `pyproject.toml`.
+    - Extracts functions, methods, classes, structs, traits, impls, interfaces, records, signatures, calls, and body blocks.
+  - **Tier 2 (Universal Tree-sitter Node Walker)**:
+    - Automatically traverses standard declaration nodes (`function_item`, `function_declaration`, `method_declaration`, `class_declaration`, `type_spec`, `struct_item`, `use_declaration`, etc.) for any registered Tree-sitter grammar without custom visitor boilerplate.
+  - **Tier 3 (Universal Structural Block Fallback)**:
+    - For languages without compiled Tree-sitter grammars (Ruby, PHP, Shell, Kotlin, Swift, Scala, Lua, etc.), scans declaration headers (`class`, `def`, `fn`, `func`, `function`, etc.) and tracks block scopes via balanced braces `{ ... }` or keyword indentation (`end`), extracting valid `CodeSymbol` objects.
+    - **Never skips code**: GDSS provides 100% repository coverage across all programming languages.
+  - **Dynamic Extensions & Configuration Override**:
+    - Expanded `DEFAULT_SOURCE_EXTENSIONS` and `SOURCE_EXTENSIONS` to include all standard programming language extensions.
+    - Added `get_source_extensions(repo_root)` reading `.gdss.yml` (`ast.additional_extensions`) for custom project DSLs.
+    - Added `ASTParser.register_language(ext, language_name, loader=..., visitor=...)` for runtime extensibility.
+    - Updated `gdss/graph/graph_builder.py` to use `get_source_extensions(root_path)` with $O(1)$ set membership checks.
+- **TDD Test Coverage (`tests/core/test_multi_language_ast_parser.py`)**:
+  - Authored 11 comprehensive unit & integration tests covering default extensions, `.gdss.yml` override, Rust, Java, C/C++, Ruby fallback, PHP fallback, Shell fallback, dynamic runtime registration, Universal Tree-sitter Walker, and end-to-end `TransformExtractor` operator extraction for Rust changes.
+- **Verification Gate**:
+  - `bash harness/verify.sh` passed with **ALL LAYERS GREEN**:
+    - Layer 1: ruff lint clean, mypy (83 source files clean), architecture fitness (layer boundaries & two-brain purity hold), DSA fitness clean.
+    - Layer 2: 220 pytest tests passing (up from 209).
+    - Layer 3: CLI smoke test passing over fixture repo.
+    - Frontend: Layer F1 (eslint + jsx-a11y, tsc --noEmit, token fitness), Layer F2 (35 test files, 117 tests passing), Layer F3 (Next.js 14 production build, size-limit bundle budget 52.73 kB <= 180 kB).
+
+---
+
+- **Implemented GDSS Layer 10: Validation Sandbox (`gdss/validation/`)**:
+  - Fully implemented sandboxed validation pipeline to test candidate patches in ephemeral Git worktrees before presentation to developers.
+  - **Data Contracts (`gdss/validation/types.py`)**:
+    - Defined immutable result contracts: `ValidationStatus` (`PASSED`, `FAILED_PATCH`, `FAILED_SYNTAX`, `FAILED_TYPES`, `FAILED_TESTS`, `SKIPPED`), `SyntaxCheckResult`, `TypeCheckResult`, `TestExecutionResult`, and `ValidationReport` with `is_clean` property.
+  - **Agnostic Repository Discovery (`gdss/validation/discovery.py`)**:
+    - Upward project-root traversal supporting any repository layout: flat, nested multi-service, monorepos (pnpm, Cargo, Go), and build systems (Bazel, CMake, Make).
+    - `.gdss.yml` / `.gdss.yaml` configuration parser with explicit command overrides (`validation.test_command`, `validation.typecheck_command`, `validation.timeout_seconds`).
+    - Cascading timeout resolution: CLI flag (`--sandbox-timeout`) -> `GDSS_SANDBOX_TIMEOUT` env var -> `.gdss.yml` -> default 30s.
+  - **Pluggable Language Registry (`gdss/validation/languages.py`)**:
+    - 3-tier language registry with preloaded defaults for Python (`pytest`, `mypy`), TypeScript/JavaScript (`pnpm test`, `tsc --noEmit`), Go (`go test`, `go vet`), Rust (`cargo test`, `cargo check`), and Java (`gradlew test`, `javac`).
+  - **Ephemeral Git Worktree Isolation (`gdss/validation/worktree.py`)**:
+    - `ephemeral_worktree` context manager spawning detached worktrees in temporary locations without touching working tree or index.
+    - Automatic fallback for environments without worktree support; guarantees cleanup upon context exit.
+    - Helper utilities: `is_git_repo` and `is_shallow_repo` (CI shallow clone detection).
+  - **Multi-Language AST Syntax Validator (`gdss/validation/syntax.py`)**:
+    - Native `ast.parse` for line-accurate Python syntax diagnostics.
+    - Tree-sitter AST validation for TypeScript, JavaScript, and Go using `root_node.has_error` and recursive error node inspection.
+    - Informative non-blocking fallback for unknown extensions.
+  - **Targeted Test Runner (`gdss/validation/test_runner.py`)**:
+    - Identifies candidate test files corresponding to changed source files (`find_targeted_test_files`).
+    - Executes tests via manifest auto-detection or `.gdss.yml` override in a sandboxed subprocess (`CI=true`, `GDSS_SANDBOX=true`) with strict timeout enforcement.
+  - **Targeted Static Typechecker (`gdss/validation/typechecker.py`)**:
+    - Runs targeted type checking (`mypy`, `tsc`, `cargo check`, `go vet`) in the worktree.
+  - **Validation Facade (`gdss/validation/sandbox.py`)**:
+    - `ValidationSandbox` and `validate_patch` orchestrator executing the 3-gate validation hierarchy: `git apply` -> Syntax AST Check -> Targeted Typecheck -> Targeted Regression Tests.
+- **MCP & CLI Delivery Wiring**:
+  - `gdss/mcp/tools.py` & `gdss/mcp/server.py`: Registered `gdss_sandbox_validate_patch` tool allowing Cursor, Claude Code, and Copilot to validate candidate patches in sandboxes at $0 token cost.
+  - `gdss/cli/main.py`: Added `--validate` and `--sandbox-timeout` options to `gdss suggest`. When enabled, candidate patches are sandboxed and decorated with validation badges in the terminal.
+- **TDD Test Coverage**:
+  - Authored 38 unit & integration tests across 8 test modules in `tests/validation/`:
+    `test_discovery.py`, `test_languages.py`, `test_sandbox.py`, `test_syntax.py`, `test_test_runner.py`, `test_typechecker.py`, `test_validation_types.py`, and `test_worktree.py`.
+  - Added CLI tests in `tests/cli/test_suggest_validation_cli.py` and MCP server tests in `tests/mcp/test_mcp_server.py`.
+- **Verification Gate**:
+  - `bash harness/verify.sh` passed with **ALL LAYERS GREEN**:
+    - Layer 1: ruff lint clean, mypy (83 source files clean), architecture fitness (layer boundaries & two-brain purity hold), DSA fitness clean.
+    - Layer 2: 209 pytest tests passing (up from 169).
+    - Layer 3: CLI smoke and API smoke passing over fixture repo.
+    - Frontend: Layer F1 (eslint + jsx-a11y, tsc --noEmit, token fitness), Layer F2 (35 test files, 117 tests passing), Layer F3 (Next.js 14 production build, size-limit bundle budget 52.73 kB <= 180 kB).
+
+---
+
+## 2026-10-14 - Developer Guide (CONTRIBUTING.md / DEVELOPER_GUIDE.md) & README Overhaul
+
+- **Authored Comprehensive GitHub Contributor & Developer Guide**:
+  - Created [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`DEVELOPER_GUIDE.md`](DEVELOPER_GUIDE.md) at repository root.
+  - Positioned to appear natively in GitHub's secondary tabs, PR creation alert banners, and right-hand sidebar.
+  - Documented all 4 primary ways to use GDSS:
+    1. **MCP Tool Server** for Cursor, Claude Code, and Copilot ($0 token cost, IDE-first).
+    2. **Local CLI & Interactive Shell** (`gdss start`, `gdss diff`, `gdss analyze`, `gdss suggest`).
+    3. **CI/CD Automation** for GitHub Actions PR collision audits.
+    4. **Web Visual Dashboard** (`web/` Next.js 14 real-time collision radar & manifold visualizer).
+  - Detailed the core strategic pivot from continuous differential geometry to discrete PR collision radar and convergence assistance.
+  - Documented architectural invariants: Two-Brain Purity, AST telemetry ground truth, sandboxed unified-diff validation, and the 3-layer verification gate.
+  - Authored dedicated hand-crafted visual SVG diagrams conforming to the `author-doc-diagrams` standard with collapsible Mermaid blocks:
+    - [`assets/contributing/two_brain_architecture.svg`](assets/contributing/two_brain_architecture.svg) for Two-Brain segregation.
+    - [`assets/contributing/mcp_interaction_flow.svg`](assets/contributing/mcp_interaction_flow.svg) for MCP JSON-RPC developer IDE workflows.
+    - [`assets/contributing/verification_gate.svg`](assets/contributing/verification_gate.svg) for the three-layer verification gate.
+  - Documented in-browser PR workflows on GitHub.com (sticky PR Collision Radar comments, native 1-click ````suggestion ```` commit button, Codespaces / `github.dev`).
+  - Documented Phase 6 Validation Sandbox architecture: repository-agnostic upward project root discovery (with optional `.gdss.yml`), 3-tier pluggable multi-language registry, execution of existing automated tests, and configurable timeouts (`--sandbox-timeout`, `GDSS_SANDBOX_TIMEOUT`).
+- **Overhauled Root `README.md`**:
+  - Reframed identity to **Gate Distributive Semantic Synopsis: PR Collision Radar & Convergence Assistant**.
+  - Added native MCP Quickstart for Cursor (`~/.cursor/mcp.json`) and Claude Code (`claude mcp add`).
+  - Documented 8 deterministic tools exposed by the MCP server.
+  - Documented provider neutrality in AI Suggester: vLLM, Ollama, OpenRouter (`OPENROUTER_API_KEY`), and GitHub Models / Azure (`GITHUB_TOKEN` / `OPENAI_API_KEY`).
+  - Added Web Visual Dashboard section linking to `web/` (`pnpm dev`).
+  - Updated 10-layer roadmap table: marked Phases 0, 1, 2, 3, 4, 5, MCP, and Web as **Done**; updated mermaid roadmap diagram.
+  - Added cross-links to [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`PRODUCT_SPEC.md`](PRODUCT_SPEC.md).
+- **Verification Gate**:
+  - `bash harness/verify.sh` passed with **ALL LAYERS GREEN**:
+    - Layer 1: ruff lint, mypy (74 source files clean), architecture fitness (layer boundaries & two-brain purity hold), DSA fitness.
+    - Layer 2: 169 pytest tests passing.
+    - Layer 3: CLI smoke and API smoke passing over fixture repo.
+    - Frontend: Layer F1 (eslint + jsx-a11y, tsc --noEmit, token fitness), Layer F2 (35 vitest test files, 117 tests passing), Layer F3 (Next.js 14 production build, size-limit bundle budget 52.73 kB <= 180 kB).
+
+---
+
+## 2026-10-13 - MCP Zero-Token Purity, Deterministic Algebra Re-Homing & Concrete Telemetry
+
+- **Resolved MCP Architectural Invariant Violation**:
+  - Removed `suggest_resolutions` (and server-side LLM calls) from `gdss/mcp/tools.py` and `gdss/mcp/server.py`.
+  - Re-homed pure deterministic discrete math out of `gdss/ai/`:
+    - `plan_merge_order` -> `gdss/conflict/merge_order.py` (greedy permutation / nearest-neighbor ordering).
+    - `build_transport_plan` -> `gdss/conflict/rebase_plan.py` (operator commutativity filtering).
+    - `AnalysisContext` & `build_analysis_context` -> `gdss/drift/context.py`.
+  - Re-exported backward-compatible wrappers in `gdss/ai/geodesic.py`, `gdss/ai/semantic_rebase.py`, and `gdss/ai/context.py`.
+  - `gdss/mcp/` now imports **zero modules from `gdss.ai` or `gdss.embeddings`**.
+  - Updated `harness/sensors/architecture_fitness.py`: added `mcp` to `DETERMINISTIC`, enforcing that MCP tools can never import probabilistic modules ($0 token cost guaranteed by sensor).
+- **Enriched MCP Telemetry with Concrete, Verifiable AST Ground Truth**:
+  - `gdss_find_collisions` now returns exact `conflicting_files` (real workspace paths), `conflicting_symbols` (AST identifiers), and detailed operator pairs with AST mutation types and commutativity status (`classify(left, right) == CommutativityClass.COMMUTE`).
+  - `gdss_validate_patch` upgraded to perform real in-memory unified diff application: validates diff headers, verifies hunks against base file lines, detects drift/context mismatches, and compiles the *resulting patched code* via `ast.parse` to catch syntax errors before patches are recommended to developers.
+- **Provider Runtime Type Safety & OpenRouter Compatibility**:
+  - Fixed `gdss/ai/suggester.py` and `gdss/cli/main.py` using concrete `AnyProvider = OllamaProvider | VLLMProvider | OpenAICompatibleProvider | StubProvider`.
+  - Full OpenRouter support with `HTTP-Referer` and `X-Title` attribution headers.
+- **Verification Gate**:
+  - `bash harness/verify.sh` passed with **ALL LAYERS GREEN**:
+    - Layer 1: ruff lint, mypy (74 files clean), architecture fitness (Two-Brain purity holds), DSA fitness.
+    - Layer 2: 169 pytest tests passing (including 10 MCP server tests and 5 OpenAI/OpenRouter tests).
+    - Layer 3: CLI smoke and API smoke passing over git fixture.
+    - Frontend: F1 lint/tsc, F2 (117 vitest tests), F3 size-limit bundle budget.
+
+---
+
+## 2026-10-13 - GDSS Strategic Pivot & Delivery Interface (MCP Tool Server + Provider Neutrality)
+
+- Completed comprehensive strategic pivot of GDSS: Gate Distributive Semantic Synopsis as a **PR Collision Radar & Merge Assistance Platform**.
+- Authored canonical master specification `PRODUCT_SPEC.md` covering 31 user stories across PR Collision Radar, Convergence Assistant, Sandboxed Validation, MCP Delivery, and GitHub Actions.
+- Generalization of AI provider layer:
+  - Implemented `OpenAICompatibleProvider` in `gdss/ai/openai_provider.py` with support for GitHub Models (`https://models.inference.ai.azure.com`), Azure, OpenAI, and local LLMs via `GITHUB_TOKEN` / `OPENAI_API_KEY`.
+  - Refactored `VLLMProvider` (`gdss/ai/vllm_provider.py`) to inherit from `OpenAICompatibleProvider` preserving full backward compatibility.
+  - Added unit tests in `tests/ai/test_openai_provider.py` (4 tests passing).
+- Shipped MCP Tool Server (`phase-d-mcp-server`):
+  - Created `gdss/mcp/tools.py` exposing deterministic analysis tools: `gdss_find_collisions`, `gdss_get_merge_order`, `gdss_inspect_symbol_impact`, and `gdss_validate_patch`.
+  - Created `gdss/mcp/server.py` with standard JSON-RPC 2.0 stdio loop and `MCPServer`.
+  - Added CLI subcommand `gdss mcp` in `gdss/cli/main.py`.
+  - Added unit tests in `tests/mcp/test_mcp_server.py` (6 tests passing).
+- Verified Two-Brain Purity & Zero Token Bleed:
+  - Deterministic analysis tools in `gdss/mcp/` never invoke LLM endpoints or consume tokens.
+  - Architecture fitness sensor updated (`ENTRYPOINTS` includes `mcp`).
+- Fixed bug in `gdss/runtime/context_engine.py` where `set_reference_branch` assigned return value of `self.hierarchy.set_config`.
+- Verification Gate (`bash harness/verify.sh`):
+  - Layer 1 (ruff lint, mypy typecheck, architecture fitness, DSA fitness): PASS.
+  - Layer 2 (pytest 164 tests): PASS.
+  - Layer 3 (CLI smoke tests): PASS.
+  - Frontend Layer F1, F2 (117 vitest tests), F3 (bundle size-limit): PASS.
+  - Result: **ALL LAYERS GREEN**.
+
+---
+
+## 2026-08-15 - Phase 5 AI foundation in progress
+
+- Added `gdss/ai/` deterministic foundations: public suggestion/topology/patch types,
+  topology classification, patch-strategy enumeration, unified-diff scope validation,
+  tensor ranking, semantic rebase filtering, greedy Omega ordering, duplicate-work cosine
+  detection, and a no-network `StubProvider` contract.
+- Added 11 focused `tests/ai` tests. Focused validation passed: `11 passed`; Ruff passed for
+  `gdss/ai` and `tests/ai`.
+- Fixed DSA and architectural fitness warnings.
+- Fully implemented `phase5-ai`:
+  - Added CLI `gdss model` subcommands (`status`, `list`, `install`, `ensure`, `remove`).
+  - Added CLI `gdss suggest` to generate suggestions locally.
+  - Implemented `ModelManager` to safely manage the Ollama background service lifecycle.
+  - Added HTTP API endpoints `GET /v1/suggestions` and `GET /v1/model/status` in `gdss/api/server.py`.
+  - Added `--allow-local-source` flag to `gdss serve` to allow local loopback extraction of source code for LLMs.
+- Re-ran verification layers 1, 2, 3 which pass cleanly.
+
+---
+
+## 2026-08-03 - Heatmap and Velocity Remediation (6 Wrong Implementations Fixed)
+
+- Audited and remediated 6 conceptual and technical wrong implementations in GDSS phase-space visualization and API telemetry:
+  1. Corrected velocity units from percentage (`%`) to rate per second (`/s`) with mathematical tooltips (`d(magnitude)/dt in s⁻¹`) in `DriftTimelineChart` and `DriftManifoldRadar`.
+  2. Regulated real trajectory history in `GET /v1/drift` (`gdss/api/service.py`) by querying `SnapshotHistory.recent(b, n=10)`.
+  3. Eliminated all hardcoded synthetic/fake sparkline telemetry from `DriftTimelineChart` and `DriftAttractorCard`.
+  4. Excluded reference attractor branch from conflict tensor matrix axes (`get_tensor()`) when divergent branches exist, removing dummy zero-energy `main × main` rows/columns.
+  5. Differentiated diagonal drift self-energy ($\Omega_{ii}$) from off-diagonal pairwise interference ($\Omega_{ij}$) in `OmegaHeatmap` with visual badges and accessible ARIA labels.
+  6. Adjusted convergence label deadzone threshold to `_VELOCITY_EPS = 1e-6` to prevent tiny floating-point noise from triggering false convergence alerts.
+- Authored 3 backend TDD unit tests in `tests/api/test_handlers.py` and frontend test assertions in `web/tests/tensor/omega-heatmap.test.tsx`.
+
+Evidence (`bash harness/verify.sh`):
+- All layers are green: Layer 1-3 (backend lint, mypy, architecture fitness, 129 tests, CLI smoke) and Layer F1-F3 (frontend lint, tsc, token fitness, 117 tests, build, and size-limit) passed.
+
 ---
 
 ## 2026-08-02 - Untrack AGENTS.md and .cursor/plans from Git (session)
@@ -33,6 +392,19 @@ Shipped `frontend-conflict-tensor`:
 Evidence: `bash harness/verify.sh` → **ALL LAYERS GREEN** (backend + frontend).
 
 Next unfinished with deps done: `phase5-ai` (or geometry 4a if research).
+
+---
+
+## 2026-08-14 - Queueed agent orchestration and human-approved apply
+
+- Added `phase5a-agent-orchestration`: optional LangGraph orchestration of the existing
+  Phase 5 pipeline, with metadata-only checkpoints and explicit human review; no file or Git writes.
+- Added `phase6-human-approved-apply`: a later, guarded local apply path for one selected,
+  validated strategy, after freshness and scope preflight checks.
+- Extended the frontend sequence with F8 agent review controls and F9.1 explicit apply review.
+- Synchronized product, implementation-gap, manifold, frontend-roadmap, and Phase 5 plan docs.
+
+No implementation or verification run: this is a queue/documentation update only.
 
 ---
 

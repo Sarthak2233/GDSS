@@ -16,7 +16,7 @@ from gdss.embeddings.service import find_similar_symbols, project_symbol_embeddi
 from gdss.graph.graph_builder import build_code_graph_from_repo
 from gdss.watcher.git_observer import GitObserver
 
-_VELOCITY_EPS = 1e-9
+_VELOCITY_EPS = 1e-6
 
 
 def _wrap_ok(data: Any, warnings: list[str] | None = None) -> dict[str, Any]:
@@ -65,6 +65,7 @@ def _serialize_affected(affected) -> list[dict[str, Any]]:
 def _serialize_drift_row(
     snap: DriftSnapshot,
     conflict: dict[str, Any] | None = None,
+    history: list[tuple[float, float]] | None = None,
 ) -> dict[str, Any]:
     row: dict[str, Any] = {
         "branch": snap.branch,
@@ -75,6 +76,9 @@ def _serialize_drift_row(
         "convergence_score": snap.convergence,
         "convergence_label": _convergence_label(snap.velocity),
         "affected": _serialize_affected(snap.affected),
+        "history": [
+            {"timestamp": t, "magnitude": m} for t, m in (history or [])
+        ],
     }
     if conflict is not None:
         row["conflict_probability"] = conflict
@@ -283,7 +287,8 @@ def get_drift(repo_path: str, ref: str | None = None, branch: str | None = None)
             conflict = _conflict_for_snapshot(
                 observer, parser, extractor, snap, conflict_est
             )
-            res.append(_serialize_drift_row(snap, conflict))
+            history_pts = engine.history.recent(b, n=10) if engine.history else None
+            res.append(_serialize_drift_row(snap, conflict, history=history_pts))
         return _wrap_ok({"reference": ref, "drift": res})
     except Exception:
         return _wrap_err("INVALID_REF", "ref invalid", "ref invalid", "fix")
@@ -497,25 +502,21 @@ def get_tensor(repo_path: str, ref: str | None = None) -> dict[str, Any]:
         history=SnapshotHistory(default_history_path(repo_path)),
     )
 
-    all_branches = [ref, *branches]
+    all_branches = branches
     branch_ops: dict[str, list] = {}
     drift_magnitudes: dict[str, float] = {}
 
     try:
         for branch in all_branches:
-            if branch == ref:
-                branch_ops[branch] = []
-                drift_magnitudes[branch] = 0.0
-            else:
-                snap = drift_engine.snapshot(branch, ref)  # dsa:ignore
-                drift_magnitudes[branch] = snap.magnitude.magnitude
-                branch_ops[branch] = extract_trajectory_operators(
-                    observer,
-                    parser,
-                    extractor,
-                    ref_branch=ref,
-                    head=branch,
-                )
+            snap = drift_engine.snapshot(branch, ref)  # dsa:ignore
+            drift_magnitudes[branch] = snap.magnitude.magnitude
+            branch_ops[branch] = extract_trajectory_operators(
+                observer,
+                parser,
+                extractor,
+                ref_branch=ref,
+                head=branch,
+            )
         tensor = TensorEngine().compute(branch_ops, drift_magnitudes)
     except Exception:
         return _wrap_err(
@@ -573,3 +574,40 @@ def get_drift_history(
         "branch": branch,
         "history": [{"timestamp": t, "magnitude": m} for t, m in rows],
     })
+
+
+def get_model_status() -> dict[str, Any]:
+    from gdss.ai.model_manager import ModelManager
+    try:
+        mgr = ModelManager()
+        return _wrap_ok(mgr.status())
+    except Exception as e:
+        return _wrap_err("MODEL_ERROR", "model status failed", str(e), "Check ollama")
+
+
+def get_suggestions(
+    repo_path: str,
+    ref: str | None = None,
+    format: str = "metadata",
+    llm: bool = False,
+    combos: int = 3,
+    max_candidates: int = 50,
+) -> dict[str, Any]:
+    from gdss.ai.suggester import suggest
+    if not ref:
+        ref = "main"
+    try:
+        suggestions = suggest(
+            repo_path=repo_path,
+            reference_branch=ref,
+            llm=llm,
+            combos=combos,
+            max_candidates=max_candidates
+        )
+        if format == "prompt" or format == "source":
+            res = [s.to_local_source() for s in suggestions]
+        else:
+            res = [s.to_metadata() for s in suggestions]
+        return _wrap_ok(res)
+    except Exception as e:
+        return _wrap_err("SUGGESTION_ERROR", "suggestion failed", str(e), "Check input")

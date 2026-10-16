@@ -74,7 +74,7 @@ export function DriftManifoldRadar({
                     {b.branch}
                   </div>
                   <div className="text-xs text-textSubtle mt-0.5">
-                    Magnitude: {(b.magnitude * 100).toFixed(0)}% · Velocity: {(b.velocity * 100).toFixed(1)}%
+                    Magnitude: {(b.magnitude * 100).toFixed(0)}% · Velocity: {b.velocity.toFixed(2)}/s
                   </div>
                 </div>
                 <span
@@ -287,7 +287,7 @@ export function DriftManifoldRadar({
                       Δs: <strong className="text-text">{(b.magnitude * 100).toFixed(0)}%</strong>
                     </span>
                     <span>
-                      v: <strong className="text-text">{(b.velocity * 100).toFixed(1)}%</strong>
+                      v: <strong className="text-text">{b.velocity.toFixed(2)}/s</strong>
                     </span>
                     <span>
                       symbols: <strong className="text-text">{b.affected?.length || 0}</strong>

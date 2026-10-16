@@ -80,6 +80,7 @@ export interface DriftBranch {
   convergence_label: ConvergenceLabel;
   affected: AffectedSymbol[];
   conflict_probability?: ConflictProbability;
+  history?: DriftHistoryPoint[];
 }
 
 export interface DriftData {

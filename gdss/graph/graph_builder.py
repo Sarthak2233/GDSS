@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from gdss.core.ast_parser import SOURCE_EXTENSIONS, ASTParser
+from gdss.core.ast_parser import ASTParser, get_source_extensions
 from gdss.graph.code_graph import CodeGraph
 
 SKIP_DIR_NAMES = {
@@ -45,6 +45,7 @@ def build_code_graph_from_repo(
 
     file_list = []
     skipped_unsupported: dict[str, int] = {}
+    valid_exts = set(get_source_extensions(root_path))
     for root, dirs, files in os.walk(root_path):
         dirs[:] = [
             name
@@ -63,7 +64,7 @@ def build_code_graph_from_repo(
                 continue
             ext = os.path.splitext(filename)[1].lower()
             absolute_path = os.path.join(root, filename)
-            if ext not in SOURCE_EXTENSIONS:
+            if ext not in valid_exts:
                 # Count likely source-ish extensions that we cannot parse
                 if ext and ext not in {".md", ".txt", ".json", ".yml", ".yaml", ".toml", ".lock"}:
                     skipped_unsupported[ext] = skipped_unsupported.get(ext, 0) + 1

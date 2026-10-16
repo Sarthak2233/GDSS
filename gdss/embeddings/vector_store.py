@@ -84,9 +84,9 @@ class VectorStore:
         for sid in ids:
             idx = self._id_to_int[sid]
             if self._use_faiss:
-                # Reconstruct if available
-                vec = faiss.vector_to_array(self._index.reconstruct(idx))  # type: ignore[union-attr]
-                rows.append(vec)
+                # Newer FAISS bindings return a NumPy array; older bindings are
+                # safely normalized by asarray as well.
+                rows.append(np.asarray(self._index.reconstruct(idx), dtype=np.float32))  # type: ignore[union-attr]
             else:
                 assert self._matrix is not None
                 rows.append(self._matrix[idx])

@@ -145,7 +145,10 @@ export function OmegaHeatmap({
                   selected !== null &&
                   ((selected.i === row && selected.j === col) ||
                     (selected.i === col && selected.j === row));
-                const label = `Omega ${row} × ${col}: ${cell.omega.toFixed(2)}`;
+                const isDiagonal = row === col;
+                const label = isDiagonal
+                  ? `Omega ${row} × ${col} (Self-Energy Ω_ii): ${cell.omega.toFixed(2)}`
+                  : `Omega ${row} × ${col}: ${cell.omega.toFixed(2)}`;
 
                 return (
                   <motion.button
@@ -153,11 +156,14 @@ export function OmegaHeatmap({
                     type="button"
                     role="gridcell"
                     aria-label={label}
+                    title={label}
                     aria-selected={isSelected}
                     onClick={() => onSelect({ i: row, j: col })}
                     className={`flex-1 min-w-32 min-h-40 rounded-lg border text-2xl font-mono font-semibold tabular-nums focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent hover:brightness-110 ${cellClass(cell.omega)} ${
                       isSelected
                         ? `border-conflict ring-2 ring-conflict${reduceMotion ? "" : " animate-glow-conflict"}`
+                        : isDiagonal
+                        ? "border-border/80 border-dashed"
                         : "border-border"
                     }`}
                     initial={reduceMotion ? false : { scale: 0.98 }}
@@ -173,7 +179,14 @@ export function OmegaHeatmap({
                           }
                     }
                   >
-                    {cell.omega > 0 ? cell.omega.toFixed(2) : "—"}
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <span>{cell.omega > 0 ? cell.omega.toFixed(2) : "—"}</span>
+                      {isDiagonal && (
+                        <span className="text-[11px] uppercase tracking-wider font-sans text-textMuted font-normal">
+                          Self Ω_ii
+                        </span>
+                      )}
+                    </div>
                   </motion.button>
                 );
               })}

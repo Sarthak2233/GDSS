@@ -1,46 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 340" width="100%" height="340">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 380" width="100%" height="380">
   <defs>
-    <marker id="arrowV" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M0,0 L12,6 L0,12 z" fill="#94a3b8" />
+    <marker id="arrowV" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#64748b" />
     </marker>
+    <linearGradient id="grad-core" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
   </defs>
 
   <!-- Title -->
-  <text x="500" y="30" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="18">Ways to visualize the CodeGraph from the shell</text>
+  <text x="500" y="32" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="18">GDSS Visualization &amp; Output Channels</text>
+  <text x="500" y="52" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">How developers and teams inspect the CodeGraph, Drift Manifold, and Collision Tensor</text>
 
-  <!-- Central source -->
-  <rect x="400" y="70" width="200" height="70" rx="14" fill="#f59e0b" stroke="#92400e" stroke-width="2" />
-  <text x="500" y="100" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">CodeGraph.g</text>
-  <text x="500" y="120" text-anchor="middle" fill="#fff7ed" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">NetworkX DiGraph (in memory)</text>
+  <!-- Central source: CodeGraph & Intelligence -->
+  <rect x="360" y="80" width="280" height="75" rx="14" fill="url(#grad-core)" stroke="#b45309" stroke-width="2" />
+  <text x="500" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="15">CodeGraph &amp; Tensor State</text>
+  <text x="500" y="130" text-anchor="middle" fill="#fef3c7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">NetworkX DiGraph · Ω_ij Matrix · Drift I(B)</text>
+  <text x="500" y="145" text-anchor="middle" fill="#fde68a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">FastAPI Engine (gdss serve :8787)</text>
 
-  <!-- Option A -->
-  <rect x="40" y="220" width="200" height="90" rx="12" fill="#10b981" stroke="#065f46" stroke-width="2" />
-  <text x="140" y="250" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">A. Summary</text>
-  <text x="140" y="270" text-anchor="middle" fill="#d1fae5" font-family="Consolas, monospace" font-size="11">gdss analyze</text>
-  <text x="140" y="290" text-anchor="middle" fill="#d1fae5" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">node/edge counts</text>
+  <!-- Option A: Web Visual Dashboard -->
+  <rect x="30" y="220" width="215" height="110" rx="12" fill="#10b981" stroke="#047857" stroke-width="2" />
+  <text x="137" y="248" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">A. Web Dashboard</text>
+  <text x="137" y="268" text-anchor="middle" fill="#ecfdf5" font-family="Consolas, monospace" font-size="11">web/ (Next.js :3000)</text>
+  <text x="137" y="288" text-anchor="middle" fill="#d1fae5" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Interactive React Flow DAG</text>
+  <text x="137" y="304" text-anchor="middle" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">3D PCA Constellation · Ω Heatmap</text>
 
-  <!-- Option B -->
-  <rect x="270" y="220" width="200" height="90" rx="12" fill="#2563eb" stroke="#1e40af" stroke-width="2" />
-  <text x="370" y="250" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">B. Impact</text>
-  <text x="370" y="270" text-anchor="middle" fill="#dbeafe" font-family="Consolas, monospace" font-size="11">impact &lt;symbol&gt;</text>
-  <text x="370" y="290" text-anchor="middle" fill="#dbeafe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">downstream table</text>
+  <!-- Option B: Terminal & Rich Shell -->
+  <rect x="275" y="220" width="215" height="110" rx="12" fill="#0284c7" stroke="#0369a1" stroke-width="2" />
+  <text x="382" y="248" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">B. CLI &amp; Rich Shell</text>
+  <text x="382" y="268" text-anchor="middle" fill="#f0f9ff" font-family="Consolas, monospace" font-size="11">gdss status · tensor · drift</text>
+  <text x="382" y="288" text-anchor="middle" fill="#e0f2fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Shell: impact &lt;sym&gt; · hierarchy</text>
+  <text x="382" y="304" text-anchor="middle" fill="#bae6fd" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Rich colored tables &amp; tree views</text>
 
-  <!-- Option C -->
-  <rect x="530" y="220" width="200" height="90" rx="12" fill="#7c3aed" stroke="#4c1d95" stroke-width="2" />
-  <text x="630" y="250" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">C. Hierarchy</text>
-  <text x="630" y="270" text-anchor="middle" fill="#ede9fe" font-family="Consolas, monospace" font-size="11">hierarchy</text>
-  <text x="630" y="290" text-anchor="middle" fill="#ede9fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Rich tree</text>
+  <!-- Option C: Graph Export -->
+  <rect x="520" y="220" width="215" height="110" rx="12" fill="#7c3aed" stroke="#5b21b6" stroke-width="2" />
+  <text x="627" y="248" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">C. Graph Export</text>
+  <text x="627" y="268" text-anchor="middle" fill="#f5f3ff" font-family="Consolas, monospace" font-size="11">gdss graph export</text>
+  <text x="627" y="288" text-anchor="middle" fill="#ede9fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">DOT format (Graphviz dot -Tpng)</text>
+  <text x="627" y="304" text-anchor="middle" fill="#ddd6fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">JSON snapshot (nodes + edges)</text>
 
-  <!-- Option D -->
-  <rect x="760" y="220" width="200" height="90" rx="12" fill="#475569" stroke="#334155" stroke-width="2" />
-  <text x="860" y="250" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">D. Export</text>
-  <text x="860" y="270" text-anchor="middle" fill="#e2e8f0" font-family="Consolas, monospace" font-size="11">gdss graph export</text>
-  <text x="860" y="290" text-anchor="middle" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">DOT or JSON</text>
+  <!-- Option D: IDE MCP & CI Radar -->
+  <rect x="765" y="220" width="215" height="110" rx="12" fill="#0f172a" stroke="#334155" stroke-width="2" />
+  <text x="872" y="248" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">D. IDE MCP &amp; CI/CD</text>
+  <text x="872" y="268" text-anchor="middle" fill="#f8fafc" font-family="Consolas, monospace" font-size="11">gdss mcp · gdss audit-pr</text>
+  <text x="872" y="288" text-anchor="middle" fill="#cbd5e1" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Cursor/Claude Code Tool Server</text>
+  <text x="872" y="304" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Sticky PR Collision Sticky Reports</text>
 
-  <!-- Arrows -->
-  <path d="M420,140 C300,160 180,180 140,220" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowV)" />
-  <path d="M460,140 C420,165 400,185 380,220" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowV)" />
-  <path d="M540,140 C580,165 605,185 625,220" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowV)" />
-  <path d="M580,140 C700,160 820,180 860,220" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowV)" />
+  <!-- Connectors -->
+  <path d="M410,155 C330,175 220,195 160,220" fill="none" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrowV)" />
+  <path d="M470,155 C440,175 410,195 390,220" fill="none" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrowV)" />
+  <path d="M530,155 C560,175 590,195 615,220" fill="none" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrowV)" />
+  <path d="M590,155 C670,175 780,195 840,220" fill="none" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrowV)" />
+
+  <!-- Labels -->
+  <text x="250" y="180" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9" text-anchor="middle">/v1/graph, /v1/tensor</text>
+  <text x="430" y="195" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9" text-anchor="middle">Rich renderer</text>
+  <text x="580" y="195" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9" text-anchor="middle">DOT / JSON</text>
+  <text x="750" y="180" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9" text-anchor="middle">MCP JSON-RPC / CI</text>
 </svg>

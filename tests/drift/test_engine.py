@@ -73,7 +73,7 @@ def dual_modify_repo():
     feature.checkout()
     # Reset feature to base then diverge
     repo.head.reference = feature
-    repo.head.reset(repo.commit(f"{base_name}~0") if False else "HEAD", index=True, working_tree=True)
+    repo.head.reset("HEAD", index=True, working_tree=True)
 
     # Re-create properly: base at first commit, attractor and feature diverge
     shutil.rmtree(temp_dir, ignore_errors=True)

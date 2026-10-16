@@ -103,3 +103,46 @@ def test_list_local_branches(temp_git_repo):
     branches = observer.list_local_branches()
     assert observer.get_active_branch() in branches
     assert "feature-x" in branches
+
+
+def test_get_commits_between(temp_git_repo):
+    repo = git.Repo(temp_git_repo)
+    path = os.path.join(temp_git_repo, "calc.py")
+    with open(path, "w") as f:
+        f.write("def add(a, b): return a + b\n")
+    repo.index.add(["calc.py"])
+    c1 = repo.index.commit("Initial commit on main")
+
+    # Create feature branch with two commits
+    repo.create_head("feature-branch")
+    repo.head.reference = repo.heads["feature-branch"]
+
+    with open(path, "w") as f:
+        f.write("def add(a, b): return a + b\ndef sub(a, b): return a - b\n")
+    repo.index.add(["calc.py"])
+    c2 = repo.index.commit("Add sub function")
+
+    with open(path, "w") as f:
+        f.write("def add(a, b): return a + b\ndef sub(a, b): return a - b\ndef mul(a, b): return a * b\n")
+    repo.index.add(["calc.py"])
+    c3 = repo.index.commit("Add mul function")
+
+    observer = GitObserver(temp_git_repo)
+    commits = observer.get_commits_between(c1.hexsha, "feature-branch")
+    assert len(commits) == 2
+    # In GitPython, iter_commits returns newest commit first (c3, then c2)
+    summaries = [c["summary"] for c in commits]
+    assert "Add mul function" in summaries
+    assert "Add sub function" in summaries
+    assert "Initial commit on main" not in summaries
+    commit_shas = [c["sha"] for c in commits]
+    assert c2.hexsha[:8] in commit_shas
+    assert c3.hexsha[:8] in commit_shas
+    for c in commits:
+        assert len(c["sha"]) == 8
+        assert c["author"] == "Test User"
+
+    # Non-existent or empty diff yields empty list gracefully
+    assert observer.get_commits_between(c3.hexsha, "feature-branch") == []
+    assert observer.get_commits_between("non-existent-base", "feature-branch") == []
+

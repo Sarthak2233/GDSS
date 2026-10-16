@@ -2,7 +2,7 @@
 
 **Licensor:** Sarthak Basnet
 
-**Software:** GDSS (Geometric Distributed Software Synchronizer), including but not limited to its core 10-layer architecture, AST Parser Engines, Transformation Operator Algebra, Dependency Graph Logic, Semantic Embedding Layers, Conflict Tensor Engines $\Omega_{ij}$, and Geometric Merge Research components.
+**Software:** GDSS (Gate Distributive Semantic Synopsis), including but not limited to its core 10-layer architecture, AST Parser Engines, Transformation Operator Algebra, Dependency Graph Logic, Semantic Embedding Layers, Conflict Tensor Engines $\Omega_{ij}$, and PR Collision Radar components.
 
 **Change License:** Apache License, Version 2.0
 

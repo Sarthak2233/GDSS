@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 220" width="100%" height="220">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#94a3b8" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="1060" height="220" rx="14" fill="#090d16" />
+
+  <!-- Layer 1: Static -->
+  <rect x="25" y="45" width="220" height="110" rx="12" fill="#1e3a8a" stroke="#3b82f6" stroke-width="2" />
+  <rect x="40" y="58" width="80" height="20" rx="4" fill="#2563eb" />
+  <text x="80" y="72" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">LAYER 1</text>
+  <text x="40" y="100" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Static Gate</text>
+  <text x="40" y="120" fill="#bfdbfe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Ruff Linter · Mypy Static Types</text>
+  <text x="40" y="136" fill="#bfdbfe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Architecture &amp; DSA Fitness</text>
+
+  <!-- Layer 2: Runtime -->
+  <rect x="280" y="45" width="220" height="110" rx="12" fill="#581c87" stroke="#9333ea" stroke-width="2" />
+  <rect x="295" y="58" width="80" height="20" rx="4" fill="#7c3aed" />
+  <text x="335" y="72" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">LAYER 2</text>
+  <text x="295" y="100" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Runtime Tests</text>
+  <text x="295" y="120" fill="#e9d5ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Pytest Unit &amp; Behavioral</text>
+  <text x="295" y="136" fill="#e9d5ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">169 Tests · Two-Brain Isolated</text>
+
+  <!-- Layer 3: End-to-End -->
+  <rect x="535" y="45" width="220" height="110" rx="12" fill="#065f46" stroke="#10b981" stroke-width="2" />
+  <rect x="550" y="58" width="80" height="20" rx="4" fill="#059669" />
+  <text x="590" y="72" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">LAYER 3</text>
+  <text x="550" y="100" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">End-to-End Smoke</text>
+  <text x="550" y="120" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">CLI Smoke on Git Fixtures</text>
+  <text x="550" y="136" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Local HTTP API Smoke</text>
+
+  <!-- Frontend Gate -->
+  <rect x="790" y="45" width="240" height="110" rx="12" fill="#0f172a" stroke="#0ea5e9" stroke-width="2" />
+  <rect x="805" y="58" width="90" height="20" rx="4" fill="#0284c7" />
+  <text x="850" y="72" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">FRONTEND</text>
+  <text x="805" y="100" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Web Suite (F1-F3)</text>
+  <text x="805" y="120" fill="#bae6fd" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">ESLint + tsc + Token Fitness</text>
+  <text x="805" y="136" fill="#bae6fd" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">117 Vitest Tests + Size-Limit</text>
+
+  <!-- Arrows -->
+  <line x1="245" y1="100" x2="280" y2="100" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="500" y1="100" x2="535" y2="100" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="755" y1="100" x2="790" y2="100" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Caption Footer -->
+  <text x="530" y="190" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11.5">GDSS Three-Layer Verification Gate (`bash harness/verify.sh`): Every commit must pass all static, runtime, e2e, and frontend sensors</text>
+</svg>

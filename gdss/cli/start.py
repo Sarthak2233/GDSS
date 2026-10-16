@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GDSS: Geometric Distributed Software Synchronizer
+GDSS: Gate Distributive Semantic Synopsis
 Interactive Shell for Distributed Repository Awareness
 """
 
@@ -313,7 +313,7 @@ class GDSSShell(cmd.Cmd):
 ║  ╚██████╔╝███████  ███████║███████║                               ║
 ║   ╚═════╝ ╚══════╝ ╚══════╝╚══════╝                               ║
 ║                                                                    ║
-║  [{title_style}]Geometric Distributed Software Synchronizer[/]     ║
+║  [{title_style}]Gate Distributive Semantic Synopsis[/]             ║
 ║  [dim]Semantic Intelligence Layer Above Git[/]                    ║
 ║                                                                    ║
 ╠════════════════════════════════════════════════════════════════════╣
@@ -840,7 +840,7 @@ class GDSSShell(cmd.Cmd):
         """Show the distributed priority chain."""
         console.print(f"\n[bold {self.theme['primary']}]━━━ ⛓️ PRIORITY CHAIN ━━━[/]")
         repo_id = self.daemon.repo_id
-        chain = self.hierarchy.resolve_priority_chain(repo_id, self.active_branch)
+        chain = self.hierarchy.resolve_priority_chain(repo_id)
 
         tree = Tree(f"[bold {self.theme['secondary']}]Repository Trajectory[/]")
         curr = tree

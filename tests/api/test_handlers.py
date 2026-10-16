@@ -213,3 +213,38 @@ def test_get_tensor_single_attractor_empty(repo_path):
     assert data["merge_risk"] == 0.0
     assert response.get("warnings") or data.get("message")
 
+
+def test_get_drift_includes_history(divergent_repo):
+    """GET /v1/drift regulates recent trajectory history in each branch drift row."""
+    repo_path, base_name = divergent_repo
+    response = get_drift(repo_path, ref=base_name, branch="feature")
+    assert response["status"] == "ok"
+    drift = response["data"]["drift"]
+    assert drift, "expected at least one branch drift row"
+    row = drift[0]
+    assert "history" in row
+    assert isinstance(row["history"], list)
+    if row["history"]:
+        point = row["history"][0]
+        assert "timestamp" in point and "magnitude" in point
+
+
+def test_get_tensor_excludes_reference_attractor_from_branches(divergent_repo):
+    """Conflict tensor Omega_ij matrix axes exclude the reference attractor when divergent branches exist."""
+    repo_path, base_name = divergent_repo
+    response = get_tensor(repo_path, ref=base_name)
+    assert response["status"] == "ok"
+    data = response["data"]
+    assert "feature" in data["branches"]
+    assert base_name not in data["branches"], "Attractor reference branch should not be an axis of the conflict tensor"
+
+
+def test_convergence_label_deadzone():
+    """Tiny velocity noise within 1e-6 per second should be labeled stable."""
+    from gdss.api.service import _convergence_label
+
+    assert _convergence_label(1e-8) == "stable"
+    assert _convergence_label(-1e-8) == "stable"
+    assert _convergence_label(1e-5) == "diverging"
+    assert _convergence_label(-1e-5) == "converging"
+

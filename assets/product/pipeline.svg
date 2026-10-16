@@ -1,53 +1,124 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1260 220" width="100%" height="220">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 440" width="100%" height="440">
   <defs>
-    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M0,0 L12,6 L0,12 z" fill="#94a3b8" />
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#64748b" />
     </marker>
+    <linearGradient id="grad-git" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#0891b2" />
+    </linearGradient>
+    <linearGradient id="grad-obs" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="grad-ast" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="grad-tx" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#6d28d9" />
+    </linearGradient>
+    <linearGradient id="grad-graph" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="grad-tensor" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899" />
+      <stop offset="100%" stop-color="#be185d" />
+    </linearGradient>
+    <linearGradient id="grad-web" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
   </defs>
 
-  <!-- Repo -->
-  <rect x="16" y="55" width="130" height="80" rx="14" fill="#06b6d4" stroke="#035e66" stroke-width="2" />
-  <text x="81" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Raw Repository</text>
-  <text x="81" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Files &amp; Commits</text>
+  <!-- Title -->
+  <text x="500" y="32" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="18">GDSS Modern I/O &amp; Visualization Pipeline</text>
+  <text x="500" y="52" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">Deterministic Git &amp; AST Analysis to Multi-Channel Visualization Surfaces</text>
 
-  <!-- AST -->
-  <rect x="170" y="55" width="120" height="80" rx="14" fill="#2563eb" stroke="#1e40af" stroke-width="2" />
-  <text x="230" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">AST Parser</text>
-  <text x="230" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Py · JS · TS · Go</text>
+  <!-- 1. Git Source -->
+  <rect x="30" y="150" width="130" height="75" rx="12" fill="url(#grad-git)" stroke="#0e7490" stroke-width="2" />
+  <text x="95" y="182" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Git Repository</text>
+  <text x="95" y="202" text-anchor="middle" fill="#ecfeff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Commits, Tree, PRs</text>
 
-  <!-- TX -->
-  <rect x="314" y="55" width="120" height="80" rx="14" fill="#7c3aed" stroke="#4c1d95" stroke-width="2" />
-  <text x="374" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Transform</text>
-  <text x="374" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Operators</text>
+  <!-- 2. GitObserver -->
+  <rect x="190" y="150" width="130" height="75" rx="12" fill="url(#grad-obs)" stroke="#0369a1" stroke-width="2" />
+  <text x="255" y="182" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">GitObserver</text>
+  <text x="255" y="202" text-anchor="middle" fill="#f0f9ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Diffs, Blobs, Branches</text>
 
-  <!-- Graph -->
-  <rect x="458" y="55" width="120" height="80" rx="14" fill="#f59e0b" stroke="#92400e" stroke-width="2" />
-  <text x="518" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Dependency</text>
-  <text x="518" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Graph</text>
+  <!-- 3. ASTParser -->
+  <rect x="350" y="150" width="140" height="75" rx="12" fill="url(#grad-ast)" stroke="#1e40af" stroke-width="2" />
+  <text x="420" y="180" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">ASTParser</text>
+  <text x="420" y="198" text-anchor="middle" fill="#eff6ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">3-Tier Multi-Language</text>
+  <text x="420" y="213" text-anchor="middle" fill="#dbeafe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Tree-sitter + Fallback</text>
 
-  <!-- Embeddings -->
-  <rect x="602" y="55" width="120" height="80" rx="14" fill="#0ea5e9" stroke="#075985" stroke-width="2" />
-  <text x="662" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Embeddings</text>
-  <text x="662" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">φ(C) + FAISS</text>
+  <!-- 4. Upper Branch: TransformExtractor -->
+  <rect x="525" y="90" width="150" height="70" rx="12" fill="url(#grad-tx)" stroke="#5b21b6" stroke-width="2" />
+  <text x="600" y="120" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">TransformExtractor</text>
+  <text x="600" y="140" text-anchor="middle" fill="#f5f3ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">SemanticOperators</text>
 
-  <!-- Drift -->
-  <rect x="746" y="55" width="120" height="80" rx="14" fill="#ef4444" stroke="#991b1b" stroke-width="2" />
-  <text x="806" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Drift</text>
-  <text x="806" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">I(B_i) · alerts</text>
+  <!-- 5. Lower Branch: CodeGraph -->
+  <rect x="525" y="210" width="150" height="70" rx="12" fill="url(#grad-graph)" stroke="#b45309" stroke-width="2" />
+  <text x="600" y="240" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">CodeGraph</text>
+  <text x="600" y="260" text-anchor="middle" fill="#fffbeb" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">NetworkX DiGraph</text>
 
-  <!-- Manifold -->
-  <rect x="890" y="55" width="140" height="80" rx="14" fill="#10b981" stroke="#065f46" stroke-width="2" />
-  <text x="960" y="90" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Semantic</text>
-  <text x="960" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Manifold Model</text>
+  <!-- 6. Collision Tensor Engine -->
+  <rect x="710" y="150" width="130" height="75" rx="12" fill="url(#grad-tensor)" stroke="#9d174d" stroke-width="2" />
+  <text x="775" y="180" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">TensorEngine</text>
+  <text x="775" y="198" text-anchor="middle" fill="#fdf2f8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Ω_ij Collision Radar</text>
+  <text x="775" y="213" text-anchor="middle" fill="#fce7f3" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Commutativity Algebra</text>
 
-  <!-- Arrows -->
-  <line x1="146" y1="95" x2="170" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
-  <line x1="290" y1="95" x2="314" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
-  <line x1="434" y1="95" x2="458" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
-  <line x1="578" y1="95" x2="602" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
-  <line x1="722" y1="95" x2="746" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
-  <line x1="866" y1="95" x2="890" y2="95" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+  <!-- 7. Delivery Surfaces (Stacked Right) -->
+  <!-- Web Visual Dashboard -->
+  <rect x="870" y="70" width="115" height="55" rx="8" fill="url(#grad-web)" stroke="#047857" stroke-width="1.5" />
+  <text x="927" y="93" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">Web Dashboard</text>
+  <text x="927" y="110" text-anchor="middle" fill="#ecfdf5" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">React Flow · 3D PCA</text>
 
-  <text x="530" y="195" text-anchor="middle" fill="#334155" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">GDSS pipeline — AST → Operators → Graph → Embeddings → Drift → Manifold</text>
+  <!-- IDE MCP -->
+  <rect x="870" y="140" width="115" height="55" rx="8" fill="#475569" stroke="#1e293b" stroke-width="1.5" />
+  <text x="927" y="163" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">IDE MCP Server</text>
+  <text x="927" y="180" text-anchor="middle" fill="#f1f5f9" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Cursor · Claude · Copilot</text>
+
+  <!-- CI/CD Actions -->
+  <rect x="870" y="210" width="115" height="55" rx="8" fill="#2563eb" stroke="#1e40af" stroke-width="1.5" />
+  <text x="927" y="233" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">GitHub Actions</text>
+  <text x="927" y="250" text-anchor="middle" fill="#eff6ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">PR Radar Sticky</text>
+
+  <!-- Terminal CLI -->
+  <rect x="870" y="280" width="115" height="55" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+  <text x="927" y="303" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">CLI &amp; Shell</text>
+  <text x="927" y="320" text-anchor="middle" fill="#cbd5e1" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Rich · DOT · JSON</text>
+
+  <!-- Connectors -->
+  <!-- Git -> Observer -->
+  <line x1="160" y1="187" x2="190" y2="187" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Observer -> ASTParser -->
+  <line x1="320" y1="187" x2="350" y2="187" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- ASTParser -> TransformExtractor -->
+  <path d="M490,175 C505,155 510,135 525,125" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- ASTParser -> CodeGraph -->
+  <path d="M490,200 C505,220 510,235 525,245" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- TransformExtractor -> TensorEngine -->
+  <path d="M675,135 C690,145 695,165 710,175" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- CodeGraph -> TensorEngine -->
+  <path d="M675,235 C690,225 695,205 710,195" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- TensorEngine to Surfaces -->
+  <path d="M840,170 C855,140 855,105 870,98" fill="none" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrow)" />
+  <path d="M840,180 C850,175 855,170 870,168" fill="none" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrow)" />
+  <path d="M840,195 C850,205 855,225 870,235" fill="none" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrow)" />
+  <path d="M840,205 C855,240 855,290 870,305" fill="none" stroke="#64748b" stroke-width="1.8" marker-end="url(#arrow)" />
+
+  <!-- Flow badges -->
+  <rect x="15" y="380" width="970" height="40" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+  <text x="500" y="405" text-anchor="middle" fill="#475569" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">
+    <tspan font-weight="700" fill="#0f172a">Persistence &amp; APIs:</tspan> FastAPI (<tspan font-family="Consolas, monospace">gdss serve :8787</tspan>) • Vectors (<tspan font-family="Consolas, monospace">.gdss/vectors/</tspan>) • Suggestions (<tspan font-family="Consolas, monospace">.gdss/suggestions/</tspan>) • Graph Export (<tspan font-family="Consolas, monospace">gdss graph export</tspan>)
+  </text>
 </svg>

@@ -36,7 +36,9 @@ dist/
 FROM WHERE IT ALL STARTED..txt
 research.md
 
+AGENTS.md
+.cursor/plans/
+
 
 diff.txt
 my_graph.dot
-

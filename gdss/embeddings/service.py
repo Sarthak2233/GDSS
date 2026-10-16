@@ -170,7 +170,7 @@ def project_symbol_embeddings(
     """
     encoder = encoder or get_encoder()
     dims = 2 if dims not in {2, 3} else dims
-    limit = max(1, min(int(limit), 2000))
+    limit = max(1, min(limit, 2000))
 
     symbols = collect_repo_symbols(repo_path)
     store = load_or_build_index(repo_path, encoder=encoder)

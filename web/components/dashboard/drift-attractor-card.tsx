@@ -6,12 +6,15 @@ import { duration, easing } from "@/lib/motion";
 import { Sparkline } from "@/components/ui/sparkline";
 import { colors } from "@/lib/tokens";
 
+import type { DriftHistoryPoint } from "@/lib/api-types";
+
 export interface DriftBranchSummary {
   branch: string;
   magnitude: number;
   velocity: number;
   convergence: string; // from API convergence_label
   affected: { id: string; name: string }[];
+  history?: DriftHistoryPoint[];
 }
 
 export interface DriftAttractorCardProps {
@@ -196,12 +199,11 @@ export function DriftAttractorCard({
     .flatMap((b) => b.affected)
     .slice(0, 3);
 
-  const sampleSparkline = [
-    Math.max(0, maxMagnitude - 0.15),
-    Math.max(0, maxMagnitude - 0.08),
-    Math.max(0, maxMagnitude - 0.04),
-    maxMagnitude,
-  ];
+  const maxBranchHistory = maxBranch?.history;
+  const sampleSparkline =
+    maxBranchHistory && maxBranchHistory.length > 1
+      ? maxBranchHistory.map((p) => p.magnitude)
+      : [maxMagnitude, maxMagnitude];
 
   return (
     <motion.article

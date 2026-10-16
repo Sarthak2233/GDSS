@@ -10,6 +10,9 @@ from collections.abc import Sequence
 from enum import Enum
 
 from gdss.core.transform_types import OperatorType, SemanticOperator
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.conflict.commutativity")
 
 
 class CommutativityClass(str, Enum):
@@ -176,4 +179,7 @@ def operator_interference(
             if cls == CommutativityClass.INTERFERE:
                 interfering += 1
 
+    if contacts > 0 or interfering > 0:
+        logger.debug("Operator interference check: %d interfering, %d contacts across %d x %d ops",
+                     interfering, contacts, len(branch_ops), len(other_ops))
     return interfering, contacts

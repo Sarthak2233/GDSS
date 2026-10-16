@@ -1,9 +1,12 @@
 import json
 import time
 
+from gdss.logger import get_logger
 from gdss.runtime.event_bus import EventBus
 from gdss.runtime.hierarchy import HierarchyManager
 from gdss.runtime.registry import RepositoryRegistry
+
+logger = get_logger("gdss.runtime.context_engine")
 
 
 class ContextEngine:
@@ -62,6 +65,7 @@ class ContextEngine:
         self.hierarchy.set_config(self.repo_id, config)
 
     def log_context(self, packet: dict):
+        logger.debug("Logging awareness context packet for repo_id=%d: source=%s", self.repo_id, packet.get("source"))
         with self.registry.db._get_connection() as conn:
             conn.execute(
                 "INSERT INTO contexts (repo_id, packet) VALUES (?, ?)",

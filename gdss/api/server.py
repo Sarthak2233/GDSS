@@ -8,6 +8,9 @@ from fastapi.responses import JSONResponse
 
 from gdss.api import service
 from gdss.api.models import HealthResponse
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.api.server")
 
 
 def create_app(repo_path: Path) -> FastAPI:

@@ -8,6 +8,10 @@ from pathlib import Path
 
 import numpy as np
 
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.embeddings.vector_store")
+
 try:
     import faiss
 
@@ -43,6 +47,7 @@ class VectorStore:
         self._matrix: np.ndarray | None = None  # numpy backend
         self._index = None
         if self._use_faiss:
+            # pyrefly: ignore [missing-attribute]
             self._index = faiss.IndexFlatIP(dim)
 
     @property
@@ -108,6 +113,7 @@ class VectorStore:
         self._next_int = 0
         self._matrix = None
         if self._use_faiss:
+            # pyrefly: ignore [missing-attribute]
             self._index = faiss.IndexFlatIP(self.dim)
 
     def _add_new(self, ids: Sequence[str], vectors: np.ndarray) -> None:
@@ -159,10 +165,12 @@ class VectorStore:
         }
         (directory / "id_map.json").write_text(json.dumps(meta), encoding="utf-8")
         if self._use_faiss:
+            # pyrefly: ignore [missing-attribute]
             faiss.write_index(self._index, str(directory / "index.faiss"))
         else:
             mat = self._matrix if self._matrix is not None else np.zeros((0, self.dim), dtype=np.float32)
             np.save(directory / "vectors.npy", mat)
+        logger.debug("Saved vector store (%s backend, %d vectors) to %s", self.backend, self.size, directory)
         return directory
 
     @classmethod
@@ -182,6 +190,7 @@ class VectorStore:
         faiss_path = directory / "index.faiss"
         npy_path = directory / "vectors.npy"
         if store._use_faiss and faiss_path.exists():
+            # pyrefly: ignore [missing-attribute]
             store._index = faiss.read_index(str(faiss_path))  # dsa:ignore
         elif npy_path.exists():
             store._use_faiss = False
@@ -189,6 +198,7 @@ class VectorStore:
             store._matrix = np.load(npy_path).astype(np.float32)
         elif faiss_path.exists() and _HAS_FAISS:
             store._use_faiss = True
+            # pyrefly: ignore [missing-attribute]
             store._index = faiss.read_index(str(faiss_path))  # dsa:ignore
         else:
             raise FileNotFoundError(
@@ -196,6 +206,7 @@ class VectorStore:
                 "WHY: expected index.faiss or vectors.npy.\n"
                 "FIX: rebuild with VectorStore.upsert then save()."
             )
+        logger.debug("Loaded vector store (%s backend, %d vectors) from %s", store.backend, store.size, directory)
         return store
 
 

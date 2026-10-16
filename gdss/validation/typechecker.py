@@ -5,8 +5,11 @@ import os
 import subprocess
 from pathlib import Path
 
+from gdss.logger import get_logger
 from gdss.validation.discovery import get_sandbox_timeout, load_validation_config
 from gdss.validation.types import TypeCheckResult
+
+logger = get_logger("gdss.validation.typecheck")
 
 
 def detect_typecheck_command(
@@ -61,6 +64,7 @@ def run_targeted_typecheck(
         cmd, tool_name = detect_typecheck_command(root, changed_files)
 
     if not cmd:
+        logger.debug("No static typechecker detected for %s", root)
         return TypeCheckResult(
             checked=False,
             passed=True,
@@ -72,6 +76,7 @@ def run_targeted_typecheck(
     env["CI"] = "true"
     env["GDSS_SANDBOX"] = "true"
 
+    logger.debug("Running typechecker '%s' (command: %s, timeout=%.1fs)", tool_name, cmd, resolved_timeout)
     try:
         proc = subprocess.run(
             cmd,
@@ -86,6 +91,11 @@ def run_targeted_typecheck(
         passed = proc.returncode == 0
         errors = [line for line in output.splitlines() if "error" in line.lower()]
 
+        if passed:
+            logger.debug("Typecheck passed with tool '%s'", tool_name)
+        else:
+            logger.warning("Typecheck failed (tool=%s, exit_code=%d)", tool_name, proc.returncode)
+
         return TypeCheckResult(
             checked=True,
             passed=passed,
@@ -94,6 +104,7 @@ def run_targeted_typecheck(
             errors=errors,
         )
     except subprocess.TimeoutExpired:
+        logger.warning("Typecheck timed out after %.1fs (tool=%s)", resolved_timeout, tool_name)
         return TypeCheckResult(
             checked=True,
             passed=False,
@@ -102,6 +113,7 @@ def run_targeted_typecheck(
             errors=[f"Timeout ({resolved_timeout}s)"],
         )
     except Exception as exc:
+        logger.warning("Typecheck invocation failed (tool=%s): %s", tool_name, exc)
         return TypeCheckResult(
             checked=True,
             passed=False,

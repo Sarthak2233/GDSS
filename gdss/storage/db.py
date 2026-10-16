@@ -2,12 +2,17 @@ import os
 import sqlite3
 from typing import Any
 
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.storage.db")
+
 
 class RuntimeDB:
     def __init__(self, db_path: str = ".gdss/runtime.db"):
         self.db_path = db_path
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self._init_db()
+        logger.debug("RuntimeDB initialized at %s", self.db_path)
 
     def _get_connection(self):
         conn = sqlite3.connect(self.db_path)

@@ -21,6 +21,10 @@ from typing import Any
 
 import yaml
 
+from gdss.logger import ci_group, get_logger
+
+logger = get_logger("gdss.validation.pr_audit")
+
 STICKY_SIGNATURE = "<!-- GDSS_PR_RADAR_SIGNATURE -->"
 
 
@@ -80,21 +84,25 @@ def parse_github_env(event_path: str | None = None) -> PRAuditContext | None:
     """
     repo_slug = os.environ.get("GITHUB_REPOSITORY", "")
     if "/" not in repo_slug:
+        logger.debug("GITHUB_REPOSITORY not set or malformed ('%s')", repo_slug)
         return None
 
     repo_owner, repo_name = repo_slug.split("/", 1)
     ev_path = event_path or os.environ.get("GITHUB_EVENT_PATH")
     if not ev_path or not os.path.exists(ev_path):
+        logger.debug("GITHUB_EVENT_PATH not set or missing ('%s')", ev_path)
         return None
 
     try:
         with open(ev_path, encoding="utf-8") as f:
             event_data = json.load(f)
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to parse GitHub event payload from %s: %s", ev_path, e)
         return None
 
     pr_data = event_data.get("pull_request")
     if not isinstance(pr_data, dict):
+        logger.debug("Event payload does not contain pull_request dictionary")
         return None
 
     pr_number = pr_data.get("number")
@@ -111,6 +119,17 @@ def parse_github_env(event_path: str | None = None) -> PRAuditContext | None:
     pr_body = str(pr_data.get("body") or "")
     user_data = pr_data.get("user") or {}
     pr_author = str(user_data.get("login") or "")
+
+    logger.info(
+        "Extracted PR audit context: PR #%s on %s/%s (base=%s, head_ref=%s, sha=%s, author=%s)",
+        pr_number,
+        repo_owner,
+        repo_name,
+        base_ref,
+        head_ref,
+        head_sha[:8] if head_sha else "",
+        pr_author,
+    )
 
     return PRAuditContext(
         repo_owner=repo_owner,
@@ -199,12 +218,15 @@ def _github_api_request(
 def fetch_concurrent_prs(context: PRAuditContext) -> list[dict[str, Any]]:
     """Fetch all open pull requests for the repository excluding the current PR."""
     url = f"{context.api_url}/repos/{context.repo_owner}/{context.repo_name}/pulls?state=open&per_page=50"
+    logger.info("Fetching concurrent open PRs from %s", url)
     try:
         raw_prs = _github_api_request(url, context.github_token, method="GET")
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to query open PRs from GitHub API (%s): %s", url, e)
         return []
 
     if not isinstance(raw_prs, list):
+        logger.debug("GitHub API returned non-list payload for open PRs: %s", type(raw_prs))
         return []
 
     concurrent: list[dict[str, Any]] = []
@@ -229,6 +251,13 @@ def fetch_concurrent_prs(context: PRAuditContext) -> list[dict[str, Any]]:
             }
         )
 
+    logger.info(
+        "Discovered %d concurrent open PR(s) on %s/%s targeting base '%s'",
+        len(concurrent),
+        context.repo_owner,
+        context.repo_name,
+        context.base_ref,
+    )
     return concurrent
 
 
@@ -309,7 +338,14 @@ def audit_pr_collisions(
     config: dict[str, Any] | None = None,
 ) -> PRCollisionResult:
     """Audit current PR against concurrent PRs for semantic collision using AI orchestration."""
+    concurrent_count = len(concurrent_prs)
+    logger.info(
+        "Starting PR collision audit for PR #%s against %d concurrent PR(s)",
+        context.pr_number,
+        concurrent_count,
+    )
     if not concurrent_prs:
+        logger.info("No concurrent PRs to audit for PR #%s. Exiting early.", context.pr_number)
         return PRCollisionResult(
             current_pr=context.pr_number,
             has_collisions=False,
@@ -325,6 +361,7 @@ def audit_pr_collisions(
     repo_root_str = str(repo_root)
     git_dir = repo_root / ".git"
     if git_dir.exists():
+        logger.debug("Found git repository metadata at %s, proceeding with git analysis", repo_root_str)
         try:
             from gdss.ai.context import build_pr_analysis_context
             from gdss.ai.openai_provider import OpenAICompatibleProvider
@@ -376,6 +413,12 @@ def audit_pr_collisions(
 
                 analysis_ctx = None
                 try:
+                    logger.info(
+                        "Building multi-branch analysis context (base=%s, current=%s, concurrent=%s)",
+                        context.base_ref,
+                        current_head,
+                        concurrent_branches,
+                    )
                     analysis_ctx = build_pr_analysis_context(
                         repo_path=repo_root_str,
                         reference_branch=context.base_ref,
@@ -384,12 +427,17 @@ def audit_pr_collisions(
                         pr_intents=pr_intents,
                         observer=observer,
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Failed to build multi-branch PR analysis context: %s", e, exc_info=True)
 
                 # 2. Run LangGraph-powered orchestration pipeline if context succeeded
                 if analysis_ctx is not None:
                     max_ref = int(config.get("max_refinements", 2)) if config else 2
+                    logger.info(
+                        "Running convergence state machine pipeline (model=%s, validate=True, max_refinements=%d)",
+                        config.get("model") if config else "default",
+                        max_ref,
+                    )
                     state = ConvergenceState(
                         repo_path=repo_root_str,
                         reference_branch=context.base_ref,
@@ -554,18 +602,25 @@ def audit_pr_collisions(
                                     )
                                     if risk > max_risk:
                                         max_risk = risk
-                        except Exception:
-                            pass
-        except Exception:
-            pass
+                        except Exception as e:
+                            logger.debug("Pairwise comparison skipped for PR #%s vs PR #%s: %s", context.pr_number, other_pr.get("number"), e)
+        except Exception as e:
+            logger.warning("Error during Git-based collision audit: %s", e, exc_info=True)
 
-    has_collisions = len(collisions) > 0
+    collisions_count = len(collisions)
+    has_collisions = collisions_count > 0
+    logger.info(
+        "PR collision audit finished for PR #%s: %d collision(s) detected, max_risk=%.2f",
+        context.pr_number,
+        collisions_count,
+        max_risk,
+    )
     return PRCollisionResult(
         current_pr=context.pr_number,
         has_collisions=has_collisions,
         max_risk=max_risk,
         collisions=collisions,
-        audited_prs_count=len(concurrent_prs),
+        audited_prs_count=concurrent_count,
     )
 
 
@@ -700,66 +755,90 @@ def run_pr_audit(
 
     Returns 0 on success, or 1 if fail_on_collision is triggered.
     """
-    ctx = context or parse_github_env()
-    if ctx is None:
-        # Fallback for manual CLI execution
-        tok = token or os.environ.get("GITHUB_TOKEN")
-        num = pr_number or 0
-        ctx = PRAuditContext(
-            repo_owner="local",
-            repo_name="local",
-            pr_number=num,
-            base_ref="main",
-            head_ref="HEAD",
-            head_sha="",
-            github_token=tok,
+    with ci_group("GDSS PR Radar: Context & Configuration"):
+        ctx = context or parse_github_env()
+        if ctx is None:
+            # Fallback for manual CLI execution
+            tok = token or os.environ.get("GITHUB_TOKEN")
+            num = pr_number or 0
+            ctx = PRAuditContext(
+                repo_owner="local",
+                repo_name="local",
+                pr_number=num,
+                base_ref="main",
+                head_ref="HEAD",
+                head_sha="",
+                github_token=tok,
+            )
+            logger.debug("Operating in local execution mode without GitHub Actions event")
+
+        config = load_radar_config(repo_path)
+        logger.info(
+            "Loaded radar configuration: fail_on_collision=%s, threshold=%.2f, model=%s, context_window=%s",
+            config.get("fail_on_collision"),
+            config.get("risk_threshold", 0.8),
+            config.get("model"),
+            config.get("context_window"),
         )
 
-    config = load_radar_config(repo_path)
+    with ci_group("GDSS PR Radar: Concurrent PR Discovery & Collision Analysis"):
+        # In dry-run or mock mode without network token
+        if dry_run or not ctx.github_token:
+            logger.info("Running in dry-run or unauthenticated mode (dry_run=%s, has_token=%s)", dry_run, bool(ctx.github_token))
+            result = PRCollisionResult(
+                current_pr=ctx.pr_number,
+                has_collisions=False,
+                max_risk=0.0,
+                collisions=[],
+                audited_prs_count=0,
+            )
+        else:
+            concurrent_prs = fetch_concurrent_prs(ctx)
+            result = audit_pr_collisions(repo_path, ctx, concurrent_prs, config)
 
-    # In dry-run or mock mode without network token
-    if dry_run or not ctx.github_token:
-        result = PRCollisionResult(
-            current_pr=ctx.pr_number,
-            has_collisions=False,
-            max_risk=0.0,
-            collisions=[],
-            audited_prs_count=0,
-        )
-    else:
-        concurrent_prs = fetch_concurrent_prs(ctx)
-        result = audit_pr_collisions(repo_path, ctx, concurrent_prs, config)
+    with ci_group("GDSS PR Radar: Report Generation & Sticky Comment"):
+        report_markdown = render_radar_markdown(ctx, result)
 
-    report_markdown = render_radar_markdown(ctx, result)
+        if output_file:
+            try:
+                out_p = Path(output_file)
+                out_p.parent.mkdir(parents=True, exist_ok=True)
+                out_p.write_text(report_markdown, encoding="utf-8")
+                logger.info("Wrote PR collision radar report to %s", output_file)
+            except Exception as e:
+                logger.error("Failed to write output file '%s': %s", output_file, e)
+                if console:
+                    console.print(f"[bold red]✗ Failed to write output file:[/] {e}")
 
-    if output_file:
-        try:
-            Path(output_file).write_text(report_markdown, encoding="utf-8")
-        except Exception as e:
-            if console:
-                console.print(f"[bold red]✗ Failed to write output file:[/] {e}")
+        if console and dry_run:
+            console.print(report_markdown)
 
-    if console and dry_run:
-        console.print(report_markdown)
+        # Post or update sticky comment if not in dry-run and token is available
+        if not dry_run and ctx.github_token and ctx.repo_owner != "local":
+            try:
+                logger.info("Posting or updating sticky comment on PR #%s", ctx.pr_number)
+                res = post_or_update_sticky_comment(ctx, report_markdown)
+                logger.info("Sticky comment successfully %s (ID: %s)", res.get("action"), res.get("comment_id"))
+                if console:
+                    console.print(f"[bold green]✓[/] Radar sticky comment {res.get('action')} (ID: {res.get('comment_id')})")
+            except Exception as e:
+                logger.warning("Failed to post or update sticky comment on PR #%s: %s", ctx.pr_number, e)
+                if console:
+                    console.print(f"[bold yellow]⚠️ Failed to post sticky comment:[/] {e}")
 
-    # Post or update sticky comment if not in dry-run and token is available
-    if not dry_run and ctx.github_token and ctx.repo_owner != "local":
-        try:
-            res = post_or_update_sticky_comment(ctx, report_markdown)
-            if console:
-                console.print(f"[bold green]✓[/] Radar sticky comment {res.get('action')} (ID: {res.get('comment_id')})")
-        except Exception as e:
-            if console:
-                console.print(f"[bold yellow]⚠️ Failed to post sticky comment:[/] {e}")
-
-    # Check fail_on_collision threshold
-    if config.get("fail_on_collision", False):
-        threshold = float(config.get("risk_threshold", 0.8))
-        if result.max_risk >= threshold:
-            if console:
-                console.print(
-                    f"[bold red]✗ PR Collision Risk ({result.max_risk:.2f}) meets or exceeds threshold ({threshold:.2f}). Blocking CI.[/]"
+        # Check fail_on_collision threshold
+        if config.get("fail_on_collision", False):
+            threshold = float(config.get("risk_threshold", 0.8))
+            if result.max_risk >= threshold:
+                logger.warning(
+                    "Blocking CI: collision risk %.2f exceeds threshold %.2f",
+                    result.max_risk,
+                    threshold,
                 )
-            return 1
+                if console:
+                    console.print(
+                        f"[bold red]✗ PR Collision Risk ({result.max_risk:.2f}) meets or exceeds threshold ({threshold:.2f}). Blocking CI.[/]"
+                    )
+                return 1
 
     return 0

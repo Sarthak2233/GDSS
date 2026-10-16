@@ -2,6 +2,10 @@ import os
 
 import git
 
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.watcher.git_observer")
+
 
 class GitObserver:
     """

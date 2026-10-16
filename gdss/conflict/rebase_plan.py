@@ -8,6 +8,9 @@ from dataclasses import dataclass, replace
 
 from gdss.conflict.commutativity import CommutativityClass, classify
 from gdss.core.transform_types import OperatorType, SemanticOperator
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.conflict.rebase_plan")
 
 
 @dataclass(frozen=True)
@@ -111,12 +114,15 @@ def build_transport_plan(
         else:
             kept.append(candidate)
 
-    return TransportPlan(
+    plan = TransportPlan(
         kept=tuple(kept),
         already_applied=tuple(already_applied),
         blocked=tuple(blocked),
         file_remaps=dict(file_remaps),
     )
+    logger.debug("Semantic rebase transport plan: %d kept, %d already applied, %d blocked",
+                 len(plan.kept), len(plan.already_applied), len(plan.blocked))
+    return plan
 
 
 def parallel_transport(

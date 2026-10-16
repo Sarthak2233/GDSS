@@ -46,6 +46,7 @@ from gdss.graph.code_graph import CodeGraph
 from gdss.graph.graph_builder import build_code_graph_from_repo
 
 # GDSS Runtime imports - USED
+from gdss.logger import get_logger
 from gdss.runtime.daemon import GDSSDaemon
 from gdss.runtime.hierarchy import HierarchyManager
 from gdss.runtime.registry import RepositoryRegistry
@@ -53,6 +54,8 @@ from gdss.storage.db import RuntimeDB
 
 # GDSS Watcher imports - USED
 from gdss.watcher.git_observer import GitObserver
+
+logger = get_logger("gdss.cli.start")
 
 # Initialize Rich Console
 console = Console()

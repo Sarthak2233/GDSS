@@ -15,11 +15,17 @@ PORT=8788
 gdss serve --repo "$TEMP_REPO" --port $PORT > server.log 2>&1 &
 SERVER_PID=$!
 
-sleep 2
+for i in $(seq 1 10); do
+    if curl -s -f http://127.0.0.1:$PORT/health 2>/dev/null | grep -q '"ok"'; then
+        break
+    fi
+    sleep 0.5
+done
 
 function cleanup {
     kill $SERVER_PID > /dev/null 2>&1 || true
     rm -rf "$TEMP_REPO"
+    rm -f server.log
 }
 trap cleanup EXIT
 

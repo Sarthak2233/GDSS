@@ -16,8 +16,10 @@ from typing import Any
 
 from gdss.ai.suggestion_store import load_suggestion
 from gdss.core.ast_parser import ASTParser
+from gdss.logger import get_logger
 from gdss.validation.syntax import validate_file_syntax
 
+logger = get_logger("gdss.validation.apply")
 ROLLBACK_DIR = Path(".gdss") / "rollback"
 _HUNK_RE = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 
@@ -354,12 +356,14 @@ def apply_suggestion(
         return _fail_apply(suggestion_id, "", "", what, why, fix)
 
     # 1. Run guarded preflight check
+    logger.info("Executing guarded apply for suggestion '%s' (strategy=%s, dry_run=%s)", suggestion_id, strategy_name, dry_run)
     preflight = preflight_check(
         suggestion_data=suggestion_data,
         repo_root=root_path,
         strategy_name=strategy_name,
     )
     if not preflight.valid or preflight.target_file is None or preflight.patch_text is None:
+        logger.warning("Preflight check rejected apply for suggestion '%s': %s", suggestion_id, preflight.what)
         return ApplyResult(
             success=False,
             suggestion_id=suggestion_id,
@@ -382,6 +386,7 @@ def apply_suggestion(
         what = f"Failed to apply patch hunks to '{rel_path}'"
         why = str(e)
         fix = "The target file may have diverged. Run 'gdss suggest' to refresh candidate patches."
+        logger.warning("Unified diff application failed for '%s': %s", rel_path, e)
         return _fail_apply(suggestion_id, rel_path, preflight.strategy or "", what, why, fix)
 
     # 3. Generate unified diff
@@ -397,6 +402,7 @@ def apply_suggestion(
     )
 
     if dry_run:
+        logger.info("Dry-run apply simulated successfully for suggestion '%s'", suggestion_id)
         return ApplyResult(
             success=True,
             suggestion_id=suggestion_id,
@@ -417,6 +423,7 @@ def apply_suggestion(
     }
     rb_file = rollback_dir / f"{suggestion_id}.json"
     rb_file.write_text(json.dumps(rb_snapshot, indent=2), encoding="utf-8")
+    logger.debug("Saved rollback snapshot to %s", rb_file)
 
     # Write patched content to working file
     target_file.write_text(new_content, encoding="utf-8")
@@ -430,8 +437,10 @@ def apply_suggestion(
         what = f"Post-apply syntax validation failed on '{rel_path}'"
         why = syntax_res.error_message or "Applied patch resulted in invalid language syntax."
         fix = "The patch was automatically rolled back. Target file was NOT modified."
+        logger.error("Post-apply syntax check failed on %s. Automatically rolled back.", rel_path)
         return _fail_apply(suggestion_id, rel_path, preflight.strategy or "", what, why, fix)
 
+    logger.info("Successfully applied suggestion '%s' to '%s'", suggestion_id, rel_path)
     return ApplyResult(
         success=True,
         suggestion_id=suggestion_id,
@@ -454,6 +463,7 @@ def rollback_suggestion(
         what = f"No rollback record found for suggestion ID '{suggestion_id}'"
         why = "Suggestion was not applied locally or was already rolled back."
         fix = "Check working tree status using 'git status' or 'git diff'."
+        logger.warning("Rollback failed: snapshot not found at %s", rb_file)
         return _fail_rollback(suggestion_id, what, why, fix)
 
     try:
@@ -463,6 +473,7 @@ def rollback_suggestion(
         target_file = (root_path / rel_path).resolve()
         target_file.write_text(original_content, encoding="utf-8")
         rb_file.unlink(missing_ok=True)
+        logger.info("Successfully restored '%s' from rollback snapshot for suggestion '%s'", rel_path, suggestion_id)
         return RollbackResult(
             success=True,
             suggestion_id=suggestion_id,

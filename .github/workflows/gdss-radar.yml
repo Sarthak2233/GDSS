@@ -41,8 +41,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GDSS_LOG_LEVEL: INFO
         run: |
-          gdss audit-pr --output gdss_radar_report.md
+          gdss audit-pr --verbose --output gdss_radar_report.md
 
       - name: Upload Radar Report Artifact
         if: always()

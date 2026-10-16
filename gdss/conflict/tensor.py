@@ -7,6 +7,9 @@ from dataclasses import dataclass
 
 from gdss.conflict.commutativity import operator_interference
 from gdss.core.transform_types import OperatorType, SemanticOperator
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.conflict.tensor")
 
 _MODIFY_DELETE = {
     OperatorType.MODIFY_FUNCTION,
@@ -95,6 +98,7 @@ class TensorEngine:
         impact_sets: Mapping[str, set[str]] | None = None,
     ) -> ConflictTensor:
         branches = tuple(sorted(branch_ops.keys()))
+        logger.debug("Computing conflict tensor Omega for branches: %s", branches)
         entries: dict[tuple[str, str], TensorEntry] = {}
         impact_sets = impact_sets or {}
 

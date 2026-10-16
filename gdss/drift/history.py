@@ -6,6 +6,9 @@ import json
 from pathlib import Path
 
 from gdss.drift.types import DriftSnapshot
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.drift.history")
 
 
 class SnapshotHistory:
@@ -42,12 +45,14 @@ class SnapshotHistory:
                 }
             else:
                 self._data = {}
-        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+            logger.debug("Failed reading drift snapshots at %s: %s", self.path, exc)
             self._data = {}
 
     def _save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(self._data, indent=2), encoding="utf-8")
+        logger.debug("Saved drift history to %s", self.path)
 
 
 def default_history_path(repo_path: str) -> Path:

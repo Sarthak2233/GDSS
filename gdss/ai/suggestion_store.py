@@ -11,7 +11,9 @@ from pathlib import Path
 from typing import Any
 
 from gdss.ai.types import Suggestion
+from gdss.logger import get_logger
 
+logger = get_logger("gdss.ai.suggestion_store")
 SUGGESTIONS_DIR = Path(".gdss") / "suggestions"
 
 

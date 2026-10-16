@@ -8,7 +8,10 @@ from pathlib import Path
 from tree_sitter import Node
 
 from gdss.core.ast_parser import LANGUAGE_REGISTRY, ASTParser
+from gdss.logger import get_logger
 from gdss.validation.types import SyntaxCheckResult
+
+logger = get_logger("gdss.validation.syntax")
 
 
 def _find_first_error_node(node: Node) -> Node | None:

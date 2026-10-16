@@ -6,6 +6,7 @@ import json
 import sys
 from typing import Any, TextIO
 
+from gdss.logger import get_logger
 from gdss.mcp.tools import (
     find_collisions,
     get_merge_order,
@@ -14,6 +15,8 @@ from gdss.mcp.tools import (
     sandbox_validate_patch,
     validate_patch,
 )
+
+logger = get_logger("gdss.mcp.server")
 
 SERVER_NAME = "gdss-mcp-server"
 SERVER_VERSION = "0.1.0"
@@ -256,8 +259,11 @@ class MCPServer:
         if method == "tools/call":
             tool_name = params.get("name", "")
             arguments = params.get("arguments", {})
+            logger.info("MCP tool call: %s", tool_name)
+            logger.debug("MCP tool arguments: %s", arguments)
             try:
                 result_data = self.call_tool(tool_name, arguments)
+                logger.info("MCP tool %s completed successfully", tool_name)
                 return {
                     "jsonrpc": "2.0",
                     "id": req_id,
@@ -272,6 +278,7 @@ class MCPServer:
                     },
                 }
             except Exception as e:
+                logger.error("MCP tool %s failed: %s", tool_name, e, exc_info=True)
                 return {
                     "jsonrpc": "2.0",
                     "id": req_id,

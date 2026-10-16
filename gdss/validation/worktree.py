@@ -12,6 +12,10 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.validation.worktree")
+
 
 def is_git_repo(path: Path) -> bool:
     """Check if the given path is within a valid git work tree."""
@@ -49,6 +53,7 @@ def ephemeral_worktree(repo_path: Path, base_ref: str = "HEAD") -> Iterator[Path
     temp_str = str(temp_dir)
     created_worktree = False
 
+    logger.debug("Creating ephemeral worktree at %s for base_ref '%s'", temp_str, base_ref)
     try:
         if is_git_repo(resolved_repo):
             cmd = ["git", "worktree", "add", "--detach", temp_str, base_ref]
@@ -61,18 +66,27 @@ def ephemeral_worktree(repo_path: Path, base_ref: str = "HEAD") -> Iterator[Path
             )
             if res.returncode == 0:
                 created_worktree = True
+                logger.info("Successfully created git worktree at %s (base_ref=%s)", temp_str, base_ref)
                 yield temp_dir
                 return
+            logger.warning(
+                "git worktree add failed (code %d: %s). Falling back to directory copy.",
+                res.returncode,
+                res.stderr.strip(),
+            )
 
         # Fallback for non-git or worktree error: shallow copy
+        logger.debug("Copying repository to %s for isolated sandbox", temp_str)
         shutil.copytree(resolved_repo, temp_dir, dirs_exist_ok=True, ignore=shutil.ignore_patterns(".git", "venv", "node_modules", ".venv"))
         yield temp_dir
     finally:
         if created_worktree:
+            logger.debug("Removing git worktree at %s", temp_str)
             subprocess.run(
                 ["git", "worktree", "remove", "--force", temp_str],
                 cwd=resolved_repo,
                 capture_output=True,
                 check=False,
             )
+        logger.debug("Cleaning up temporary directory %s", temp_str)
         shutil.rmtree(temp_dir, ignore_errors=True)

@@ -21,7 +21,10 @@ from gdss.ai.llm_patch import AnyProvider, LLMProvider
 from gdss.ai.suggester import _draft_combinations, _pick_provider, suggest
 from gdss.ai.suggestion_store import save_suggestion
 from gdss.ai.types import PatchCombination, Suggestion
+from gdss.logger import get_logger
 from gdss.watcher.git_observer import GitObserver
+
+logger = get_logger("gdss.ai.orchestration")
 
 CheckpointStatus = Literal[
     "init",
@@ -68,6 +71,7 @@ def _coerce_state(state: Any) -> ConvergenceState:
 def analyze_step(state: ConvergenceState) -> ConvergenceState:
     """Deterministic step: compute conflict topology, anchors, and rankings."""
     st = _coerce_state(state)
+    logger.info("Orchestration [Node: analyze]: computing topology and anchors on %s", st.repo_path)
     if not st.target_commit:
         try:
             observer = GitObserver(st.repo_path)
@@ -79,6 +83,7 @@ def analyze_step(state: ConvergenceState) -> ConvergenceState:
             st.target_commit = "HEAD"
 
     if st.suggestions:
+        logger.debug("Existing %d suggestion(s) provided, skipping suggestion generation", len(st.suggestions))
         st.checkpoint = "analyzed"
         return st
 
@@ -92,8 +97,10 @@ def analyze_step(state: ConvergenceState) -> ConvergenceState:
             context=st.analysis_context,
         )
         st.suggestions = list(suggestions)
+        logger.info("Orchestration [Node: analyze]: identified %d candidate suggestions", len(st.suggestions))  # dsa:ignore
         st.checkpoint = "analyzed"
     except Exception as exc:
+        logger.error("Analysis step failed: %s", exc, exc_info=True)
         st.errors.append(f"Analysis step failed: {exc}")
         st.checkpoint = "failed"
 
@@ -106,10 +113,13 @@ def draft_step(state: ConvergenceState) -> ConvergenceState:
     if st.checkpoint == "failed":
         return st
 
+    sug_count = len(st.suggestions)
     if not st.llm or not st.suggestions:
+        logger.debug("Orchestration [Node: draft]: skipping LLM drafting (llm=%s, count=%d)", st.llm, sug_count)
         st.checkpoint = "drafted"
         return st
 
+    logger.info("Orchestration [Node: draft]: drafting patches for %d suggestions via LLM", sug_count)
     try:
         active_provider = _pick_provider(True, st.provider)
         if active_provider is not None:
@@ -118,8 +128,10 @@ def draft_step(state: ConvergenceState) -> ConvergenceState:
             for item in st.suggestions:
                 drafted.append(_draft_combinations(context, item, active_provider))
             st.suggestions = drafted
+            logger.info("Orchestration [Node: draft]: completed drafting for %d suggestions", len(drafted))
         st.checkpoint = "drafted"
     except Exception as exc:
+        logger.error("Drafting step failed: %s", exc, exc_info=True)
         st.errors.append(f"Drafting step failed: {exc}")
         st.checkpoint = "drafted"
 
@@ -132,10 +144,13 @@ def validate_step(state: ConvergenceState) -> ConvergenceState:
     if st.checkpoint == "failed":
         return st
 
+    sug_count = len(st.suggestions)
     if not st.validate or not st.suggestions:
+        logger.debug("Orchestration [Node: validate]: skipping validation (validate=%s, count=%d)", st.validate, sug_count)
         st.checkpoint = "validated"
         return st
 
+    logger.info("Orchestration [Node: validate]: validating %d suggestion(s) in sandbox", sug_count)
     try:
         validator = st.validator
         if validator is None:
@@ -160,11 +175,20 @@ def validate_step(state: ConvergenceState) -> ConvergenceState:
                         st.target_commit or "HEAD",
                         st.sandbox_timeout,
                     )
+                    status_str: Literal["validated", "rejected"] = (
+                        "validated" if is_valid else "rejected"
+                    )
+                    logger.debug(
+                        "Validation result for %s (strategy: %s): %s",
+                        sug.suggestion_id,
+                        combo.label,
+                        status_str,
+                    )
                     updated_combos.append(
                         replace(
                             combo,
                             validated=is_valid,
-                            validation_status="validated" if is_valid else "rejected",
+                            validation_status=status_str,
                             validation_error=err_msg if not is_valid else None,
                         )
                     )
@@ -179,8 +203,11 @@ def validate_step(state: ConvergenceState) -> ConvergenceState:
             validated_list.append(validated_sug)
 
         st.suggestions = validated_list
+        valid_count = sum(1 for s in st.suggestions if s.validated)
+        logger.info("Orchestration [Node: validate]: %d/%d suggestions passed validation", valid_count, len(validated_list))
         st.checkpoint = "validated"
     except Exception as exc:
+        logger.error("Validation step failed: %s", exc, exc_info=True)
         st.errors.append(f"Validation step failed: {exc}")
         st.checkpoint = "validated"
 
@@ -195,6 +222,7 @@ def should_refine(state: ConvergenceState) -> str:
     if not st.llm or not st.validate or not st.provider:
         return "checkpoint"
     if st.refinement_count >= st.max_refinements:
+        logger.debug("Reached max refinements (%d), transitioning to checkpoint", st.max_refinements)
         return "checkpoint"
 
     needs_refinement = any(
@@ -202,7 +230,14 @@ def should_refine(state: ConvergenceState) -> str:
         for sug in st.suggestions
         for combo in sug.patch_combinations
     )
-    return "refine" if needs_refinement else "checkpoint"
+    if needs_refinement:
+        logger.info(
+            "Strategies requiring refinement detected. Entering refinement iteration %d/%d",
+            st.refinement_count + 1,
+            st.max_refinements,
+        )
+        return "refine"
+    return "checkpoint"
 
 
 def refine_step(state: ConvergenceState) -> ConvergenceState:
@@ -211,6 +246,7 @@ def refine_step(state: ConvergenceState) -> ConvergenceState:
     if st.checkpoint == "failed" or not st.provider:
         return st
 
+    logger.info("Orchestration [Node: refine]: executing self-correction attempt %d", st.refinement_count + 1)
     from gdss.ai.prompt_builder import build_refinement_prompt
     from gdss.ai.suggester import _anchored_block
     from gdss.ai.validation import validate_patch
@@ -295,6 +331,7 @@ def checkpoint_step(state: ConvergenceState) -> ConvergenceState:
     if st.checkpoint == "failed":
         return st
 
+    logger.info("Orchestration [Node: audit]: caching %d suggestion(s) to suggestion store", len(st.suggestions))
     try:
         for sug in st.suggestions:
             save_suggestion(
@@ -304,6 +341,7 @@ def checkpoint_step(state: ConvergenceState) -> ConvergenceState:
             )
         st.checkpoint = "awaiting_human_review"
     except Exception as exc:
+        logger.error("Checkpoint step failed: %s", exc, exc_info=True)
         st.errors.append(f"Checkpoint step failed: {exc}")
         st.checkpoint = "awaiting_human_review"
 

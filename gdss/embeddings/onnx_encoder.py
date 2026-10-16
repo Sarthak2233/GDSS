@@ -9,6 +9,9 @@ from pathlib import Path
 import numpy as np
 
 from gdss.embeddings.encoder import DEFAULT_DIM
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.embeddings.onnx")
 
 
 def default_model_path() -> Path:

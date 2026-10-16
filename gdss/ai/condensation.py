@@ -7,7 +7,9 @@ from typing import Any
 
 from gdss.ai.context import AnalysisContext
 from gdss.ai.types import Suggestion
+from gdss.logger import get_logger
 
+logger = get_logger("gdss.ai.condensation")
 _METADATA_CACHE: dict[str, int] = {}
 
 
@@ -23,10 +25,12 @@ def resolve_context_window(
     """
     # Tier 1: User / Environment Override
     if user_override is not None and user_override > 0:
+        logger.debug("Resolved context window from user configuration override: %d tokens", user_override)
         return user_override
 
     env_val = os.getenv("GDSS_CONTEXT_WINDOW")
     if env_val and env_val.isdigit():
+        logger.debug("Resolved context window from GDSS_CONTEXT_WINDOW env: %s tokens", env_val)
         return int(env_val)
 
     normalized_model = model_name.strip() if isinstance(model_name, str) else ""
@@ -52,6 +56,7 @@ def resolve_context_window(
                         if item.get("id") == normalized_model:
                             ctx_len = int(item.get("context_length", 0))
                             if ctx_len > 0:
+                                logger.info("Discovered context window for '%s' from OpenRouter API: %d tokens", normalized_model, ctx_len)
                                 _METADATA_CACHE[normalized_model] = ctx_len
                                 return ctx_len
 
@@ -67,6 +72,7 @@ def resolve_context_window(
                     for k, v in ollama_info.items():
                         if "context_length" in k and isinstance(v, (int, float)) and v > 0:
                             ctx_len = int(v)
+                            logger.info("Discovered context window for '%s' from Ollama API: %d tokens", normalized_model, ctx_len)
                             _METADATA_CACHE[normalized_model] = ctx_len
                             return ctx_len
 
@@ -80,10 +86,11 @@ def resolve_context_window(
                         if item.get("id") == normalized_model:
                             max_len = int(item.get("max_model_len", 0))
                             if max_len > 0:
+                                logger.info("Discovered context window for '%s' from vLLM API: %d tokens", normalized_model, max_len)
                                 _METADATA_CACHE[normalized_model] = max_len
                                 return max_len
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Dynamic provider metadata inspection failed for '%s': %s", normalized_model, exc)
 
     # Tier 3: Resilient Family Pattern Heuristics
     m = normalized_model.lower()
@@ -102,6 +109,7 @@ def resolve_context_window(
     else:
         ctx = 16384
 
+    logger.debug("Resolved context window for '%s' via family pattern heuristic: %d tokens", normalized_model, ctx)
     if normalized_model:
         _METADATA_CACHE[normalized_model] = ctx
     return ctx

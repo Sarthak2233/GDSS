@@ -19,7 +19,10 @@ from gdss.embeddings.branch_vector import (
 )
 from gdss.embeddings.encoder import CodeEncoder, get_encoder
 from gdss.embeddings.similarity import cosine_distance
+from gdss.logger import get_logger
 from gdss.watcher.git_observer import GitObserver
+
+logger = get_logger("gdss.drift.engine")
 
 _MODIFY_OPS = {
     OperatorType.MODIFY_FUNCTION,
@@ -107,6 +110,10 @@ class DriftEngine:
             affected=affected,
         )
         self.history.record(snap)
+        logger.info(
+            "Drift snapshot: branch=%s ref=%s magnitude=%.3f velocity=%.3f convergence=%.3f affected_symbols=%d",
+            branch, reference_branch, magnitude.magnitude, velocity, convergence, len(affected),
+        )
         return snap
 
     def _convergence(self, magnitude: float, velocity: float) -> float:
@@ -268,7 +275,8 @@ class DriftEngine:
             return []
         try:
             commit = self.observer.repo.commit(commit_sha)
-        except Exception:
+        except Exception as exc:
+            logger.debug("Failed to resolve commit %s: %s", commit_sha, exc)
             return []
         symbols: list[CodeSymbol] = []
         for blob in commit.tree.traverse():
@@ -282,7 +290,8 @@ class DriftEngine:
                 continue
             try:
                 file_syms = self.parser.parse_file(path, content)  # dsa:ignore
-            except Exception:
+            except Exception as exc:
+                logger.debug("Failed parsing %s at commit %s: %s", path, commit_sha, exc)
                 continue
             for sym in file_syms:
                 sym.ensure_identity(path)

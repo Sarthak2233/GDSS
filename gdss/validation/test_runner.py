@@ -6,10 +6,12 @@ import re
 import subprocess
 from pathlib import Path
 
+from gdss.logger import get_logger
 from gdss.validation.discovery import get_sandbox_timeout, load_validation_config
 from gdss.validation.languages import get_default_registry
 from gdss.validation.types import TestExecutionResult
 
+logger = get_logger("gdss.validation.test_runner")
 _IGNORED_DIRS = frozenset({"node_modules", "target", "vendor", "__pycache__"})
 
 
@@ -98,6 +100,7 @@ def run_targeted_tests(
         cmd, tool_name = detect_test_command(root, changed_files)
 
     if not cmd:
+        logger.debug("No automated test framework detected for %s", root)
         return TestExecutionResult(
             executed=False,
             passed=True,
@@ -111,6 +114,7 @@ def run_targeted_tests(
         if matched:
             rel_paths = " ".join(str(m.relative_to(root)) for m in matched)
             cmd = cmd.replace("{test_file}", rel_paths)
+            logger.debug("Filtered test command with targeted test files: %s", rel_paths)
         else:
             cmd = cmd.replace("{test_file}", "").strip()
 
@@ -119,6 +123,7 @@ def run_targeted_tests(
     env["CI"] = "true"
     env["GDSS_SANDBOX"] = "true"
 
+    logger.debug("Running targeted tests with '%s' (cmd: %s, timeout=%.1fs)", tool_name, cmd, resolved_timeout)
     try:
         proc = subprocess.run(
             cmd,
@@ -144,6 +149,11 @@ def run_targeted_tests(
 
         tests_run = tests_passed + tests_failed
 
+        if passed:
+            logger.info("Targeted tests PASSED with %s (%d passed)", tool_name, tests_passed)
+        else:
+            logger.warning("Targeted tests FAILED with %s (exit code %d)", tool_name, proc.returncode)
+
         return TestExecutionResult(
             executed=True,
             passed=passed,
@@ -154,6 +164,7 @@ def run_targeted_tests(
             output=output.strip(),
         )
     except subprocess.TimeoutExpired:
+        logger.warning("Targeted tests timed out after %.1fs (tool=%s)", resolved_timeout, tool_name)
         return TestExecutionResult(
             executed=True,
             passed=False,
@@ -161,6 +172,7 @@ def run_targeted_tests(
             output=f"Test run timed out after {resolved_timeout}s",
         )
     except Exception as exc:
+        logger.warning("Targeted test invocation failed (tool=%s): %s", tool_name, exc)
         return TestExecutionResult(
             executed=True,
             passed=False,

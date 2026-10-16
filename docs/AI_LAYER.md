@@ -175,7 +175,9 @@ In [`gdss/ai/orchestration.py`](../gdss/ai/orchestration.py), GDSS implements an
 ### Audited Suggestion State (`sug_...`)
 In [`gdss/ai/suggestion_store.py`](../gdss/ai/suggestion_store.py):
 - Every suggestion is assigned an immutable SHA256 hash:
-  $$\text{id} = \text{"sug\_"} + \text{sha256}(commit\_sha, file\_path, line\_start, line\_end, operator)[:20]$$
+  ```python
+  id = "sug_" + sha256(commit_sha, file_path, line_start, line_end, operator)[:20]
+  ```
 - Stored as JSON under `.gdss/suggestions/<id>.json`.
 - `is_suggestion_stale()` verifies whether the target Git branch has moved, preventing developers from applying stale suggestions against drifted files.
 

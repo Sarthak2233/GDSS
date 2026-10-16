@@ -5,6 +5,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from gdss.logger import get_logger
 from gdss.validation.syntax import validate_file_syntax
 from gdss.validation.test_runner import run_targeted_tests
 from gdss.validation.typechecker import run_targeted_typecheck
@@ -16,6 +17,8 @@ from gdss.validation.types import (
     ValidationStatus,
 )
 from gdss.validation.worktree import ephemeral_worktree
+
+logger = get_logger("gdss.validation.sandbox")
 
 
 class ValidationSandbox:
@@ -35,6 +38,12 @@ class ValidationSandbox:
         """Apply patch to an ephemeral worktree, check syntax, types, and run targeted tests."""
         t0 = time.perf_counter()
 
+        logger.info(
+            "Validating candidate patch in sandbox (target_branch=%s, run_types=%s, run_tests=%s)",
+            target_branch,
+            run_types,
+            run_tests,
+        )
         with ephemeral_worktree(self.repo_path, base_ref=target_branch) as wt_path:
             wt_str = str(wt_path)
 
@@ -55,6 +64,7 @@ class ValidationSandbox:
             )
             if apply_proc.returncode != 0:
                 err_msg = apply_proc.stderr.strip() or "git apply failed"
+                logger.warning("Sandbox patch application failed: %s", err_msg)
                 return ValidationReport(
                     status=ValidationStatus.FAILED_PATCH,
                     patch_applied=False,
@@ -83,12 +93,15 @@ class ValidationSandbox:
                     target = parts[1].split("->")[-1].strip()
                     changed_files.append(target)
 
+            logger.debug("Sandbox patch applied cleanly. Changed files: %s", changed_files)
+
             # 3. Gate 1: Multi-language AST Syntax Check
             for f in changed_files:
                 target_file = wt_path / f
                 if target_file.is_file():
                     syntax_res = validate_file_syntax(target_file)
                     if not syntax_res.valid:
+                        logger.warning("Gate 1 Syntax check failed on %s: %s", f, syntax_res.error_message)
                         return ValidationReport(
                             status=ValidationStatus.FAILED_SYNTAX,
                             patch_applied=True,
@@ -108,6 +121,7 @@ class ValidationSandbox:
                     timeout_seconds=timeout_seconds,
                 )
                 if type_res.checked and not type_res.passed:
+                    logger.warning("Gate 2 Typecheck failed (%s): %s", type_res.tool, type_res.output)
                     return ValidationReport(
                         status=ValidationStatus.FAILED_TYPES,
                         patch_applied=True,
@@ -129,6 +143,7 @@ class ValidationSandbox:
                     timeout_seconds=timeout_seconds,
                 )
                 if test_res.executed and not test_res.passed:
+                    logger.warning("Gate 3 Targeted tests failed (%s): %s", test_res.tool, test_res.output)
                     return ValidationReport(
                         status=ValidationStatus.FAILED_TESTS,
                         patch_applied=True,
@@ -142,6 +157,7 @@ class ValidationSandbox:
             else:
                 test_res = TestExecutionResult(executed=False, passed=True, tool="skipped")
 
+            logger.info("Sandbox validation PASSED in %.1fms (all gates green)", elapsed_ms())
             return ValidationReport(
                 status=ValidationStatus.PASSED,
                 patch_applied=True,

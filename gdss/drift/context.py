@@ -12,7 +12,10 @@ from gdss.core.ast_parser import ASTParser
 from gdss.core.transform_extractor import TransformExtractor
 from gdss.core.transform_types import SemanticOperator
 from gdss.drift.engine import DriftEngine
+from gdss.logger import get_logger
 from gdss.watcher.git_observer import GitObserver
+
+logger = get_logger("gdss.drift.context")
 
 
 class AnalysisContextError(ValueError):

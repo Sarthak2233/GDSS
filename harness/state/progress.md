@@ -3,6 +3,36 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-10-16 - Unified End-to-End Diagnostic Logging Subsystem
+
+- **Zero-Dependency Core Logging Engine (`gdss/logger.py`)**:
+  - Implemented centralized logging infrastructure adhering strictly to Two-Brain purity and layer direction invariants (stdlib-only: `logging`, `sys`, `os`, `pathlib`, `typing`).
+  - Added `get_logger(name)` with automatic `gdss.` namespace scoping.
+  - Added `configure_logging(level, log_file, stream)` with standard diagnostic formatting `%(asctime)s [%(levelname)s] [%(name)s] %(message)s` and ISO timestamps.
+  - Added `is_ci_environment()` and `ci_group(title)` supporting collapsible log grouping in GitHub Actions (`::group::` / `::endgroup::`) with flush protection.
+  - Unit test suite authored in `tests/test_logger.py` covering all 6 core logger behaviors.
+- **Subsystem-Wide Logging Integration Across All 13 Subpackages**:
+  - `gdss/validation/`: Detailed lifecycle logging in `pr_audit.py` (Phase 1 discovery, Phase 2 radar audit, Phase 3 sticky comments), `worktree.py` (ephemeral directory creation/cleanup), `sandbox.py` (Gate 1 syntax, Gate 2 types, Gate 3 tests), `guarded_apply.py` (preflight, backup snapshots, rollback restores), `syntax.py`, `typechecker.py`, and `test_runner.py`.
+  - `gdss/ai/`: Trace logging in `orchestration.py` across `analyze`, `draft`, `validate`, `refine`, and `checkpoint`, `condensation.py` (3-tier context window discovery and budget allocations), `prompt_builder.py`, `openai_provider.py` (cache hits, latency, completions), and `suggestion_store.py`.
+  - `gdss/conflict/`: Interaction and evaluation logging in `tensor.py` (entry calculations), `commutativity.py` (interference/contact counts), `merge_order.py` (planned sequences and cost delta), `rebase_plan.py` (transport dispositions).
+  - `gdss/drift/`: Trajectory and snapshot logging in `engine.py` (divergence magnitude, velocity, convergence), `history.py` (persistence), and `context.py`.
+  - `gdss/graph/`: AST parsing and call resolution logging in `graph_builder.py`.
+  - `gdss/embeddings/`: Indexing and vector persistence logging in `service.py`, `vector_store.py` (FAISS/numpy), and `onnx_encoder.py`.
+  - `gdss/watcher/`: Git observer initialization and commit traversal logs in `git_observer.py`.
+  - `gdss/runtime/`: Awareness packet logging in `context_engine.py` and `hierarchy.py`.
+  - `gdss/storage/`: Database connection and schema logs in `db.py`.
+  - `gdss/api/`: Request and error logging in `server.py` and `service.py`.
+  - `gdss/mcp/`: Tool invocation and dispatch diagnostics in `server.py` and `tools.py`.
+  - `gdss/cli/`: Global `--verbose` (`-v`), `--debug`, and `--log-file` options in `main.py` and shell tracing in `start.py`.
+- **CI/CD Integration (`.github/workflows/gdss-radar.yml`)**:
+  - Configured `GDSS_LOG_LEVEL: INFO` and passed `--verbose` to `gdss audit-pr`.
+- **Sensors & Verification Gate**:
+  - `bash harness/verify.sh` passed with **ALL LAYERS GREEN**:
+    - Layer 1: Ruff clean, Mypy clean (88 files), Architecture fitness clean (layer boundaries & two-brain purity hold), DSA fitness clean.
+    - Layer 2: 277 pytest tests passing, 3 skipped.
+    - Layer 3: End-to-end CLI smoke and API smoke tests passing.
+    - Frontend Gate: 35 test files, 117 vitest unit/a11y tests passing, Next.js build clean, size-limit bundle budget clean.
+
 ## 2026-10-16 - Developer Intent Injection & Agentic Validation Loop (`phase-d-github-actions` & `phase5-ai`)
 
 - **Developer Intent & Multi-Branch Commit History Context Injection**:

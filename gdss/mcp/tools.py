@@ -17,15 +17,20 @@ from gdss.core.transform_extractor import TransformExtractor
 from gdss.core.transform_types import SemanticOperator
 from gdss.drift.context import AnalysisContextError, build_analysis_context, iter_contact_pairs
 from gdss.graph.graph_builder import build_code_graph_from_repo
+from gdss.logger import get_logger
 from gdss.watcher.git_observer import GitObserver
+
+logger = get_logger("gdss.mcp.tools")
 
 
 def find_collisions(reference_branch: str = "main", repo_path: str = ".") -> dict[str, Any]:
     """Compute pairwise branch collision matrix (Omega_ij) and integration risk with concrete AST contacts."""
     path = str(Path(repo_path).resolve())
+    logger.debug("mcp.find_collisions: repo=%s, ref=%s", path, reference_branch)
     try:
         context = build_analysis_context(path, reference_branch)
     except AnalysisContextError as e:
+        logger.warning("mcp.find_collisions context error: %s", e)
         return {
             "error": str(e),
             "reference_branch": reference_branch,
@@ -33,6 +38,7 @@ def find_collisions(reference_branch: str = "main", repo_path: str = ".") -> dic
             "total_risk_score": 0.0,
         }
     except Exception as e:
+        logger.error("mcp.find_collisions failed: %s", e, exc_info=True)
         return {
             "error": f"Failed to analyze repository: {e}",
             "reference_branch": reference_branch,

@@ -8,6 +8,9 @@ import typer
 from gdss.cli.start import GDSSShell, console
 from gdss.graph.graph_builder import build_code_graph_from_repo
 from gdss.graph.graph_export import UnsupportedGraphFormatError, export_graph
+from gdss.logger import configure_logging, get_logger
+
+logger = get_logger("gdss.cli")
 
 app = typer.Typer(help="GDSS: Gate Distributive Semantic Synopsis", no_args_is_help=False)
 graph_app = typer.Typer(help="Dependency graph operations")
@@ -45,7 +48,15 @@ def run_shell(repo_path: str, command: str | None = None):
         sys.exit(status_code)
 
 @app.callback(invoke_without_command=True)
-def main_callback(ctx: typer.Context, repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path")):
+def main_callback(
+    ctx: typer.Context,
+    repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose informational logging"),
+    debug: bool = typer.Option(False, "--debug", help="Enable debug diagnostic logging"),
+    log_file: str | None = typer.Option(None, "--log-file", help="Path to write log output"),
+):
+    level = "DEBUG" if debug else ("INFO" if verbose else None)
+    configure_logging(level=level, log_file=log_file)
     if ctx.invoked_subcommand is None:
         run_shell(repo)
 
@@ -262,8 +273,8 @@ def suggest(
         for s in suggestions:
             try:
                 save_suggestion(s, repo)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Failed saving suggestion %s to cache: %s", s.suggestion_id, exc)
             console.print(f"\n[bold blue]Suggestion {s.rank}[/]: {s.kind} on [bold]{s.file_path}[/] (Confidence: {s.confidence:.2f}) [dim cyan](ID: {s.suggestion_id})[/]")
             console.print(f"Rationale: {s.rationale}")
             console.print(f"Action: {s.action}")
@@ -326,8 +337,15 @@ def audit_pr_cmd(
     token: str | None = typer.Option(None, "--token", help="GitHub token (defaults to GITHUB_TOKEN env var)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Simulate audit and print radar markdown report without modifying GitHub"),
     output: str | None = typer.Option(None, "--output", "-o", help="Write radar markdown report to file"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose informational logging"),
+    debug: bool = typer.Option(False, "--debug", help="Enable debug diagnostic logging"),
+    log_file: str | None = typer.Option(None, "--log-file", help="Path to write log output"),
 ):
     """Audit concurrent pull requests for semantic collisions and post sticky radar reports."""
+    if verbose or debug or log_file:
+        level = "DEBUG" if debug else ("INFO" if verbose else None)
+        configure_logging(level=level, log_file=log_file)
+
     from gdss.validation.pr_audit import run_pr_audit
 
     exit_code = run_pr_audit(

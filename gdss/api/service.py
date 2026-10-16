@@ -14,7 +14,10 @@ from gdss.drift.history import SnapshotHistory, default_history_path
 from gdss.drift.types import DriftAlert, DriftSnapshot
 from gdss.embeddings.service import find_similar_symbols, project_symbol_embeddings
 from gdss.graph.graph_builder import build_code_graph_from_repo
+from gdss.logger import get_logger
 from gdss.watcher.git_observer import GitObserver
+
+logger = get_logger("gdss.api.service")
 
 _VELOCITY_EPS = 1e-6
 
@@ -28,6 +31,7 @@ def _wrap_ok(data: Any, warnings: list[str] | None = None) -> dict[str, Any]:
 
 
 def _wrap_err(code: str, what: str, why: str, fix: str) -> dict[str, Any]:
+    logger.debug("API error [%s]: %s (why: %s)", code, what, why)
     return {
         "status": "error",
         "error": {

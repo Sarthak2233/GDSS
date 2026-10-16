@@ -5,6 +5,10 @@ from __future__ import annotations
 from collections.abc import Hashable, Mapping, Sequence
 from dataclasses import dataclass
 
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.conflict.merge_order")
+
 
 @dataclass(frozen=True)
 class MergeOrderStep:
@@ -88,12 +92,15 @@ def plan_merge_order(
         order.append(next_operator)
         remaining = [item for item in remaining if item[0] != next_index]
 
-    return MergeOrderPlan(
+    plan = MergeOrderPlan(
         order=tuple(order),
         baseline_cost=_sequence_cost(operators, costs),
         proposed_cost=_sequence_cost(order, costs),
         steps=tuple(steps),
     )
+    logger.info("Planned merge order for %d branches: %s (baseline cost: %.2f, proposed cost: %.2f)",
+                len(operators), [str(x) for x in plan.order], plan.baseline_cost, plan.proposed_cost)
+    return plan
 
 
 def minimize_omega_sequence(

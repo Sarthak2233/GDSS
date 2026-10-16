@@ -1,7 +1,10 @@
 import json
 from typing import Any
 
+from gdss.logger import get_logger
 from gdss.storage.db import RuntimeDB
+
+logger = get_logger("gdss.runtime.hierarchy")
 
 
 class HierarchyManager:

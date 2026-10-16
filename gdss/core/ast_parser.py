@@ -10,6 +10,9 @@ from tree_sitter import Language, Node, Parser
 
 from gdss.core.structural_fingerprint import extract_tokens_from_body_text
 from gdss.core.transform_types import BodyBlock, CodeSymbol, SymbolType
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.core.ast_parser")
 
 
 class LocationKwargs(TypedDict):

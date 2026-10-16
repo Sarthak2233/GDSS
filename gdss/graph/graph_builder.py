@@ -6,6 +6,9 @@ import os
 
 from gdss.core.ast_parser import ASTParser, get_source_extensions
 from gdss.graph.code_graph import CodeGraph
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.graph.builder")
 
 SKIP_DIR_NAMES = {
     ".git",
@@ -72,18 +75,22 @@ def build_code_graph_from_repo(
             file_list.append(absolute_path)
 
     total = len(file_list)
+    logger.debug("Discovered %d candidate source files under %s", total, root_path)
     for idx, absolute_path in enumerate(file_list, start=1):
         chart_location = os.path.relpath(absolute_path, root_path)
         try:
             symbols = parser.parse_file(absolute_path)
             graph.add_file_symbols(chart_location, symbols)
-        except OSError:
+        except OSError as exc:
+            logger.debug("Failed reading file %s: %s", absolute_path, exc)
             continue
         if progress_callback and (idx % batch_size == 0 or idx == total):
             progress_callback(idx, total, dict(skipped_unsupported))
 
+    logger.debug("Resolving call graph edges across %d files...", total)
     graph.resolve_calls()
     # Attach skipped summary for CLI callers
     graph.skipped_unsupported = skipped_unsupported  # type: ignore[attr-defined]
     graph.parser_skipped = parser.consume_skipped_summary()  # type: ignore[attr-defined]
+    logger.info("CodeGraph built: %d nodes, %d edges", len(graph.g.nodes), len(graph.g.edges))
     return graph

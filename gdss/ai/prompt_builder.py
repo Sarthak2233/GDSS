@@ -6,6 +6,9 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from gdss.ai.types import Suggestion
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.ai.prompt_builder")
 
 
 def _suggestion_lines(suggestion: Suggestion) -> list[str]:

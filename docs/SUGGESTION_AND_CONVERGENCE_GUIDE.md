@@ -222,7 +222,9 @@ flowchart LR
 
 ### Stage 4: Audited State & Immutable IDs (`sug_...`)
 - [`gdss/ai/suggestion_store.py`](../gdss/ai/suggestion_store.py) computes an immutable hash ID:
-  $$\text{suggestion\_id} = \text{"sug\_"} + \text{sha256}(commit\_sha, file\_path, line\_start, line\_end, operator)[:20]$$
+  ```python
+  suggestion_id = "sug_" + sha256(commit_sha, file_path, line_start, line_end, operator)[:20]
+  ```
 - Persists metadata to `.gdss/suggestions/<id>.json`.
 - Halts at the `AWAITING_HUMAN_REVIEW` checkpoint. **GDSS never auto-merges or auto-commits.**
 

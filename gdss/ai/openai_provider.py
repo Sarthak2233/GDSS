@@ -9,6 +9,10 @@ from typing import Any
 
 import httpx
 
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.ai.openai_provider")
+
 
 class OpenAICompatibleProvider:
     """Provider for OpenAI-compatible Chat Completion APIs (OpenAI, GitHub Models, Azure, vLLM)."""
@@ -61,6 +65,7 @@ class OpenAICompatibleProvider:
         cache_key = hashlib.sha256(f"{self.model}:{prompt}".encode()).hexdigest()
         cache_path = self.cache_dir / cache_key
         if cache_path.exists():
+            logger.debug("LLM cache hit for model %s (key: %s)", self.model, cache_key[:8])
             return cache_path.read_text(encoding="utf-8")
 
         endpoint = self.base_url
@@ -84,14 +89,20 @@ class OpenAICompatibleProvider:
         if max_tokens > 0:
             payload["max_tokens"] = max_tokens
 
-        response = httpx.post(
-            api_url,
-            headers=headers,
-            json=payload,
-            timeout=self.timeout,
-        )
-        response.raise_for_status()
-        text = response.json()["choices"][0]["message"]["content"]
+        logger.info("Dispatching LLM completion to %s (model: %s, prompt_len: %d)", api_url, self.model, len(prompt))
+        try:
+            response = httpx.post(
+                api_url,
+                headers=headers,
+                json=payload,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            text = response.json()["choices"][0]["message"]["content"]
+            logger.info("Received LLM response for model %s (%d chars)", self.model, len(text))
+        except Exception as exc:
+            logger.error("LLM request failed for model %s at %s: %s", self.model, api_url, exc)
+            raise
 
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         cache_path.write_text(text, encoding="utf-8")

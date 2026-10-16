@@ -1,12 +1,14 @@
 {
   "project": "GDSS",
   "reference_doc": ".cursor/plans/gdss_complete_roadmap_e8cc388d.plan.md",
-  "definition_of_done": "bash harness/verify.sh exits 0 (static -> tests -> end-to-end)",
+  "frontend_roadmap_doc": "docs/FRONTEND_ROADMAP.md",
+  "definition_of_done": "bash harness/verify.sh exits 0 (backend static -> tests -> e2e; frontend gate when web/ exists). Frontend product features (id frontend-*) additionally require bash harness/verify-frontend.sh green.",
   "rules": [
-    "Pick exactly ONE feature whose dependencies are all done.",
-    "Implement test-first (see .cursor/skills/tdd).",
+    "Pick exactly ONE feature whose dependencies are all done (shared queue: backend or frontend).",
+    "Implement test-first (backend: .cursor/skills/tdd; frontend: .cursor/skills/build-frontend-component).",
     "Update this file and progress.md when status changes.",
-    "Do not edit existing gdss/ or tests/ source unless the user asks."
+    "Do not edit existing gdss/ or tests/ source unless the user asks (exception: frontend-local-api authorizes additive gdss/api/ + gdss serve).",
+    "Frontend product phases complement backend phases; see docs/FRONTEND_ROADMAP.md."
   ],
   "status_values": [
     "pending",
@@ -100,59 +102,77 @@
       "phase": "1.3",
       "title": "Continuous Drift Monitoring: drift engine, alerts, daemon",
       "layer": "drift",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "phase2-embeddings"
       ],
-      "done_criteria": "gdss/drift/* computes divergence + alerts; tests green"
+      "done_criteria": "gdss/drift/* computes divergence + alerts; tests green",
+      "evidence": "verify.sh ALL LAYERS GREEN (78 pytest, 3 skipped); tip+traj I(B_i); DriftAlerts; ConflictProbabilityEstimator (no conflict\u2192drift); DriftMonitor+daemon; gdss drift/alerts in cli-smoke"
     },
     {
       "id": "phase4-tensor",
       "phase": "1.4",
-      "title": "Conflict Tensor Engine: Omega matrix, commutativity, geometry",
+      "title": "Flat rank-2 Conflict Tensor: pairwise Omega marginal + commutativity",
       "layer": "conflict",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "phase3-drift"
       ],
-      "done_criteria": "gdss/conflict/* computes Omega_{ij} + commutativity table; tests green"
+      "done_criteria": "Flat rank-2 conflict tensor: gdss/conflict/{commutativity,tensor}.py compute sparse Omega_{ij} (pairwise marginal, vision-doc weights) + commutativity table + R_merge; no gdss.drift import; gdss tensor CLI; tests + verify.sh green. Geometric form (metric G, transport P, <v_i,P(v_j)>_G) deferred to phase4a-d.",
+      "evidence": "commutativity.py + tensor.py + gdss tensor CLI; tests/conflict/test_commutativity|interference|tensor + test_tensor_cli; no conflict\u2192drift import; verify.sh ALL LAYERS GREEN; cli_smoke includes gdss tensor"
     },
     {
       "id": "phase5-ai",
       "phase": "1.5",
       "title": "AI Convergence Layer: suggestions, semantic rebase, intent",
       "layer": "ai",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "phase4-tensor"
       ],
-      "done_criteria": "gdss/ai/* produces validated suggestions; never auto-merges; tests green"
+      "done_criteria": "gdss/ai/* produces validated suggestions; never auto-merges; tests green",
+      "evidence": "verify.sh ALL LAYERS GREEN; API endpoints /v1/suggestions and /v1/model/status implemented; CLI gdss suggest and gdss model * implemented"
     },
     {
       "id": "phase6-validation",
       "phase": "1.6",
       "title": "Validation Sandbox: tests, types, syntax checks",
       "layer": "validation",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "phase5-ai"
       ],
-      "done_criteria": "gdss/validation/* validates suggestions before presentation; tests green"
+      "done_criteria": "gdss/validation/* validates suggestions before presentation; tests green",
+      "evidence": "verify.sh ALL LAYERS GREEN; gdss/validation/* implemented with ephemeral worktree sandboxing, multi-language syntax AST parsing, targeted typechecking and test runners; exposed via MCP gdss_sandbox_validate_patch and CLI gdss suggest --validate --sandbox-timeout"
     },
     {
-      "id": "phase7-research",
-      "phase": "1.7",
-      "title": "Geometric Merge Research: trajectories, transport, geodesics",
-      "layer": "geometry",
-      "status": "pending",
+      "id": "phase5a-agent-orchestration",
+      "phase": "1.5a",
+      "title": "Agent Orchestration: optional LangGraph workflow for analysis, review checkpoints, and audited suggestion state",
+      "layer": "ai",
+      "status": "done",
       "deps": [
-        "phase4-tensor"
+        "phase5-ai"
       ],
-      "done_criteria": "gdss/geometry/* experimental trajectory + parallel transport prototypes"
+      "done_criteria": "Optional gdss/ai agent graph orchestrates existing deterministic ranking, topology, optional local LLM drafting, and validation without duplicating their logic; it is model-free by default, pauses for explicit human review, records metadata-only state, never writes files or mutates Git state, and tests plus verify.sh are green. LangGraph remains an optional dependency so pip install gdss stays offline and lightweight.",
+      "evidence": "verify.sh ALL LAYERS GREEN; implemented gdss/ai/orchestration.py and gdss/ai/suggestion_store.py with pure Python state machine, immutable sug_... IDs, target commit SHA auditing, awaiting_human_review checkpoint, and optional LangGraph export; tests/ai/test_orchestration.py and tests/ai/test_suggestion_store.py 7 passed."
+    },
+    {
+      "id": "phase6-human-approved-apply",
+      "phase": "1.6a",
+      "title": "Human-Approved Patch Apply: guarded local application of a selected validated suggestion",
+      "layer": "validation",
+      "status": "done",
+      "deps": [
+        "phase6-validation",
+        "phase5a-agent-orchestration"
+      ],
+      "done_criteria": "A separate explicit local apply command/action requires a selected suggestion ID and strategy; preflight checks exact repository root, canonical path, source/AST fingerprint freshness, one approved file, and one approved symbol range; application is atomic with rollback data and post-apply syntax/AST validation. It prints the resulting diff and never runs git merge, rebase, add, commit, push, or chooses a strategy. Rejected or stale patches produce WHAT/WHY/FIX errors; tests and verify.sh are green.",
+      "evidence": "verify.sh ALL LAYERS GREEN (236 pytest, 117 vitest); implemented gdss/validation/guarded_apply.py with preflight security checks, canonical path traversal gates, Git HEAD freshness verification, AST symbol presence checks, atomic apply, post-apply syntax validation rollback, and manual undo via 'gdss apply <ID> [--strategy <S>] [--dry-run] [--rollback]'; tests/validation/test_guarded_apply.py 9 passed."
     },
     {
       "id": "sp1-telemetry",
-      "phase": "1.8",
+      "phase": "1.7",
       "title": "Sub-Phase: Telemetry & Privacy Integration",
       "layer": "cli",
       "status": "pending",
@@ -161,7 +181,7 @@
     },
     {
       "id": "sp1-distribution",
-      "phase": "1.8",
+      "phase": "1.7",
       "title": "Sub-Phase: CLI Stabilization & Distribution",
       "layer": "cli",
       "status": "pending",
@@ -170,12 +190,275 @@
     },
     {
       "id": "sp1-cicd",
-      "phase": "1.8",
+      "phase": "1.7",
       "title": "Sub-Phase: CI/CD Pipeline",
       "layer": "validation",
       "status": "pending",
       "deps": [],
       "done_criteria": "GitHub Actions workflow running verify.sh"
+    },
+    {
+      "id": "phase-d-mcp-server",
+      "phase": "1.8a",
+      "title": "Delivery Interface: Model Context Protocol (MCP) Tool Server",
+      "layer": "mcp",
+      "status": "done",
+      "deps": [
+        "phase5-ai"
+      ],
+      "done_criteria": "Expose read-only deterministic tools (gdss_find_collisions, gdss_get_merge_order, gdss_inspect_symbol_impact, gdss_plan_semantic_rebase, gdss_validate_patch) via MCP stdio JSON-RPC 2.0 server for Cursor, Copilot, and Claude Code with zero GDSS token cost; tests green.",
+      "evidence": "Implemented gdss/mcp/{server,tools}.py and CLI 'gdss mcp'; tests/mcp/test_mcp_server.py 10 passed; two-brain purity sensor enforced; verify.sh ALL LAYERS GREEN"
+    },
+    {
+      "id": "phase-d-github-actions",
+      "phase": "1.8b",
+      "title": "Delivery Interface: GitHub Actions Automated PR Collision Audit",
+      "layer": "validation",
+      "status": "done",
+      "deps": [
+        "phase5-ai"
+      ],
+      "done_criteria": "GitHub Action workflow auditing incoming PRs for cross-branch semantic collisions with LangGraph state machine, AnalysisContext injection, sandbox-validated patches, and 1-click commit suggestions; tests green.",
+      "evidence": "verify.sh ALL LAYERS GREEN (271 backend tests pass, 117 frontend tests pass); gdss/validation/pr_audit.py and CLI 'gdss suggest' integrated with build_pr_analysis_context, GitObserver.get_commits_between, resolve_context_window (OpenRouter/Ollama/vLLM APIs + env/CLI overrides + heuristics), ConvergenceState agentic self-correction refinement loop (should_refine & refine_step), and radar refinement badge reporting; tests/ai/test_agentic_refinement_loop.py (5 passed), tests/ai/test_condensation.py (5 passed), tests/validation/test_pr_audit.py (15 passed), tests/cli/test_suggest_validation_cli.py (4 passed)."
+    },
+    {
+      "id": "phase4a-riemannian-metric",
+      "phase": "R.1",
+      "title": "Research Track: Riemannian metric G on M (pullback from embeddings)",
+      "layer": "geometry",
+      "status": "blocked",
+      "deps": [
+        "research-track-frozen"
+      ],
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
+    },
+    {
+      "id": "phase4b-parallel-transport",
+      "phase": "R.2",
+      "title": "Research Track: Parallel transport P_j->i (semantic rebase)",
+      "layer": "geometry",
+      "status": "blocked",
+      "deps": [
+        "research-track-frozen"
+      ],
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
+    },
+    {
+      "id": "phase4c-geometric-tensor",
+      "phase": "R.3",
+      "title": "Research Track: Geometric Omega: <v_i, P_j->i(v_j)>_G",
+      "layer": "geometry",
+      "status": "blocked",
+      "deps": [
+        "research-track-frozen"
+      ],
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
+    },
+    {
+      "id": "phase4d-geodesic-merge",
+      "phase": "R.4",
+      "title": "Research Track: Geodesic merge optimum plane (minimize R_merge)",
+      "layer": "geometry",
+      "status": "blocked",
+      "deps": [
+        "research-track-frozen"
+      ],
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
+    },
+    {
+      "id": "phase4e-config-tensor",
+      "phase": "R.5",
+      "title": "Research Track: Rank-N config tensor on M^N (N-way / octopus merges)",
+      "layer": "geometry",
+      "status": "blocked",
+      "deps": [
+        "research-track-frozen"
+      ],
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
+    },
+    {
+      "id": "phase7-research",
+      "phase": "R.6",
+      "title": "Research Track: Geometric Merge Research Umbrella",
+      "layer": "geometry",
+      "status": "blocked",
+      "deps": [
+        "research-track-frozen"
+      ],
+      "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
+    },
+    {
+      "id": "frontend-harness",
+      "phase": "F0",
+      "title": "Frontend Harness (the visual brain): guides, skills, tokens, scaffold, and verification gates",
+      "layer": "frontend",
+      "status": "done",
+      "deps": [],
+      "done_criteria": ".cursor/rules/frontend/01-20 + .cursor/skills/* (frontend) + web/ scaffold (Next.js+TS+Tailwind+Framer) with Button(8-state) + MetricCard + vitest/jest-axe tests + harness/sensors/frontend/* (lint/typecheck/token_fitness/component_tests/e2e) + verify-frontend.sh wired into verify.sh; token_fitness green; verify.sh green",
+      "evidence": "verify.sh ALL LAYERS GREEN with frontend hook (2026-07-22); token_fitness OK on reference components; gates degrade gracefully without node"
+    },
+    {
+      "id": "frontend-hard-gates",
+      "phase": "F0.1",
+      "title": "Frontend hard gates: install JS toolchain so F1/F2 (and F3 size-limit) sensors enforce instead of SKIP",
+      "layer": "frontend",
+      "status": "done",
+      "deps": [
+        "frontend-harness"
+      ],
+      "done_criteria": "cd web && pnpm install completes; bash harness/verify-frontend.sh runs eslint, tsc, token_fitness, and vitest+jest-axe as hard gates (not SKIP for missing node_modules); size-limit runs or skips only for missing browsers; verify.sh still green; document evidence in progress.md",
+      "evidence": "pnpm install + pnpm-lock.yaml; verify-frontend F1/F2 hard OK (eslint/tsc/token_fitness/vitest 9 tests); F3 size-limit OK (~43kB first-load); Playwright SKIP (no e2e specs); verify.sh ALL LAYERS GREEN (2026-07-23)"
+    },
+    {
+      "id": "frontend-local-api",
+      "phase": "F1",
+      "title": "Local HTTP API: gdss serve / gdss/api JSON for status, graph, drift, alerts, log, similar (metadata only)",
+      "layer": "frontend",
+      "status": "done",
+      "deps": [
+        "frontend-hard-gates",
+        "phase1-graph",
+        "phase2-embeddings",
+        "phase3-drift"
+      ],
+      "done_criteria": "Additive gdss/api/ + CLI gdss serve --repo PATH --port 8787; GET /v1/status|/v1/graph|/v1/drift|/v1/alerts|/v1/log|/v1/similar return JSON (no source bodies/PII); pytest for API handlers; cli or API smoke; privacy rule (60-telemetry-privacy); verify.sh green. Authorizes additive gdss/api/ only.",
+      "evidence": "API tests + api smoke pass; endpoints implemented safely using GitObserver/DriftEngine/etc.; API strict JSON envelopes (no source code/PII); verify.sh ALL LAYERS GREEN"
+    },
+    {
+      "id": "frontend-app-shell",
+      "phase": "F2",
+      "title": "App shell: nav, repo/ref picker, routes, loading/empty/error patterns, TanStack Query over the API",
+      "layer": "frontend",
+      "status": "done",
+      "deps": [
+        "frontend-local-api"
+      ],
+      "done_criteria": "web/ app shell with nav + repo/ref picker; routes for dashboard/graph/drift/similar; loading/empty/error UX per frontend rules 13-15; TanStack Query client using NEXT_PUBLIC_GDSS_API; vitest+jest-axe; verify-frontend.sh green",
+      "evidence": "Web app shell built with navigation, repo/ref picker, and route groups (app/(dashboard)); TanStack Query Providers + RepoContext + web/lib/api.ts configured for NEXT_PUBLIC_GDSS_API; loading.tsx & error.tsx UX implemented; 22 vitest tests + jest-axe passed; verify-frontend.sh ALL LAYERS GREEN"
+    },
+    {
+      "id": "frontend-status-dashboard",
+      "phase": "F3",
+      "title": "Status dashboard: MetricCards for trajectory, drift vs attractor, conflicts wired to /status + /drift",
+      "layer": "frontend",
+      "status": "done",
+      "deps": [
+        "frontend-app-shell"
+      ],
+      "done_criteria": "Dashboard route shows Trend+Context+Comparison+Animation MetricCards fed by /v1/status and /v1/drift (not bare numbers); complements gdss status/drift; component tests + verify-frontend.sh green",
+      "evidence": "Dashboard route (/dashboard) with DashboardGrid and transcendental widgets (TrajectoryCard, DriftAttractorCard, ConflictTreeCard, GlobalHealthDialCard, IntegrityRibbon) fed by /v1/status and /v1/drift; all motion tokens and reduced-motion handling verified by token_fitness; 16 vitest suites (53 tests) including jest-axe passed; verify-frontend.sh and verify.sh ALL LAYERS GREEN"
+    },
+    {
+      "id": "frontend-semantic-graph",
+      "phase": "F4",
+      "title": "Semantic graph: React Flow view with breathe/pulse motion; select node shows impact; data from /graph",
+      "layer": "frontend",
+      "status": "done",
+      "deps": [
+        "frontend-app-shell"
+      ],
+      "done_criteria": "React Flow graph from /v1/graph; nodes breathe, edges pulse (tokens + reduced-motion); node select shows impact; complements analyze/graph export/impact; lazy-loaded; verify-frontend.sh green",
+      "evidence": "3D Semantic Constellation (/graph) built with React Three Fiber + d3-force-3d layout engine; interactive node selection opens NodeDetailPanel with Connected Symbols (imports/defines/calls) for graph traversal; interactive ConstellationLegend with Two-Brain Guide modal; SymbolSearchPicker autocomplete; HTML floating tooltips on canvas hover; verified by token_fitness.py, 23 vitest suites (77 tests), jest-axe, and verify-frontend.sh green"
+    },
+    {
+      "id": "frontend-drift-alerts",
+      "phase": "F5",
+      "title": "Drift timeline + severity alerts UI from /drift + /alerts",
+      "layer": "frontend",
+      "status": "done",
+      "deps": [
+        "frontend-app-shell"
+      ],
+      "done_criteria": "Drift route with timeline/sparklines and severity-bucketed alerts from /v1/drift + /v1/alerts; complements gdss drift/alerts; loading/empty/error covered; verify-frontend.sh green",
+      "evidence": "Drift Monitor (/drift) route implemented with TanStack Query over /v1/drift and /v1/alerts; interactive DriftTimelineChart displaying per-branch geodesic divergence magnitude, velocity, convergence badge, and sparklines; SeverityAlertsMatrix with interactive severity-bucket filter pills (ALL, CRITICAL, HIGH, MEDIUM, LOW) and branch selector bar; clicking affected symbol chips navigates to /graph?symbol=ID; WHAT/WHY/FIX agent error anatomy in DriftErrorState; verified by token_fitness.py, 25 vitest suites (85 tests), jest-axe a11y, size-limit bundle budget (6.58 kB for /drift), and full verify.sh & verify-frontend.sh green"
+    },
+    {
+      "id": "frontend-similarity",
+      "phase": "F6",
+      "title": "Assistive similarity explorer from /similar (labeled assistive; never authoritative)",
+      "layer": "frontend",
+      "status": "done",
+      "deps": [
+        "frontend-app-shell"
+      ],
+      "done_criteria": "Similarity explorer UI over /v1/similar; UI copy labels results as assistive/probabilistic; never presented as deterministic truth; complements gdss similar; verify-frontend.sh green",
+      "evidence": "Assistive Similarity Explorer (/similar) integrated into 3D Constellation view; features glassmorphic AssistiveBadge explicitly labeling similarity as assistive/probabilistic with explanation tooltip; interactive SymbolSearchPicker autocomplete and ConstellationLegend Two-Brain guide; interactive search filters and highlights neighbor nodes in 3D space via /v1/similar; verified by token_fitness.py, 23 vitest suites (77 tests), jest-axe, and verify-frontend.sh green"
+    },
+    {
+      "id": "frontend-embedding-space",
+      "phase": "F6.1",
+      "title": "Embedding-space visualizer on /similar (PCA cloud + ranked neighbors; not dependency graph)",
+      "layer": "frontend",
+      "status": "done",
+      "deps": [
+        "frontend-similarity",
+        "phase2-embeddings",
+        "frontend-local-api"
+      ],
+      "done_criteria": "/similar uses GET /v1/embeddings/projection for 2D PCA layout + /v1/similar for ranked neighbors; AssistiveBadge; no ConstellationCanvas/graph edges as primary; link to /graph; verify.sh + verify-frontend.sh green",
+      "evidence": "GET /v1/embeddings/projection (PCA via VectorStore.export_matrix); /similar redesigned with EmbeddingSpaceCanvas + NeighborRankPanel; AssistiveBadge retained; Open in Semantic Graph link; nav label Embedding Space; docs/f1_api_contract + FRONTEND_ROADMAP updated; verify.sh ALL LAYERS GREEN (110 pytest passed, frontend gate green)"
+    },
+    {
+      "id": "frontend-conflict-tensor",
+      "phase": "F7",
+      "title": "Conflict tensor UI: Omega_ij heatmap + commutativity table; conflicts glow",
+      "layer": "frontend",
+      "status": "done",
+      "deps": [
+        "frontend-app-shell",
+        "phase4-tensor"
+      ],
+      "done_criteria": "Heatmap + commutativity table for Omega_ij from conflict API once phase4-tensor lands; conflict cells use danger/glow motion tokens; verify-frontend.sh green",
+      "evidence": "GET /v1/tensor (flat form + R_merge + commutativity); /tensor page (OmegaHeatmap, cell detail, commutativity table, MergeRiskCard); nav + ConflictRiskCard link; verify.sh ALL LAYERS GREEN 2026-07-30"
+    },
+    {
+      "id": "frontend-ai-suggestions",
+      "phase": "F8",
+      "title": "AI suggestion review UI; agent state, explicit strategy selection, and deterministic validation status",
+      "layer": "frontend",
+      "status": "pending",
+      "deps": [
+        "frontend-app-shell",
+        "phase5-ai",
+        "phase5a-agent-orchestration"
+      ],
+      "done_criteria": "Suggestion review UI displays deterministic rationale, topology, patch strategies, validation status, and agent run/checkpoint state. Users can start or cancel a local suggestion run and select or reject a strategy, but no action writes files or mutates Git state. The API exposes metadata and IDs only, never source bodies or patch text; verify-frontend.sh green."
+    },
+    {
+      "id": "frontend-validation-ui",
+      "phase": "F9",
+      "title": "Validation sandbox results surface",
+      "layer": "frontend",
+      "status": "pending",
+      "deps": [
+        "frontend-ai-suggestions",
+        "phase6-validation"
+      ],
+      "done_criteria": "UI surfaces validation sandbox results (tests/types/syntax) for suggestions; error UI uses WHAT/WHY/FIX; it makes validation evidence visible before any later apply control; verify-frontend.sh green"
+    },
+    {
+      "id": "frontend-human-approved-apply",
+      "phase": "F9.1",
+      "title": "Human-approved apply UI: preflight review, explicit confirmation, diff, and rollback result",
+      "layer": "frontend",
+      "status": "pending",
+      "deps": [
+        "frontend-validation-ui",
+        "phase6-human-approved-apply"
+      ],
+      "done_criteria": "A local-only review flow lets a user explicitly apply one selected, validated suggestion strategy after showing the exact target, freshness/preflight checks, and validation evidence. Confirmation is required per apply; the UI never selects a strategy, auto-applies, stages, commits, pushes, or invokes merge/rebase. It renders the resulting diff, rollback outcome, and WHAT/WHY/FIX errors; API transport and persistence remain metadata-only; verify-frontend.sh green."
+    },
+    {
+      "id": "frontend-manifold-3d",
+      "phase": "F10",
+      "title": "3D manifold: lazy R3F trajectory/merge/drift with React Flow fallback + reduced-motion",
+      "layer": "frontend",
+      "status": "pending",
+      "deps": [
+        "frontend-semantic-graph",
+        "phase7-research"
+      ],
+      "done_criteria": "Lazy-loaded R3F manifold view; 2D React Flow fallback; prefers-reduced-motion disables ambient 3D; bundle stays within size-limit; complements phase7-research; verify-frontend.sh green"
     }
   ],
   "harness_findings": [

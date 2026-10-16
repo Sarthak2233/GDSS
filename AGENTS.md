@@ -10,40 +10,41 @@ Read this first. Then run the startup lifecycle. Do not skip the verification ga
 
 ## What GDSS is
 
-GDSS (Geometric Distributed Software Synchronizer) is a **semantic intelligence layer above
-Git**. It treats collaborative software development as a continuous geometric-semantic
-dynamical system:
+GDSS (Gate Distributive Semantic Synopsis) is a **Semantic Branch Intelligence and Merge Assistance Platform** (PR Collision Radar
+& Convergence Assistant), built as a semantic intelligence layer above Git:
 
-> ⚠️⚠️⚠️⚠️⚠️ **Important Warning**
->
->The number of branch defines the construction of the mathematics around this project.
->You can take a reference from here about some concepts 
-https://ocw.mit.edu/courses/18-994-seminar-in-geometry-fall-2004/f8e7b8f1462fe0b3abfd22f7b79c16dd_chapter16.pdf
+1. **Repository Intelligence (Deterministic Core):** Tracks branches, commits, AST symbols,
+   and dependency call/import graphs to identify affected symbols and contractual changes.
+2. **PR Collision Radar:** Computes pairwise branch interaction ($\Omega_{ij}$), detecting
+   non-commutative operations and semantic overlap across concurrent pull requests before merge.
+3. **AI Convergence Assistant:** Pinpoints collision topologies, explains risks in plain
+   English, proposes minimal conflict-free patches, and recommends optimal merge orders.
+4. **Sandboxed Validation:** Tests candidate patches in ephemeral Git worktrees (syntax,
+   types, targeted tests) before human review. Never auto-merges; humans decide what lands.
 
+Canonical specification: [`PRODUCT_SPEC.md`](PRODUCT_SPEC.md).  
+Implementation gap: [`docs/IMPLEMENTATION_GAP.md`](docs/IMPLEMENTATION_GAP.md).  
+Product intent: [`docs/PRODUCT_INTENT.md`](docs/PRODUCT_INTENT.md).
 
-- A repository state is a point on a semantic manifold `M`.
-- A branch is a trajectory `gamma_i(t)` on `M`.
-- A commit is a tangent vector / transformation `dC`.
-- A merge conflict is non-commutativity of transformations: `[T_i, T_j] != 0`.
-- Branch interaction is the conflict tensor `Omega_{ij}`.
-- The `dev`/reference branch is the attractor trajectory all branches are measured against.
-
-The product goal: detect semantic branch drift, identify affected symbols, and predict
-likely conflicts and convergence **before** merge. See the source vision in
-`FROM WHERE IT ALL STARTED..txt` and the phased plan in
-`.cursor/plans/gdss_complete_roadmap_e8cc388d.plan.md`.
-
-GDSS is designed across three deployment tiers:
-1. **Local CLI Agent:** The core parser, extractor, and drift monitor. Runs completely offline on developer machines.
-2. **Hybrid Cloud SaaS:** Aggregates metadata for org-wide analytics, dashboards, and conflict tensor alerts.
-3. **Self-Hosted Enterprise:** On-premise turnkey appliance for absolute data sovereignty (SOC2/GDPR ready).
+### Deployment & Inference Architecture (Zero Token Bleed)
+1. **MCP Tool Server (IDE First):** Exposes deterministic analysis tools to Cursor, Claude Code,
+   and Copilot. The developer's AI client powers the chat conversation using their own account.
+   GDSS incurs $0 token cost.
+2. **GitHub Actions (PR Automation):** Audits incoming PRs, posts collision radar reports, and
+   uses repo-entitled Copilot CLI/Models or user API keys.
+3. **Local CLI Agent:** Runs completely offline on developer laptops with optional Ollama/vLLM.
+4. **Hosted / Enterprise:** Future managed service for centralized organization policies.
 
 ## What GDSS is NOT
 
-- Not a Git wrapper, chatbot, or autocomplete tool.
-- Not a "perfect universal merge oracle" - semantic equivalence and halting are undecidable.
-  GDSS builds **probabilistic approximations** for the common cases (renames, refactors, API
-  changes) and is honest about the limits.
+- Not a Git wrapper, chatbot, or general autocomplete tool.
+- Not a perfect-code factory — it does not guarantee bug-free merges.
+- Not a "universal merge oracle" — program equivalence and halting are undecidable; GDSS builds
+  probabilistic approximations for common refactors and API shifts.
+- Never auto-merges without human approval. Proposes and validates; humans decide.
+- Theoretical differential geometry (Riemannian metric $G$, parallel transport $P$, rank-$N$
+  octopus tensors on $M^N$) belongs to **Phase R (Research Track)**; it does not block product
+  delivery.
 
 ---
 
@@ -67,7 +68,37 @@ bash harness/sensors/cli_smoke.sh     # gdss CLI end-to-end (Layer 3)
 gdss --help
 gdss status
 gdss log -n 5
+
+# Frontend (web/) - the visual brain
+cd web && pnpm install        # one-time: install the frontend toolchain
+cd web && pnpm dev            # local dev server
+cd web && pnpm lint           # eslint + jsx-a11y (frontend Layer F1)
+cd web && pnpm typecheck      # tsc --noEmit (frontend Layer F1)
+cd web && pnpm test           # vitest + jest-axe (frontend Layer F2)
+cd web && pnpm size           # size-limit bundle budget (frontend Layer F3)
+bash harness/verify-frontend.sh   # the full frontend gate (F1 -> F2 -> F3)
 ```
+
+---
+
+## Two brains
+
+GDSS has two harnesses, each with its own feedforward guides and feedback sensors:
+
+- **Backend brain** (correctness): `gdss/` Python. Answers *"How should an AI
+  write correct code?"* Guides: `.cursor/rules/*.mdc` (00-60). Sensors:
+  `harness/verify.sh` (ruff, mypy, architecture fitness, pytest, CLI smoke).
+- **Frontend brain** (visual quality): `web/` Next.js. Answers *"How should an
+  AI create an interface that feels polished, intuitive, and alive?"* Guides:
+  `.cursor/rules/frontend/*.mdc` (01-20) + `.cursor/skills/*` (motion,
+  animation, composition, dashboard, a11y, etc.). Sensors:
+  `harness/verify-frontend.sh` (eslint+jsx-a11y, tsc, token_fitness, vitest+
+  jest-axe, Playwright a11y/CLS, size-limit).
+
+`harness/verify.sh` runs the backend layers, then the frontend gate **only when
+`web/` exists** (no-op otherwise), so there is still one green definition of
+done. Frontend sensors degrade gracefully (skip with WHAT/WHY/FIX) when the JS
+toolchain is absent, so the gate stays runnable on a Python-only machine.
 
 ---
 
@@ -76,11 +107,16 @@ gdss log -n 5
 1. Read this file (`AGENTS.md`).
 2. Run `bash harness/init.sh` and confirm it reports healthy.
 3. Read `harness/state/progress.md` (what happened last session).
-4. Read `harness/state/feature_list.json` (what is done, what is next).
+4. Read `harness/state/feature_list.json` (shared queue: backend **and**
+   `frontend-*` product phases). For frontend vision/complementarity, also read
+   `docs/FRONTEND_ROADMAP.md`.
 5. Check recent history (`git log` if this is a git repo) for context.
-6. Select exactly **one** unfinished feature. Do not start three things at once.
-7. Implement it test-first (see TDD below).
-8. Run `bash harness/verify.sh`. It must be green.
+6. Select exactly **one** unfinished feature whose `deps` are all `done`. Do not
+   start three things at once. Backend or frontend — same queue.
+7. Implement it test-first (backend: TDD skill below; frontend product work:
+   `build-frontend-component` + `verify-frontend` skills).
+8. Run `bash harness/verify.sh`. It must be green. Frontend product features
+   (`frontend-*`) also need `bash harness/verify-frontend.sh` green.
 9. Update `harness/state/progress.md` and `harness/state/feature_list.json`.
 10. Write `harness/state/session-handoff.md` so the next session can resume cleanly.
 
@@ -99,6 +135,22 @@ A change is done only when the **three-layer validation hierarchy** is green:
 
 Each layer gates the next. `bash harness/verify.sh` runs all three. If it exits non-zero,
 the work is not done.
+
+### Frontend definition of done (web/)
+
+Frontend work is done only when the **three frontend layers** are green (or skip
+cleanly when the JS toolchain is absent):
+
+- **Layer F1 - Static**: `eslint` (+ `jsx-a11y`), `tsc --noEmit`, and the
+  `token_fitness` sensor (no raw hex/ms/`linear` outside token files; every
+  interactive motion component ships a `prefers-reduced-motion` branch).
+- **Layer F2 - Component**: `vitest` + `jest-axe` behavior and accessibility tests pass.
+- **Layer F3 - End-to-end**: optional Playwright `axe-core` (keyboard nav + a11y)
+  with CLS ~ 0, and a `size-limit` bundle budget.
+
+Run all three with `bash harness/verify-frontend.sh` (also invoked by
+`harness/verify.sh` when `web/` exists). See the `build-frontend-component` and
+`verify-frontend` skills.
 
 ### How to write code here
 
@@ -139,6 +191,10 @@ See the `tdd` skill in `.cursor/skills/tdd/` for the full loop.
 ## Where things live
 
 - Guides (feedforward): this file + `.cursor/rules/*.mdc` + `.cursor/skills/*`
-- Sensors (feedback): `.cursor/hooks/*` + `harness/verify.sh` + `harness/sensors/*`
+  - Backend: `.cursor/rules/00-60-*.mdc`; skills: `tdd`, `add-semantic-operator`, `implement-gdss-phase`, `verify-changes`, `audit-harness`, `dsa-optimize`.
+  - Frontend: `.cursor/rules/frontend/01-20-*.mdc` (globs `web/**`); skills: `motion-design`, `animation-system`, `component-composition`, `dashboard-design`, `ux-patterns`, `interaction-design`, `data-visualization`, `glass-ui`, `canvas-effects`, `webgl`, `framer-motion`, `gsap`, `svg-animation`, `build-frontend-component`, `verify-frontend`.
+- Sensors (feedback): `.cursor/hooks/*` + `harness/verify.sh` + `harness/sensors/*` (backend) + `harness/verify-frontend.sh` + `harness/sensors/frontend/*` (frontend)
+- Tokens (frontend single source of truth): `web/lib/tokens.ts` (spacing/color/type), `web/lib/motion.ts` (duration/easing/spring/8-state machine/animation levels)
+- Product scope: `harness/state/feature_list.json` (backend + `frontend-*`); roadmap narrative: `docs/FRONTEND_ROADMAP.md`
 - State + lifecycle: `harness/state/*` + `harness/init.sh`
 - Harness map and rationale: `harness/README.md`

@@ -13,6 +13,9 @@ env/
 venv/
 .python-version
 
+# JS package manager store (never commit)
+.pnpm-store/
+
 # IDE/Editor
 .vscode/
 .idea/
@@ -22,17 +25,20 @@ venv/
 .gdss/runtime.db
 .gdss/vectors/
 .gdss/models/
+.gdss/drift/
 *.egg-info/
 build/
 dist/
 
 # Git
 .git/
-
-# Others
+# Other files
 FROM WHERE IT ALL STARTED..txt
 research.md
-.cursor/plans/**/*.md
+
+AGENTS.md
+.cursor/plans/
+
 
 diff.txt
 my_graph.dot

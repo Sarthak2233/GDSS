@@ -44,9 +44,27 @@ bash "$here/run_tests.sh" || {
 # ---------- Layer 3: end-to-end ----------
 section "Layer 3 / end-to-end: cli smoke"
 bash "$here/cli_smoke.sh" || {
-  echo "verify: stopped at Layer 3 (end-to-end)."
+  echo "verify: stopped at Layer 3 (cli smoke)."
   exit 1
 }
+
+section "Layer 3 / end-to-end: api smoke"
+bash "harness/sensors/api_smoke.sh" || {
+  echo "verify: stopped at Layer 3 (api smoke)."
+  exit 1
+}
+
+# ---------- Frontend harness (only when web/ exists) ----------
+if [[ -d "web" ]]; then
+  section "Frontend harness: verify-frontend.sh"
+  bash "harness/verify-frontend.sh" || {
+    echo "verify: stopped at the frontend harness."
+    exit 1
+  }
+else
+  section "Frontend harness"
+  echo "verify: SKIP frontend harness (web/ does not exist)."
+fi
 
 section "RESULT"
 echo "verify: ALL LAYERS GREEN. Work meets the definition of done."

@@ -37,10 +37,10 @@ LAYER_RANK: dict[str, int] = {
 }
 
 # Entrypoints / wiring packages may depend on anything.
-ENTRYPOINTS: set[str] = {"cli", "api", "daemon"}
+ENTRYPOINTS: set[str] = {"cli", "api", "daemon", "mcp"}
 
-# Two-brain partition.
-DETERMINISTIC: set[str] = {"core", "graph", "watcher"}
+# Two-brain partition: deterministic brain must never import probabilistic brain.
+DETERMINISTIC: set[str] = {"core", "graph", "watcher", "mcp"}
 PROBABILISTIC: set[str] = {"ai", "embeddings"}
 
 ROOT = Path(__file__).resolve().parents[2]

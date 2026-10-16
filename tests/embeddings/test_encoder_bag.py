@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from gdss.embeddings.encoder import DeterministicBagEncoder, get_encoder
 from gdss.embeddings.cache import EmbeddingCache
+from gdss.embeddings.encoder import DeterministicBagEncoder, get_encoder
 
 
 def test_bag_encoder_stable_and_batched():

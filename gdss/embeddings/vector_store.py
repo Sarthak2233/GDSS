@@ -3,18 +3,17 @@
 from __future__ import annotations
 
 import json
-import os
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
 try:
-    import faiss  # type: ignore
+    import faiss
 
     _HAS_FAISS = True
 except ImportError:
-    faiss = None  # type: ignore
+    faiss = None
     _HAS_FAISS = False
 
 
@@ -35,13 +34,13 @@ class VectorStore:
     Persists under ``.gdss/vectors/`` as index.faiss (or vectors.npy) + id_map.json.
     """
 
-    def __init__(self, dim: int, use_faiss: Optional[bool] = None):
+    def __init__(self, dim: int, use_faiss: bool | None = None):
         self.dim = dim
         self._use_faiss = _HAS_FAISS if use_faiss is None else (use_faiss and _HAS_FAISS)
-        self._id_to_int: Dict[str, int] = {}
-        self._int_to_id: Dict[int, str] = {}
+        self._id_to_int: dict[str, int] = {}
+        self._int_to_id: dict[int, str] = {}
         self._next_int = 0
-        self._matrix: Optional[np.ndarray] = None  # numpy backend
+        self._matrix: np.ndarray | None = None  # numpy backend
         self._index = None
         if self._use_faiss:
             self._index = faiss.IndexFlatIP(dim)
@@ -79,18 +78,29 @@ class VectorStore:
                 self._reset()  # dsa:ignore
         self._add_new(list(ids), vectors)
 
-    def _vectors_for_ids(self, ids: Sequence[str]) -> np.ndarray:
+    def vectors_for_ids(self, ids: Sequence[str]) -> np.ndarray:
+        """Return L2-normalized vectors for the given symbol ids (public export)."""
         rows = []
         for sid in ids:
             idx = self._id_to_int[sid]
             if self._use_faiss:
-                # Reconstruct if available
-                vec = faiss.vector_to_array(self._index.reconstruct(idx))  # type: ignore[union-attr]
-                rows.append(vec)
+                # Newer FAISS bindings return a NumPy array; older bindings are
+                # safely normalized by asarray as well.
+                rows.append(np.asarray(self._index.reconstruct(idx), dtype=np.float32))  # type: ignore[union-attr]
             else:
                 assert self._matrix is not None
                 rows.append(self._matrix[idx])
         return _l2_normalize(np.stack(rows, axis=0))
+
+    def _vectors_for_ids(self, ids: Sequence[str]) -> np.ndarray:
+        return self.vectors_for_ids(ids)
+
+    def export_matrix(self) -> tuple[list[str], np.ndarray]:
+        """Return (ids_in_index_order, matrix) for all indexed vectors."""
+        if self.size == 0:
+            return [], np.zeros((0, self.dim), dtype=np.float32)
+        ids = [self._int_to_id[i] for i in sorted(self._int_to_id.keys())]
+        return ids, self.vectors_for_ids(ids)
 
     def _reset(self) -> None:
         self._id_to_int.clear()
@@ -116,7 +126,7 @@ class VectorStore:
             else:
                 self._matrix = np.vstack([self._matrix, vectors])
 
-    def search(self, query: np.ndarray, k: int = 5) -> List[Tuple[str, float]]:
+    def search(self, query: np.ndarray, k: int = 5) -> list[tuple[str, float]]:
         if self.size == 0:
             return []
         q = _l2_normalize(query)
@@ -125,8 +135,8 @@ class VectorStore:
         k = min(k, self.size)
         if self._use_faiss:
             scores, indices = self._index.search(q, k)  # type: ignore[union-attr]
-            results: List[Tuple[str, float]] = []
-            for score, idx in zip(scores[0], indices[0]):
+            results: list[tuple[str, float]] = []
+            for score, idx in zip(scores[0], indices[0], strict=False):
                 if idx < 0:
                     continue
                 sid = self._int_to_id.get(int(idx))
@@ -149,14 +159,14 @@ class VectorStore:
         }
         (directory / "id_map.json").write_text(json.dumps(meta), encoding="utf-8")
         if self._use_faiss:
-            faiss.write_index(self._index, str(directory / "index.faiss"))  # type: ignore[arg-type]
+            faiss.write_index(self._index, str(directory / "index.faiss"))
         else:
             mat = self._matrix if self._matrix is not None else np.zeros((0, self.dim), dtype=np.float32)
             np.save(directory / "vectors.npy", mat)
         return directory
 
     @classmethod
-    def load(cls, directory: str | Path, prefer_faiss: Optional[bool] = None) -> "VectorStore":
+    def load(cls, directory: str | Path, prefer_faiss: bool | None = None) -> VectorStore:
         directory = Path(directory)
         meta = json.loads((directory / "id_map.json").read_text(encoding="utf-8"))
         dim = int(meta["dim"])
@@ -195,7 +205,7 @@ def default_vectors_dir(repo_path: str) -> Path:
 
 def index_symbols(
     store: VectorStore,
-    embeddings: Dict[str, "object"],
+    embeddings: Mapping[str, object],
 ) -> None:
     """Upsert EmbeddingVector dict into the store."""
     from gdss.embeddings.types import EmbeddingVector

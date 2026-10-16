@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 520" width="100%" height="520">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070b14" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect x="0" y="0" width="1120" height="520" fill="url(#bgGrad)" rx="16" />
+
+  <!-- Header -->
+  <text x="40" y="42" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="20">Anatomy of a GDSS Suggestion</text>
+  <text x="40" y="64" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">A complete, location-anchored resolution contract; never an unvalidated guess.</text>
+
+  <!-- Box 1: The Anchor (WHERE) -->
+  <rect x="40" y="90" width="510" height="190" rx="12" fill="url(#panelGrad)" stroke="#2563eb" stroke-width="2" />
+  <rect x="52" y="102" width="180" height="24" rx="6" fill="#1e3a8a" />
+  <text x="60" y="118" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">1. THE ANCHOR (WHERE)</text>
+
+  <text x="55" y="148" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">file_path:</text>
+  <text x="135" y="148" fill="#e2e8f0" font-family="Courier, monospace" font-size="13">services/auth.py</text>
+
+  <text x="55" y="174" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">line_range:</text>
+  <text x="145" y="174" fill="#e2e8f0" font-family="Courier, monospace" font-size="13">lines 45 to 62</text>
+
+  <text x="55" y="200" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">symbol_id:</text>
+  <text x="140" y="200" fill="#e2e8f0" font-family="Courier, monospace" font-size="13">services/auth.py::login_user</text>
+
+  <text x="55" y="226" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">target_commit:</text>
+  <text x="170" y="226" fill="#e2e8f0" font-family="Courier, monospace" font-size="12">9f8e7d6c5b4a3210fedcba9876543210</text>
+
+  <rect x="55" y="244" width="480" height="24" rx="4" fill="#0c4a6e" />
+  <text x="65" y="260" fill="#7dd3fc" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Locks to exact commit SHA: prevents applying stale diffs after HEAD drifts.</text>
+
+  <!-- Box 2: The Diagnosis (WHY) -->
+  <rect x="570" y="90" width="510" height="190" rx="12" fill="url(#panelGrad)" stroke="#7c3aed" stroke-width="2" />
+  <rect x="582" y="102" width="200" height="24" rx="6" fill="#4c1d95" />
+  <text x="590" y="118" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">2. THE DIAGNOSIS (WHY)</text>
+
+  <text x="585" y="148" fill="#c084fc" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">collision_score:</text>
+  <text x="705" y="148" fill="#f87171" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Ω_ij = 0.85 (High Risk)</text>
+
+  <text x="585" y="174" fill="#c084fc" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">conflict_topology:</text>
+  <text x="725" y="174" fill="#e2e8f0" font-family="Courier, monospace" font-size="13">intersection (interfering)</text>
+
+  <text x="585" y="200" fill="#c084fc" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">operator_i:</text>
+  <text x="675" y="200" fill="#e2e8f0" font-family="Courier, monospace" font-size="12">change_signature (added timeout=30)</text>
+
+  <text x="585" y="226" fill="#c084fc" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">operator_j:</text>
+  <text x="675" y="226" fill="#e2e8f0" font-family="Courier, monospace" font-size="12">modify_function (added OAuth2 check)</text>
+
+  <rect x="585" y="244" width="480" height="24" rx="4" fill="#3b0764" />
+  <text x="595" y="260" fill="#e9d5ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Root cause: Both branches touch the signature and execution contract.</text>
+
+  <!-- Box 3: Strategic Options (HOW) -->
+  <rect x="40" y="300" width="510" height="200" rx="12" fill="url(#panelGrad)" stroke="#f59e0b" stroke-width="2" />
+  <rect x="52" y="312" width="220" height="24" rx="6" fill="#78350f" />
+  <text x="60" y="328" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">3. STRATEGIC OPTIONS (HOW)</text>
+
+  <rect x="55" y="348" width="480" height="38" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1" />
+  <text x="68" y="372" fill="#fbbf24" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Option 1: reconcile_both</text>
+  <text x="240" y="372" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Keep new signature + integrate OAuth checks</text>
+
+  <rect x="55" y="394" width="480" height="38" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="68" y="418" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Option 2: keep_feature_a</text>
+  <text x="240" y="418" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Adopt signature shift; discard OAuth changes</text>
+
+  <rect x="55" y="440" width="480" height="38" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="68" y="464" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Option 3: keep_feature_b</text>
+  <text x="240" y="464" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Adopt OAuth logic; discard timeout parameter</text>
+
+  <!-- Box 4: The Code & Proof (PROOF) -->
+  <rect x="570" y="300" width="510" height="200" rx="12" fill="url(#panelGrad)" stroke="#10b981" stroke-width="2" />
+  <rect x="582" y="312" width="220" height="24" rx="6" fill="#065f46" />
+  <text x="590" y="328" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">4. CODE &amp; SANDBOX PROOF</text>
+
+  <!-- Diff block snippet -->
+  <rect x="585" y="348" width="480" height="74" rx="6" fill="#090d16" stroke="#1e293b" stroke-width="1" />
+  <text x="595" y="366" fill="#f87171" font-family="Courier, monospace" font-size="10">- def login_user(username: str, password: str):</text>
+  <text x="595" y="382" fill="#4ade80" font-family="Courier, monospace" font-size="10">+ def login_user(username: str, password: str, timeout: int = 30, oauth: str = None):</text>
+  <text x="595" y="398" fill="#4ade80" font-family="Courier, monospace" font-size="10">+     if oauth: return verify_oauth(oauth)</text>
+  <text x="595" y="414" fill="#94a3b8" font-family="Courier, monospace" font-size="10">      return authenticate(username, password, timeout=timeout)</text>
+
+  <!-- Validation Badges -->
+  <rect x="585" y="432" width="150" height="26" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+  <text x="595" y="449" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ AST Syntax OK</text>
+
+  <rect x="745" y="432" width="160" height="26" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+  <text x="755" y="449" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ Typecheck (mypy) OK</text>
+
+  <rect x="915" y="432" width="150" height="26" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+  <text x="925" y="449" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✓ 14 Tests Passed</text>
+
+  <text x="585" y="482" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Tested in ephemeral worktree /tmp/gdss-sandbox-... before presentation.</text>
+</svg>

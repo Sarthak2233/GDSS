@@ -1,6 +1,6 @@
-import pytest
 from gdss.core.ast_parser import ASTParser
 from gdss.core.transform_types import SymbolType
+
 
 def test_parse_python_code():
     code = """
@@ -37,7 +37,7 @@ def global_helper():
 
     # Verify functions
     assert len(funcs) == 2
-    
+
     # Method add inside Calculator
     add_method = next(f for f in funcs if f.name == "add")
     assert add_method.parent_class == "Calculator"
@@ -144,3 +144,28 @@ def test_content_hash_cache_returns_same_symbols():
     second = parser.parse_file("cached.py", content=code)
     assert first is second  # LRU content cache hit
     assert first[0].name == "hello"
+
+
+def test_parsed_symbol_exposes_one_based_column_bounds():
+    symbol = ASTParser().parse_file(
+        "anchors.py", content="    def process_payment(amount):\n        return amount\n"
+    )[0]
+
+    assert symbol.start_line == 1
+    assert symbol.start_column == 5
+    assert symbol.end_column == 22
+
+
+def test_javascript_and_go_symbols_expose_one_based_column_bounds():
+    parser = ASTParser()
+    javascript = parser.parse_file(
+        "anchors.js", content="  function calculate() {\n    return 1;\n  }\n"
+    )[0]
+    go = parser.parse_file(
+        "anchors.go", content="  func Calculate() int {\n    return 1\n  }\n"
+    )[0]
+
+    assert javascript.start_column == 3
+    assert javascript.end_column == 4
+    assert go.start_column == 3
+    assert go.end_column == 4

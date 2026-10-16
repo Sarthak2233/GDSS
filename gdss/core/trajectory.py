@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, Sequence, Tuple
+from collections.abc import Sequence
 
-from gdss.core.ast_parser import ASTParser, SOURCE_EXTENSIONS
+from gdss.core.ast_parser import SOURCE_EXTENSIONS, ASTParser
 from gdss.core.transform_extractor import TransformExtractor
 from gdss.core.transform_types import SemanticOperator
 from gdss.watcher.git_observer import GitObserver
@@ -17,7 +17,7 @@ def extract_trajectory_operators(
     ref_branch: str,
     head: str = "HEAD",
     extensions: Sequence[str] = SOURCE_EXTENSIONS,
-) -> List[SemanticOperator]:
+) -> list[SemanticOperator]:
     """
     Aggregate symbol-level SemanticOperators across committed divergence
     from the reference attractor to the tip of ``head``.
@@ -41,7 +41,7 @@ def extract_trajectory_operators(
         return []
 
     changes = observer.get_file_diffs_between_commits(merge_base, head_commit.hexsha)
-    operators: List[SemanticOperator] = []
+    operators: list[SemanticOperator] = []
     ext_tuple = tuple(extensions)
 
     for path in changes.get("modified", []):
@@ -84,7 +84,7 @@ def extract_trajectory_operators(
 
 def is_single_attractor_trajectory(
     observer: GitObserver, reference_branch: str
-) -> Tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     """
     True when only one local branch exists and its tip equals the reference tip.
     """

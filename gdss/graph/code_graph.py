@@ -1,7 +1,9 @@
+from typing import Any
+
 import networkx as nx
-from typing import Dict, List, Optional, Set, Any
+
+from gdss.core.symbol_identity import is_graph_symbol_type
 from gdss.core.transform_types import CodeSymbol, SymbolType
-from gdss.core.symbol_identity import compute_symbol_id, is_graph_symbol_type
 
 
 class CodeGraph:
@@ -12,13 +14,13 @@ class CodeGraph:
 
     def __init__(self):
         self.g = nx.DiGraph()
-        self._file_nodes: Dict[str, Set[str]] = {}
-        self._symbol_index: Dict[str, Set[str]] = {}
-        self._symbol_id_index: Dict[str, str] = {}
+        self._file_nodes: dict[str, set[str]] = {}
+        self._symbol_index: dict[str, set[str]] = {}
+        self._symbol_id_index: dict[str, str] = {}
 
-    def add_file_symbols(self, file_path: str, symbols: List[CodeSymbol]):
+    def add_file_symbols(self, file_path: str, symbols: list[CodeSymbol]):
         """Add or update symbols for a file using stable symbol IDs."""
-        incoming_ids: Set[str] = set()
+        incoming_ids: set[str] = set()
         for sym in symbols:
             if is_graph_symbol_type(sym.type):
                 sym.ensure_identity(file_path)
@@ -38,7 +40,7 @@ class CodeGraph:
             elif sym.type == SymbolType.IMPORT:
                 self._add_import(file_path, sym)
 
-    def _remove_stale_chart_nodes(self, file_path: str, keep_ids: Set[str]) -> None:
+    def _remove_stale_chart_nodes(self, file_path: str, keep_ids: set[str]) -> None:
         if file_path not in self._file_nodes:
             return
         stale = []
@@ -133,7 +135,7 @@ class CodeGraph:
             self._file_nodes[old_file].discard(node_id)
         self._file_nodes.setdefault(file_path, {file_path}).add(node_id)
 
-    def _parent_node_id(self, file_path: str, parent_class: Optional[str]) -> str:
+    def _parent_node_id(self, file_path: str, parent_class: str | None) -> str:
         if not parent_class:
             return file_path
         for node_id, data in self.g.nodes(data=True):
@@ -174,10 +176,10 @@ class CodeGraph:
 
     def find_node_by_name(
         self,
-        name: Optional[str],
-        file_path: Optional[str] = None,
-        parent_class: Optional[str] = None,
-    ) -> Optional[str]:
+        name: str | None,
+        file_path: str | None = None,
+        parent_class: str | None = None,
+    ) -> str | None:
         if not name:
             return None
         candidates = self._symbol_index.get(name, set())
@@ -215,7 +217,7 @@ class CodeGraph:
             node: data for node, data in self.g.nodes(data=True) if data.get("type") == "function"
         }
 
-        empty_set: Set[str] = set()
+        empty_set: set[str] = set()
         for func_id, func_data in functions.items():
             file_path = func_data.get("chart_location") or func_data.get("file")
             calls = func_data.get("calls", [])
@@ -263,7 +265,7 @@ class CodeGraph:
                             self.g.add_edge(func_id, target_node, relation="calls")
                             break
 
-    def get_downstream_impact(self, node_id: str) -> Set[str]:
+    def get_downstream_impact(self, node_id: str) -> set[str]:
         if node_id not in self.g:
             resolved = self.find_node_by_name(node_id)
             if resolved:
@@ -273,7 +275,7 @@ class CodeGraph:
         g_rev = self.g.reverse(copy=False)
         return nx.descendants(g_rev, node_id)
 
-    def snapshot(self) -> Dict[str, Any]:
+    def snapshot(self) -> dict[str, Any]:
         """Lightweight graph snapshot for operator identity tests."""
         nodes = {}
         for node_id, data in self.g.nodes(data=True):
@@ -287,7 +289,7 @@ class CodeGraph:
         edges = [(u, v, d.get("relation")) for u, v, d in self.g.edges(data=True)]
         return {"nodes": nodes, "edges": edges}
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         summary = {
             "total_nodes": self.g.number_of_nodes(),
             "total_edges": self.g.number_of_edges(),

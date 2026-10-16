@@ -1,5 +1,6 @@
 import numpy as np
-from gdss.embeddings.similarity import cosine_similarity, cosine_distance
+
+from gdss.embeddings.similarity import cosine_distance, cosine_similarity
 
 
 def test_cosine_identity():

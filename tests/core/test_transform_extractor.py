@@ -1,7 +1,6 @@
-import pytest
-from gdss.core.transform_types import CodeSymbol, SymbolType, OperatorType, SemanticOperator
+from gdss.core.structural_fingerprint import levenshtein_distance, normalized_similarity
 from gdss.core.transform_extractor import TransformExtractor
-from gdss.core.structural_fingerprint import normalized_similarity, levenshtein_distance
+from gdss.core.transform_types import CodeSymbol, OperatorType, SymbolType
 
 
 def test_extract_function_operators():

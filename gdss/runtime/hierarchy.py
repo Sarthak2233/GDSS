@@ -1,7 +1,8 @@
 import json
-import os
-from typing import Dict, Any, List, Optional
+from typing import Any
+
 from gdss.storage.db import RuntimeDB
+
 
 class HierarchyManager:
     """
@@ -11,14 +12,14 @@ class HierarchyManager:
     def __init__(self, db: RuntimeDB):
         self.db = db
 
-    def set_config(self, repo_id: int, config: Dict[str, Any]):
+    def set_config(self, repo_id: int, config: dict[str, Any]):
         with self.db._get_connection() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO hierarchies (repo_id, config_payload) VALUES (?, ?)",
                 (repo_id, json.dumps(config))
             )
 
-    def get_config(self, repo_id: int) -> Dict[str, Any]:
+    def get_config(self, repo_id: int) -> dict[str, Any]:
         with self.db._get_connection() as conn:
             cursor = conn.execute("SELECT config_payload FROM hierarchies WHERE repo_id = ?", (repo_id,))
             row = cursor.fetchone()
@@ -26,11 +27,11 @@ class HierarchyManager:
                 return json.loads(row['config_payload'])
             return {}
 
-    def resolve_priority_chain(self, repo_id: int, current_branch: str) -> List[str]:
+    def resolve_priority_chain(self, repo_id: int) -> list[str]:
         config = self.get_config(repo_id)
         if not config:
             return ["main"] # Default trajectory
-            
+
         hierarchy = config.get("hierarchy", {})
         chain = []
         # Trajectory: dev -> staging -> main
@@ -40,5 +41,5 @@ class HierarchyManager:
             chain.append(hierarchy['staging'])
         if 'production' in hierarchy:
             chain.append(hierarchy['production'])
-            
+
         return chain if chain else ["main"]

@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 640" width="100%" height="640">
+  <defs>
+    <marker id="arrow-slate" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#94a3b8" />
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#38bdf8" />
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#10b981" />
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#a855f7" />
+    </marker>
+
+    <linearGradient id="canvasGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070b14" />
+      <stop offset="100%" stop-color="#0b1329" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b" />
+      <stop offset="100%" stop-color="#022c22" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect x="0" y="0" width="1120" height="640" fill="url(#canvasGrad)" rx="16" />
+
+  <!-- Title & Subtitle -->
+  <text x="40" y="42" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="20">GDSS Convergence &amp; Safe Landing Architecture</text>
+  <text x="40" y="64" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">Model-Free Ground Truth · Pluggable Code Drafting · Ephemeral Sandbox Proof · Human-in-the-Loop</text>
+
+  <!-- ================= STAGE 1: COLLISION RADAR ================= -->
+  <rect x="40" y="95" width="220" height="360" rx="12" fill="url(#cardGrad)" stroke="#1e3a8a" stroke-width="2" />
+  <rect x="52" y="107" width="196" height="26" rx="6" fill="#1e3a8a" />
+  <text x="60" y="125" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">STAGE 1: COLLISION RADAR</text>
+
+  <rect x="52" y="148" width="196" height="60" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="62" y="170" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Multi-Language AST</text>
+  <text x="62" y="188" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Tree-sitter &amp; Universal Block</text>
+  <text x="62" y="200" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Py, TS, Go, Rust, Java, C++, etc.</text>
+
+  <rect x="52" y="222" width="196" height="60" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="62" y="244" fill="#a855f7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Interaction Tensor Ω_ij</text>
+  <text x="62" y="262" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Pairwise cross-branch radar</text>
+  <text x="62" y="274" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Calculates non-commuting ops</text>
+
+  <rect x="52" y="296" width="196" height="60" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="62" y="318" fill="#f59e0b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Conflict Topology</text>
+  <text x="62" y="336" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Discrete Algebra Classifier</text>
+  <text x="62" y="348" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">union, intersection, disjoint</text>
+
+  <rect x="52" y="370" width="196" height="70" rx="8" fill="#0f2942" stroke="#0284c7" stroke-width="1" />
+  <text x="62" y="392" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">100% MODEL-FREE</text>
+  <text x="62" y="410" fill="#cffafe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Zero AI models, zero tokens,</text>
+  <text x="62" y="424" fill="#cffafe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">zero cloud leaks, 100% offline.</text>
+
+  <!-- Arrow Stage 1 -> Stage 2 -->
+  <line x1="260" y1="275" x2="310" y2="275" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" />
+
+  <!-- ================= STAGE 2: DRAFTING FORK ================= -->
+  <rect x="310" y="95" width="240" height="360" rx="12" fill="url(#cardGrad)" stroke="#6d28d9" stroke-width="2" />
+  <rect x="322" y="107" width="216" height="26" rx="6" fill="#6d28d9" />
+  <text x="330" y="125" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">STAGE 2: STRATEGY &amp; DRAFTING</text>
+
+  <!-- Branch A: Model-Free (Default) -->
+  <rect x="322" y="148" width="216" height="84" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="1.5" />
+  <text x="332" y="170" fill="#10b981" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">A. Model-Free (Default)</text>
+  <text x="332" y="188" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Algebraic choices: "take both",</text>
+  <text x="332" y="202" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">"keep i", "order i then j".</text>
+  <text x="332" y="218" fill="#6ee7b7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="10">Runs offline · $0 Token Cost</text>
+
+  <!-- Branch B: IDE Agent (Cursor/Claude) -->
+  <rect x="322" y="246" width="216" height="88" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+  <text x="332" y="268" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">B. IDE Agent via MCP</text>
+  <text x="332" y="286" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Cursor / Claude reads radar facts,</text>
+  <text x="332" y="300" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">writes patch using IDE account.</text>
+  <text x="332" y="316" fill="#7dd3fc" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="10">Developer Sub · $0 GDSS Cost</text>
+
+  <!-- Branch C: Local LLM or Actions -->
+  <rect x="322" y="348" width="216" height="92" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" />
+  <text x="332" y="370" fill="#f59e0b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">C. CLI --llm or CI Actions</text>
+  <text x="332" y="388" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Local: Ollama / vLLM on laptop</text>
+  <text x="332" y="402" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">CI: GitHub Models / Copilot CLI</text>
+  <text x="332" y="418" fill="#fde68a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="10">via GITHUB_TOKEN · $0 Extra</text>
+
+  <!-- Arrow Stage 2 -> Stage 3 -->
+  <line x1="550" y1="275" x2="600" y2="275" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-purple)" />
+
+  <!-- ================= STAGE 3: VALIDATION SANDBOX ================= -->
+  <rect x="600" y="95" width="230" height="360" rx="12" fill="url(#cardGrad)" stroke="#059669" stroke-width="2" />
+  <rect x="612" y="107" width="206" height="26" rx="6" fill="#059669" />
+  <text x="620" y="125" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">STAGE 3: VALIDATION SANDBOX</text>
+
+  <rect x="612" y="148" width="206" height="60" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="622" y="170" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Ephemeral Git Worktree</text>
+  <text x="622" y="188" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Runs in isolated /tmp sandbox</text>
+  <text x="622" y="200" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Zero touch to developer worktree</text>
+
+  <rect x="612" y="222" width="206" height="66" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="622" y="244" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Gate 1: AST Syntax Check</text>
+  <text x="622" y="262" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Tree-sitter &amp; Python AST</text>
+  <text x="622" y="276" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Pinpoints line-exact syntax errors</text>
+
+  <rect x="612" y="302" width="206" height="66" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="622" y="324" fill="#f59e0b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Gate 2: Static Types</text>
+  <text x="622" y="342" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">tsc, mypy, cargo check, go vet</text>
+  <text x="622" y="356" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Verifies contractual consistency</text>
+
+  <rect x="612" y="382" width="206" height="60" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="622" y="404" fill="#10b981" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Gate 3: Targeted Tests</text>
+  <text x="622" y="422" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Runs symbol tests in seconds</text>
+  <text x="622" y="434" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Never generates fake tests</text>
+
+  <!-- Arrow Stage 3 -> Stage 4 -->
+  <line x1="830" y1="275" x2="880" y2="275" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-green)" />
+
+  <!-- ================= STAGE 4: AUDITED STATE ================= -->
+  <rect x="880" y="95" width="200" height="360" rx="12" fill="url(#cardGrad)" stroke="#d97706" stroke-width="2" />
+  <rect x="892" y="107" width="176" height="26" rx="6" fill="#d97706" />
+  <text x="900" y="125" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">STAGE 4: AUDITED STATE</text>
+
+  <rect x="892" y="148" width="176" height="85" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="902" y="170" fill="#fbbf24" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Immutable ID</text>
+  <text x="902" y="190" fill="#e2e8f0" font-family="Courier, monospace" font-size="12">sug_8f2a91c3...</text>
+  <text x="902" y="210" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Deterministic hash bound to</text>
+  <text x="902" y="222" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">exact commit SHA &amp; anchor</text>
+
+  <rect x="892" y="247" width="176" height="85" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="902" y="269" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Audited Store</text>
+  <text x="902" y="289" fill="#e2e8f0" font-family="Courier, monospace" font-size="10">.gdss/suggestions/</text>
+  <text x="902" y="309" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Metadata-only JSON cache.</text>
+  <text x="902" y="321" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Detects stale commits.</text>
+
+  <rect x="892" y="346" width="176" height="95" rx="8" fill="#451a03" stroke="#f59e0b" stroke-width="1.5" />
+  <text x="902" y="368" fill="#fbbf24" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">CHECKPOINT</text>
+  <text x="902" y="388" fill="#fef3c7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Awaiting Human Review</text>
+  <text x="902" y="408" fill="#fde68a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Pauses execution.</text>
+  <text x="902" y="422" fill="#fde68a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">NEVER auto-merges!</text>
+
+  <!-- ================= STAGE 5: HUMAN APPROVAL & DELIVERY ================= -->
+  <rect x="40" y="480" width="1040" height="135" rx="12" fill="url(#greenGrad)" stroke="#10b981" stroke-width="2" />
+  <rect x="55" y="495" width="280" height="26" rx="6" fill="#10b981" />
+  <text x="65" y="513" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">STAGE 5: HUMAN APPROVAL &amp; DELIVERY</text>
+
+  <!-- Option 1: Local Apply -->
+  <rect x="55" y="535" width="475" height="65" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="70" y="557" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Interface A: Local CLI Guarded Apply</text>
+  <text x="70" y="577" fill="#a7f3d0" font-family="Courier, monospace" font-size="12">gdss apply sug_8f2a91c3</text>
+  <text x="260" y="577" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">HEAD check · unstaged in working tree · rollback safe</text>
+
+  <!-- Option 2: GitHub Actions 1-Click -->
+  <rect x="550" y="535" width="515" height="65" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="565" y="557" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Interface B: GitHub Actions PR Bot</text>
+  <rect x="565" y="565" width="145" height="24" rx="4" fill="#238636" />
+  <text x="575" y="581" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">Commit suggestion</text>
+  <text x="725" y="581" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">100% in-browser commit button on GitHub.com</text>
+
+</svg>

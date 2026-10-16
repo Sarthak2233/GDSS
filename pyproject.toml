@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gdss"
 version = "0.1.0"
-description = "GDSS: Geometric Distributed Software Synchronizer"
+description = "GDSS: Gate Distributive Semantic Synopsis"
 readme = "README.md"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.11"
 
 dependencies = [
     "gitpython>=3.1.0",
@@ -16,11 +16,19 @@ dependencies = [
     "tree-sitter-javascript>=0.21.0",
     "tree-sitter-typescript>=0.21.0",
     "tree-sitter-go>=0.21.0",
+    "tree-sitter-rust>=0.21.0",
+    "tree-sitter-java>=0.21.0",
+    "tree-sitter-c>=0.21.0",
+    "tree-sitter-cpp>=0.21.0",
     "networkx>=3.0",
     "numpy>=1.26.0",
     "typer>=0.9.0",
     "rich>=13.0",
     "watchdog>=3.0",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.23.0",
+    "pydantic>=2.0.0",
+    "httpx>=0.28.0",
 ]
 
 [project.optional-dependencies]
@@ -29,6 +37,8 @@ dev = [
     "pytest-cov",
     "ruff",
     "black",
+    "mypy>=2.3.0",
+    "httpx>=0.28.0",
 ]
 embeddings = [
     "faiss-cpu>=1.7.4",

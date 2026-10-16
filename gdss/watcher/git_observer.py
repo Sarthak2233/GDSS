@@ -1,6 +1,7 @@
 import os
+
 import git
-from typing import Dict, List, Tuple, Optional
+
 
 class GitObserver:
     """
@@ -10,16 +11,17 @@ class GitObserver:
 
     def __init__(self, repo_path: str = "."):
         self.repo_path = os.path.abspath(repo_path)
+        self.repo: git.Repo | None
         try:
             self.repo = git.Repo(self.repo_path, search_parent_directories=True)
-            self.repo_path = self.repo.working_tree_dir
+            self.repo_path = str(self.repo.working_tree_dir or self.repo_path)
         except git.InvalidGitRepositoryError:
             self.repo = None
 
     def is_valid(self) -> bool:
         return self.repo is not None
 
-    def get_active_branch(self) -> Optional[str]:
+    def get_active_branch(self) -> str | None:
         if not self.repo:
             return None
         try:
@@ -28,7 +30,7 @@ class GitObserver:
             # Head is detached
             return "DETACHED"
 
-    def get_merge_base(self, branch_name: str, ref_branch: str = "main") -> Optional[str]:
+    def get_merge_base(self, branch_name: str, ref_branch: str = "main") -> str | None:
         """Calculates the merge base commit hash between active branch and reference branch."""
         if not self.repo:
             return None
@@ -42,7 +44,7 @@ class GitObserver:
             pass
         return None
 
-    def get_parent_sha(self, commit_sha: str) -> Optional[str]:
+    def get_parent_sha(self, commit_sha: str) -> str | None:
         """Retrieves the parent commit SHA for a given commit."""
         if not self.repo:
             return None
@@ -54,7 +56,7 @@ class GitObserver:
             pass
         return None
 
-    def get_file_content_at_commit(self, commit_sha: str, file_path: str) -> Optional[str]:
+    def get_file_content_at_commit(self, commit_sha: str, file_path: str) -> str | None:
         """Retrieves file text content at a specific historical commit."""
         if not self.repo:
             return None
@@ -67,7 +69,7 @@ class GitObserver:
         except Exception:
             return None
 
-    def get_file_diffs_between_commits(self, commit_sha_a: str, commit_sha_b: str) -> Dict[str, List[str]]:
+    def get_file_diffs_between_commits(self, commit_sha_a: str, commit_sha_b: str) -> dict[str, list[str]]:
         """
         Calculates file list changes between commit A and commit B.
         Returns dictionary mapping:
@@ -75,29 +77,29 @@ class GitObserver:
         - "deleted": [filepath]
         - "modified": [filepath]
         """
-        changes = {"added": [], "deleted": [], "modified": []}
+        changes: dict[str, list[str]] = {"added": [], "deleted": [], "modified": []}
         if not self.repo:
             return changes
-        
+
         try:
             commit_a = self.repo.commit(commit_sha_a)
             commit_b = self.repo.commit(commit_sha_b)
             diffs = commit_a.diff(commit_b)
 
             for d in diffs:
-                if d.new_file:
+                if d.new_file and d.b_path:
                     changes["added"].append(d.b_path)
-                elif d.deleted_file:
+                elif d.deleted_file and d.a_path:
                     changes["deleted"].append(d.a_path)
-                else:
+                elif d.b_path:
                     changes["modified"].append(d.b_path)
         except Exception:
             pass
         return changes
 
-    def get_working_tree_changes(self) -> Dict[str, List[str]]:
+    def get_working_tree_changes(self) -> dict[str, list[str]]:
         """Retrieves unstaged and staged changes in working tree against HEAD."""
-        changes = {"added": [], "deleted": [], "modified": []}
+        changes: dict[str, list[str]] = {"added": [], "deleted": [], "modified": []}
         if not self.repo:
             return changes
         try:
@@ -111,58 +113,30 @@ class GitObserver:
             changes["added"].extend(untracked)
 
             for d in staged_diffs:
-                if d.new_file:
+                if d.new_file and d.b_path:
                     if d.b_path not in changes["added"]:
                         changes["added"].append(d.b_path)
-                elif d.deleted_file:
+                elif d.deleted_file and d.a_path:
                     changes["deleted"].append(d.a_path)
-                else:
+                elif d.b_path:
                     changes["modified"].append(d.b_path)
 
             for d in unstaged_diffs:
-                if d.new_file:
+                if d.new_file and d.b_path:
                     if d.b_path not in changes["added"]:
                         changes["added"].append(d.b_path)
-                elif d.deleted_file:
+                elif d.deleted_file and d.a_path:
                     if d.a_path not in changes["deleted"]:
                         changes["deleted"].append(d.a_path)
-                else:
+                elif d.b_path:
                     if d.b_path not in changes["modified"]:
                         changes["modified"].append(d.b_path)
         except Exception:
             pass
         return changes
 
-    def install_git_hooks(self) -> bool:
-        """Installs pre-push and post-commit hooks in .git/hooks directory."""
-        if not self.repo:
-            return False
-        
-        hooks_dir = os.path.join(self.repo_path, ".git", "hooks")
-        if not os.path.exists(hooks_dir):
-            return False
 
-        # Post-commit hook
-        post_commit_path = os.path.join(hooks_dir, "post-commit")
-        try:
-            with open(post_commit_path, "w") as f:
-                f.write("#!/bin/sh\n\n# GDSS Trigger\ngdss status\n")
-            os.chmod(post_commit_path, 0o755)
-        except Exception:
-            return False
-
-        # Pre-push hook
-        pre_push_path = os.path.join(hooks_dir, "pre-push")
-        try:
-            with open(pre_push_path, "w") as f:
-                f.write("#!/bin/sh\n\n# GDSS Trigger\ngdss status\n")
-            os.chmod(pre_push_path, 0o755)
-        except Exception:
-            return False
-
-        return True
-
-    def list_local_branches(self) -> List[str]:
+    def list_local_branches(self) -> list[str]:
         """Return local branch names."""
         if not self.repo:
             return []
@@ -173,14 +147,14 @@ class GitObserver:
 
     def get_remote_sync_status(
         self, ref_branch: str, remote: str = "origin"
-    ) -> Dict[str, object]:
+    ) -> dict[str, object]:
         """
         Compare HEAD to origin/<ref> (or configured remote).
 
         Returns ahead/behind counts. label is N/A when the remote ref is missing.
         Never infers semantic drift from remote event topic flags.
         """
-        result: Dict[str, object] = {
+        result: dict[str, object] = {
             "label": "N/A",
             "ahead": 0,
             "behind": 0,
@@ -212,3 +186,37 @@ class GitObserver:
         except Exception:
             return result
         return result
+
+    def get_commits_between(
+        self,
+        base_ref: str,
+        head_ref: str,
+        max_count: int = 25,
+    ) -> list[dict[str, str]]:
+        """Return list of commits on head_ref added apart from base_ref.
+
+        Equivalent to `git log base_ref..head_ref`.
+        Returns dicts with:
+          - sha: short 8-char commit SHA
+          - summary: commit title / first line
+          - author: author name
+          - message: full commit message trimmed
+        """
+        if not self.repo:
+            return []
+        try:
+            commits: list[dict[str, str]] = []
+            rev_range = f"{base_ref}..{head_ref}"
+            for c in self.repo.iter_commits(rev_range, max_count=max_count):
+                commits.append(
+                    {
+                        "sha": c.hexsha[:8],
+                        "summary": str(c.summary),
+                        "author": str(c.author.name) if c.author else "unknown",
+                        "message": str(c.message).strip(),
+                    }
+                )
+            return commits
+        except Exception:
+            return []
+

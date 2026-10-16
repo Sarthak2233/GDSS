@@ -1,6 +1,7 @@
-import sqlite3
 import os
-from typing import List, Dict, Any, Optional
+import sqlite3
+from typing import Any
+
 
 class RuntimeDB:
     def __init__(self, db_path: str = ".gdss/runtime.db"):
@@ -75,19 +76,19 @@ class RuntimeDB:
                 return cursor.fetchone()['id']
             return cursor.lastrowid
 
-    def get_repositories(self) -> List[Dict[str, Any]]:
+    def get_repositories(self) -> list[dict[str, Any]]:
         with self._get_connection() as conn:
             cursor = conn.execute("SELECT * FROM repositories")
             return [dict(row) for row in cursor.fetchall()]
 
-    def register_branch(self, repo_id: int, name: str, remote_name: Optional[str] = None, is_local: bool = False):
+    def register_branch(self, repo_id: int, name: str, remote_name: str | None = None, is_local: bool = False):
         with self._get_connection() as conn:
             conn.execute(
                 "INSERT INTO branches (repo_id, name, remote_name, is_local) VALUES (?, ?, ?, ?)",
                 (repo_id, name, remote_name, 1 if is_local else 0)
             )
 
-    def get_branches(self, repo_id: int) -> List[Dict[str, Any]]:
+    def get_branches(self, repo_id: int) -> list[dict[str, Any]]:
         with self._get_connection() as conn:
             cursor = conn.execute("SELECT * FROM branches WHERE repo_id = ?", (repo_id,))
             return [dict(row) for row in cursor.fetchall()]

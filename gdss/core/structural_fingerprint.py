@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Sequence, Tuple
+from collections.abc import Sequence
 
 
 def levenshtein_distance(a: Sequence[str], b: Sequence[str]) -> int:
@@ -50,12 +50,12 @@ def fingerprint_bucket(tokens: Sequence[str], prefix_len: int = 4) -> str:
     return "|".join(head)
 
 
-def extract_tokens_from_body_text(body: str) -> List[str]:
+def extract_tokens_from_body_text(body: str) -> list[str]:
     """
     Fallback token extractor when AST tokens are unavailable.
     Maps common Python/JS statement keywords to structural tokens.
     """
-    tokens: List[str] = []
+    tokens: list[str] = []
     for raw_line in body.splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or line.startswith("//"):

@@ -3,12 +3,30 @@
 from __future__ import annotations
 
 import os
-from typing import Dict
 
-from gdss.core.ast_parser import ASTParser, SOURCE_EXTENSIONS
+from gdss.core.ast_parser import ASTParser, get_source_extensions
 from gdss.graph.code_graph import CodeGraph
 
-SKIP_DIR_NAMES = {".git", "venv", "__pycache__", "node_modules", ".venv"}
+SKIP_DIR_NAMES = {
+    ".git",
+    "venv",
+    ".venv",
+    "__pycache__",
+    "node_modules",
+    ".next",
+    "dist",
+    "build",
+    "out",
+    "coverage",
+    ".cache",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".cursor",
+    ".gemini",
+    "target",
+    "vendor",
+}
 
 
 def build_code_graph_from_repo(
@@ -26,13 +44,27 @@ def build_code_graph_from_repo(
     root_path = os.path.abspath(repo_path)
 
     file_list = []
-    skipped_unsupported: Dict[str, int] = {}
+    skipped_unsupported: dict[str, int] = {}
+    valid_exts = set(get_source_extensions(root_path))
     for root, dirs, files in os.walk(root_path):
-        dirs[:] = [name for name in dirs if name not in SKIP_DIR_NAMES]
+        dirs[:] = [
+            name
+            for name in dirs
+            if name not in SKIP_DIR_NAMES
+            and not name.startswith(".")
+            and not name.endswith(".egg-info")
+        ]
         for filename in files:
+            if (
+                filename.endswith(".min.js")
+                or filename.endswith(".min.css")
+                or filename.endswith(".bundle.js")
+                or filename.endswith(".chunk.js")
+            ):
+                continue
             ext = os.path.splitext(filename)[1].lower()
             absolute_path = os.path.join(root, filename)
-            if ext not in SOURCE_EXTENSIONS:
+            if ext not in valid_exts:
                 # Count likely source-ish extensions that we cannot parse
                 if ext and ext not in {".md", ".txt", ".json", ".yml", ".yaml", ".toml", ".lock"}:
                     skipped_unsupported[ext] = skipped_unsupported.get(ext, 0) + 1

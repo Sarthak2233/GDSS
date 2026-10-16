@@ -1,0 +1,195 @@
+
+=== Layer F1 / static: eslint (+ jsx-a11y) ===
+frontend/lint: running eslint (+ jsx-a11y)...
+
+> gdss-web@0.1.0 lint /home/sbasnet/projects/GDSS/web
+> eslint .
+
+frontend/lint: OK
+
+=== Layer F1 / static: typecheck ===
+frontend/typecheck: running tsc --noEmit...
+
+> gdss-web@0.1.0 typecheck /home/sbasnet/projects/GDSS/web
+> tsc --noEmit
+
+frontend/typecheck: OK
+
+=== Layer F1 / static: token fitness ===
+frontend/token_fitness: OK (no raw tokens, no linear easing, reduced-motion present).
+
+=== Layer F2 / component: vitest + jest-axe ===
+frontend/component_tests: running vitest (+ jest-axe)...
+
+> gdss-web@0.1.0 test /home/sbasnet/projects/GDSS/web
+> vitest run
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.0.4 /home/sbasnet/projects/GDSS/web
+
+ ✓ tests/repo-ref-picker.test.tsx  (2 tests) 776ms
+ ✓ tests/button.test.tsx  (6 tests) 590ms
+ ✓ tests/metric-card.test.tsx  (3 tests) 548ms
+stderr | tests/metric-card.test.tsx > MetricCard > has no a11y violations
+Warning: An update to MetricCard inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at MetricCard (/home/sbasnet/projects/GDSS/web/components/ui/metric-card.tsx:29:3)
+Warning: An update to MetricCard inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at MetricCard (/home/sbasnet/projects/GDSS/web/components/ui/metric-card.tsx:29:3)
+
+stderr | tests/navigation.test.tsx > Navigation component > has no accessibility violations
+Warning: An update to ForwardRef(LinkComponent) inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at LinkComponent (/home/sbasnet/projects/GDSS/web/node_modules/.pnpm/next@14.2.5_@playwright+test@1.45.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/link.js:121:19)
+    at div
+    at nav
+    at Navigation
+Warning: An update to ForwardRef(LinkComponent) inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at LinkComponent (/home/sbasnet/projects/GDSS/web/node_modules/.pnpm/next@14.2.5_@playwright+test@1.45.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/link.js:121:19)
+    at div
+    at nav
+    at Navigation
+Warning: An update to ForwardRef(LinkComponent) inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at LinkComponent (/home/sbasnet/projects/GDSS/web/node_modules/.pnpm/next@14.2.5_@playwright+test@1.45.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/link.js:121:19)
+    at div
+    at nav
+    at Navigation
+Warning: An update to ForwardRef(LinkComponent) inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at LinkComponent (/home/sbasnet/projects/GDSS/web/node_modules/.pnpm/next@14.2.5_@playwright+test@1.45.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/client/link.js:121:19)
+    at div
+    at nav
+    at Navigation
+
+ ✓ tests/navigation.test.tsx  (2 tests) 456ms
+
+ Test Files  4 passed (4)
+      Tests  13 passed (13)
+   Start at  00:50:09
+   Duration  7.86s (transform 531ms, setup 3.08s, collect 2.58s, tests 2.37s, environment 5.23s, prepare 2.15s)
+
+frontend/component_tests: OK
+
+=== Layer F3 / end-to-end: playwright a11y/CLS + size-limit ===
+frontend/e2e: building Next.js app for size-limit...
+
+> gdss-web@0.1.0 build /home/sbasnet/projects/GDSS/web
+> next build
+
+  ▲ Next.js 14.2.5
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/8) ...
+   Generating static pages (2/8) 
+   Generating static pages (4/8) 
+   Generating static pages (6/8) 
+ ✓ Generating static pages (8/8)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    156 B          87.2 kB
+├ ○ /_not-found                          872 B          87.9 kB
+├ ○ /dashboard                           156 B          87.2 kB
+├ ○ /drift                               156 B          87.2 kB
+├ ○ /graph                               156 B          87.2 kB
+└ ○ /similar                             156 B          87.2 kB
++ First Load JS shared by all            87.1 kB
+  ├ chunks/1ff84fdd-c4e9978a6692cee8.js  53.6 kB
+  ├ chunks/892-5d189da8c229f176.js       31.5 kB
+  └ other shared chunks (total)          1.89 kB
+
+
+○  (Static)  prerendered as static content
+
+frontend/e2e: running size-limit (bundle budget)...
+
+> gdss-web@0.1.0 size /home/sbasnet/projects/GDSS/web
+> size-limit
+
+- Running JS in headless Chrome
+✔ Running JS in headless Chrome
+  
+  Initial JS (app route first load)
+  Size limit:   180 kB
+  Size:         43.06 kB brotlied
+  Loading time: 842 ms   on slow 3G
+  Running time: 1.3 s    on Snapdragon 410
+  Total time:   2.2 s
+  
+  Button component
+  Size limit:   8 kB
+  Size:         1.17 kB brotlied
+  Loading time: 23 ms   on slow 3G
+  Running time: 0 ms    on Snapdragon 410
+  Total time:   23 ms
+  
+  MetricCard component
+  Size limit:   12 kB
+  Size:         1.26 kB brotlied
+  Loading time: 25 ms   on slow 3G
+  Running time: 0 ms    on Snapdragon 410
+  Total time:   25 ms
+  
+frontend/e2e: SKIP Playwright (no e2e specs under web/e2e/).
+  WHY: axe-core/CLS e2e sensor needs Playwright specs; none are authored yet.
+  FIX: add web/e2e/*.spec.ts and 'cd web && pnpm exec playwright install --with-deps'.
+frontend/e2e: OK (or skipped cleanly)
+
+=== RESULT ===
+verify-frontend: ALL FRONTEND LAYERS GREEN (or skipped cleanly). Frontend work meets the definition of done.

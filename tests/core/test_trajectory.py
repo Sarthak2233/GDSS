@@ -1,14 +1,15 @@
 import os
-import tempfile
 import shutil
+import tempfile
+
 import git
 import pytest
 
 from gdss.core.ast_parser import ASTParser
+from gdss.core.trajectory import extract_trajectory_operators
 from gdss.core.transform_extractor import TransformExtractor
 from gdss.core.transform_types import OperatorType
 from gdss.watcher.git_observer import GitObserver
-from gdss.core.trajectory import extract_trajectory_operators
 
 
 @pytest.fixture
@@ -23,7 +24,7 @@ def branched_repo():
     with open(path, "w") as f:
         f.write("def add(a, b):\n    return a + b\n")
     repo.index.add(["calc.py"])
-    base = repo.index.commit("base")
+    repo.index.commit("base")
     # Ensure a named base branch tip
     base_name = repo.active_branch.name
 

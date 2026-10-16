@@ -15,6 +15,7 @@ from __future__ import annotations
 import ast
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 PKG = ROOT / "gdss"
@@ -85,7 +86,7 @@ class DSAChecker(ast.NodeVisitor):
                         self._add_violation(
                             node.lineno,
                             "Linear membership test with literal list/tuple",
-                            f"Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
+                            "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
                             "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
                         )
                     # Variable known to be a list
@@ -154,7 +155,7 @@ class DSAChecker(ast.NodeVisitor):
                                         node.lineno,
                                         f"O(N^2) list-building via check-and-append on '{list_name}'",
                                         f"Checking membership in '{list_name}' before appending inside a loop results in quadratic O(N^2) time complexity.",
-                                        f"Use a set to keep track of seen items, or use a dict/set directly."
+                                        "Use a set to keep track of seen items, or use a dict/set directly."
                                     )
         self.generic_visit(node)
 
@@ -191,7 +192,7 @@ class DSAChecker(ast.NodeVisitor):
             if arg_repr is None:
                 return None  # complex arg, skip
             args_reprs.append(arg_repr)
-        
+
         for kw in node.keywords:
             kw_val_repr = self._node_to_str(kw.value)
             if kw_val_repr is None:
@@ -279,7 +280,7 @@ def check_file(path: Path, baseline: dict[str, list[dict[str, any]]]) -> list[st
             if item.get("lineno") == lineno and item.get("what") == what:
                 is_baselined = True
                 break
-        
+
         if not is_baselined:
             violations.append(
                 f"WHAT: {rel}:{lineno} - {what}\n"
@@ -305,10 +306,10 @@ def main() -> int:
     import json
     # Determine if we should generate/update the baseline
     generate_baseline = "--generate-baseline" in sys.argv
-    
+
     baseline = {} if generate_baseline else load_baseline()
     violations: list[str] = []
-    
+
     all_raw_violations: dict[str, list[dict[str, any]]] = {}
 
     if PKG.is_dir():

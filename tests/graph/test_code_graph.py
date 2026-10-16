@@ -1,6 +1,5 @@
-import pytest
-from gdss.graph.code_graph import CodeGraph
 from gdss.core.transform_types import CodeSymbol, SymbolType
+from gdss.graph.code_graph import CodeGraph
 
 
 def _helper_symbol() -> CodeSymbol:
@@ -74,3 +73,33 @@ def test_file_move_preserves_symbol_identity():
     assert original_id in graph.g
     assert graph.g.nodes[original_id]["chart_location"] == "src/helpers/calc.py"
     assert graph.get_display_id(original_id) == "src/helpers/calc.py::helper"
+
+
+def test_build_code_graph_excludes_build_and_package_dirs(tmp_path):
+    from gdss.graph.graph_builder import build_code_graph_from_repo
+
+    # Create valid file
+    (tmp_path / "valid.py").write_text("def hello():\n    pass\n")
+    # Create excluded directories and files
+    node_modules = tmp_path / "node_modules"
+    node_modules.mkdir()
+    (node_modules / "bad.py").write_text("def bad():\n    pass\n")
+
+    next_dir = tmp_path / ".next" / "static" / "chunks"
+    next_dir.mkdir(parents=True)
+    (next_dir / "388.js").write_text("function cp() {}\n")
+
+    venv_dir = tmp_path / ".venv"
+    venv_dir.mkdir()
+    (venv_dir / "lib.py").write_text("def lib():\n    pass\n")
+
+    (tmp_path / "bundle.min.js").write_text("function min() {}\n")
+
+    graph = build_code_graph_from_repo(str(tmp_path))
+    files_in_graph = [n for n, d in graph.g.nodes(data=True) if d.get("type") == "file"]
+    assert "valid.py" in files_in_graph
+    assert not any("node_modules" in f for f in files_in_graph)
+    assert not any(".next" in f for f in files_in_graph)
+    assert not any(".venv" in f for f in files_in_graph)
+    assert not any("bundle.min.js" in f for f in files_in_graph)
+

@@ -1,11 +1,12 @@
 import numpy as np
+
 from gdss.core.transform_types import CodeSymbol, SymbolType
-from gdss.embeddings.encoder import DeterministicBagEncoder
 from gdss.embeddings.branch_vector import (
-    embed_symbols,
     aggregate_branch_tip,
+    embed_symbols,
     embedding_distance_to_attractor,
 )
+from gdss.embeddings.encoder import DeterministicBagEncoder
 
 
 def _sym(name: str, body: str, sid: str | None = None) -> CodeSymbol:

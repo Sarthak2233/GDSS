@@ -49,7 +49,7 @@ fi
 
 # 4) Runtime deps.
 echo "Dependencies:"
-for mod in git tree_sitter networkx typer rich; do
+for mod in git tree_sitter networkx typer rich httpx; do
   if python3 -c "import $mod" >/dev/null 2>&1; then
     pass "$mod"
   else

@@ -1,12 +1,10 @@
 # gdss/core/transform_types.py
 from __future__ import annotations
 
-import copy
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class SymbolType(str, Enum):
@@ -51,13 +49,13 @@ class BodyBlock:
     node_type: str
     start_line: int
     end_line: int
-    structural_tokens: List[str] = field(default_factory=list)
+    structural_tokens: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "BodyBlock":
+    def from_dict(cls, d: dict[str, Any]) -> BodyBlock:
         return cls(**d)
 
 
@@ -68,22 +66,24 @@ class CodeSymbol:
     type: SymbolType
     start_line: int
     end_line: int
+    start_column: int = 1
+    end_column: int = 1
     signature: str = ""
     body: str = ""
-    docstring: Optional[str] = None
-    parent_class: Optional[str] = None
-    module: Optional[str] = None
-    imported_names: List[str] = field(default_factory=list)
-    calls: List[str] = field(default_factory=list)
-    parameters: List[str] = field(default_factory=list)
-    return_type: Optional[str] = None
-    structural_tokens: List[str] = field(default_factory=list)
-    body_blocks: List[BodyBlock] = field(default_factory=list)
+    docstring: str | None = None
+    parent_class: str | None = None
+    module: str | None = None
+    imported_names: list[str] = field(default_factory=list)
+    calls: list[str] = field(default_factory=list)
+    parameters: list[str] = field(default_factory=list)
+    return_type: str | None = None
+    structural_tokens: list[str] = field(default_factory=list)
+    body_blocks: list[BodyBlock] = field(default_factory=list)
     language: str = "python"
-    chart_location: Optional[str] = None
-    symbol_id: Optional[str] = None
+    chart_location: str | None = None
+    symbol_id: str | None = None
 
-    def ensure_identity(self, file_path: Optional[str] = None) -> None:
+    def ensure_identity(self, file_path: str | None = None) -> None:
         """Populate symbol_id and chart_location when missing."""
         if file_path and not self.chart_location:
             self.chart_location = file_path
@@ -92,13 +92,13 @@ class CodeSymbol:
 
             self.symbol_id = compute_symbol_id(self, language=self.language)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["body_blocks"] = [b.to_dict() for b in self.body_blocks]
         return data
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "CodeSymbol":
+    def from_dict(cls, d: dict[str, Any]) -> CodeSymbol:
         blocks = [BodyBlock.from_dict(b) for b in d.pop("body_blocks", [])]
         d["type"] = SymbolType(d["type"])
         return cls(**d, body_blocks=blocks)
@@ -113,17 +113,17 @@ class SemanticOperator:
     operator: OperatorType
     file: str
     commit: str = ""
-    name: Optional[str] = None
-    from_name: Optional[str] = None
-    to_name: Optional[str] = None
-    details: Dict[str, Any] = field(default_factory=dict)
-    timestamp: Optional[datetime] = field(default_factory=datetime.now)
-    author: Optional[str] = None
-    symbol_id: Optional[str] = None
-    from_symbol_id: Optional[str] = None
-    to_symbol_id: Optional[str] = None
+    name: str | None = None
+    from_name: str | None = None
+    to_name: str | None = None
+    details: dict[str, Any] = field(default_factory=dict)
+    timestamp: datetime | None = field(default_factory=datetime.now)
+    author: str | None = None
+    symbol_id: str | None = None
+    from_symbol_id: str | None = None
+    to_symbol_id: str | None = None
 
-    def get_target_name(self) -> Optional[str]:
+    def get_target_name(self) -> str | None:
         """Primary symbol name for display and impact queries."""
         if self.name:
             return self.name
@@ -133,7 +133,7 @@ class SemanticOperator:
             return self.from_name
         return None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "operator": self.operator.value,
             "file": self.file,
@@ -150,7 +150,7 @@ class SemanticOperator:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "SemanticOperator":
+    def from_dict(cls, d: dict[str, Any]) -> SemanticOperator:
         return cls(
             operator=OperatorType(d["operator"]),
             file=d["file"],

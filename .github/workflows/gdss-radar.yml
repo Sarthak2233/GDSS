@@ -1,0 +1,53 @@
+name: GDSS PR Collision Radar
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Restrict concurrency to prevent race conditions on sticky comments per PR
+concurrency:
+  group: gdss-radar-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  collision-radar:
+    name: Audit Cross-Branch PR Collisions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install GDSS
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+
+      - name: Run GDSS Collision Radar Audit
+        id: gdss_audit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          gdss audit-pr --output gdss_radar_report.md
+
+      - name: Upload Radar Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gdss-radar-report-pr-${{ github.event.pull_request.number }}
+          path: gdss_radar_report.md
+          if-no-files-found: ignore

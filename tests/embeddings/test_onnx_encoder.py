@@ -1,6 +1,7 @@
 """ONNX encoder availability and factory behavior."""
 
 import os
+
 import pytest
 
 from gdss.embeddings.encoder import DeterministicBagEncoder, get_encoder

@@ -1,8 +1,10 @@
 import json
 import time
+
 from gdss.runtime.event_bus import EventBus
-from gdss.runtime.registry import RepositoryRegistry
 from gdss.runtime.hierarchy import HierarchyManager
+from gdss.runtime.registry import RepositoryRegistry
+
 
 class ContextEngine:
     def __init__(self, repo_id: int, registry: RepositoryRegistry, bus: EventBus):
@@ -15,7 +17,7 @@ class ContextEngine:
     def on_any_event(self, event_packet: dict):
         topic = event_packet['topic']
         data = event_packet['data']
-        
+
         # Construct Awareness Packet
         packet = {
             "source": topic,
@@ -26,7 +28,17 @@ class ContextEngine:
             "remote_aware": topic == "remote",
             "semantic_operators": data.get("semantic_operators", [])
         }
-        
+        if topic == "drift":
+            packet["drift"] = {
+                "branch": data.get("branch"),
+                "magnitude": data.get("magnitude"),
+                "severity": data.get("severity"),
+                "velocity": data.get("velocity"),
+                "convergence": data.get("convergence"),
+                "tip_distance": data.get("tip_distance"),
+                "trajectory_integral": data.get("trajectory_integral"),
+            }
+
         # Log to DB
         self.log_context(packet)
 
@@ -34,7 +46,7 @@ class ContextEngine:
         config = self.hierarchy.get_config(self.repo_id)
         if config.get("reference_branch"):
             return str(config["reference_branch"])
-        chain = self.hierarchy.resolve_priority_chain(self.repo_id, "HEAD")
+        chain = self.hierarchy.resolve_priority_chain(self.repo_id)
         return chain[-1] if chain else "main"
 
     def set_reference_branch(self, branch: str) -> None:
@@ -44,6 +56,8 @@ class ContextEngine:
         # Keep production attractor aligned with the configured reference.
         hierarchy = dict(config.get("hierarchy") or {})
         hierarchy["production"] = branch
+
+        # pyrefly: ignore [unsupported-operation]
         config["hierarchy"] = hierarchy
         self.hierarchy.set_config(self.repo_id, config)
 

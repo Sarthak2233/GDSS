@@ -1,8 +1,11 @@
-import pytest
 import os
-from gdss.runtime.local_observer import LocalObserver
+
+import pytest
+
 from gdss.runtime.event_bus import EventBus
+from gdss.runtime.local_observer import LocalObserver
 from gdss.storage.db import RuntimeDB
+
 
 @pytest.fixture
 def db(tmp_path):
@@ -24,19 +27,19 @@ def test_local_observer_detection(db, bus, tmp_path):
     readme.write_text("initial")
     repo.index.add(["README"])
     repo.index.commit("initial commit")
-    
+
     observer = LocalObserver(repo_path, bus)
-    
+
     events = []
     def on_event(event):
         events.append(event)
-    
+
     bus.subscribe("local", on_event)
-    
+
     # Simulate a file change
     (repo_path / "test.py").write_text("print('hello')")
-    
+
     # In a real scenario we'd wait for watchdog, but for TDD we can trigger manual check
     observer.scan_once()
-    
+
     # assert len(events) > 0 # This depends on implementation details

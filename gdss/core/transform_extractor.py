@@ -1,12 +1,14 @@
-from typing import List, Dict, Set, Tuple, Optional, Any
 import re
-from gdss.core.transform_types import CodeSymbol, SymbolType, SemanticOperator, OperatorType, BodyBlock
+
 from gdss.core.structural_fingerprint import (
-    normalized_similarity,
-    fingerprint_bucket,
     extract_tokens_from_body_text,
+    fingerprint_bucket,
+    normalized_similarity,
 )
-from gdss.core.symbol_identity import compute_symbol_id  # noqa: F401 - reserved for future ID helpers
+from gdss.core.symbol_identity import (
+    compute_symbol_id,  # noqa: F401 - reserved for future ID helpers
+)
+from gdss.core.transform_types import CodeSymbol, OperatorType, SemanticOperator, SymbolType
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _STUB_TOKEN_TYPES = frozenset({"pass_statement", "expression_statement"})
@@ -22,17 +24,17 @@ class TransformExtractor:
         self.rename_threshold = rename_threshold
 
     @staticmethod
-    def _symbol_key(sym: CodeSymbol) -> Tuple[str, str]:
+    def _symbol_key(sym: CodeSymbol) -> tuple[str, str]:
         """Stable map key: (parent_class, name) avoids collisions across classes."""
         return (sym.parent_class or "", sym.name)
 
     @staticmethod
-    def _symbol_map(symbols: List[CodeSymbol]) -> Dict[Tuple[str, str], CodeSymbol]:
+    def _symbol_map(symbols: list[CodeSymbol]) -> dict[tuple[str, str], CodeSymbol]:
         return {TransformExtractor._symbol_key(s): s for s in symbols}
 
     @staticmethod
-    def _is_valid_identifier(name: Optional[str]) -> bool:
-        return bool(name) and bool(_IDENTIFIER_RE.match(name))
+    def _is_valid_identifier(name: str | None) -> bool:
+        return name is not None and bool(_IDENTIFIER_RE.match(name))
 
     def _is_near_empty_stub(self, sym: CodeSymbol) -> bool:
         tokens = self._structural_profile(sym)
@@ -64,14 +66,14 @@ class TransformExtractor:
     def extract_operators(
         self,
         file_path: str,
-        old_symbols: List[CodeSymbol],
-        new_symbols: List[CodeSymbol],
+        old_symbols: list[CodeSymbol],
+        new_symbols: list[CodeSymbol],
         commit_sha: str = "",
-    ) -> List[SemanticOperator]:
+    ) -> list[SemanticOperator]:
         for sym in old_symbols + new_symbols:
             sym.ensure_identity(file_path)
 
-        operators: List[SemanticOperator] = []
+        operators: list[SemanticOperator] = []
 
         old_funcs = [s for s in old_symbols if s.type == SymbolType.FUNCTION]
         new_funcs = [s for s in new_symbols if s.type == SymbolType.FUNCTION]
@@ -89,9 +91,9 @@ class TransformExtractor:
 
         return operators
 
-    def _structural_profile(self, sym: CodeSymbol) -> List[str]:
+    def _structural_profile(self, sym: CodeSymbol) -> list[str]:
         if sym.body_blocks:
-            profile: List[str] = []
+            profile: list[str] = []
             for block in sym.body_blocks:
                 profile.extend(block.structural_tokens or [block.node_type])
             if profile:
@@ -118,10 +120,10 @@ class TransformExtractor:
 
         return (0.55 * token_sim) + (0.2 * sig_match) + (0.15 * line_sim) + (0.1 * count_sim)
 
-    def _changed_blocks(self, old_sym: CodeSymbol, new_sym: CodeSymbol) -> List[str]:
+    def _changed_blocks(self, old_sym: CodeSymbol, new_sym: CodeSymbol) -> list[str]:
         old_map = {b.block_id: b for b in old_sym.body_blocks}
         new_map = {b.block_id: b for b in new_sym.body_blocks}
-        changed: List[str] = []
+        changed: list[str] = []
 
         for block_id, old_block in old_map.items():
             new_block = new_map.get(block_id)
@@ -139,8 +141,8 @@ class TransformExtractor:
                 changed.append(block_id)
         return sorted(changed)
 
-    def _build_rename_buckets(self, symbols: List[CodeSymbol]) -> Dict[str, List[CodeSymbol]]:
-        buckets: Dict[str, List[CodeSymbol]] = {}
+    def _build_rename_buckets(self, symbols: list[CodeSymbol]) -> dict[str, list[CodeSymbol]]:
+        buckets: dict[str, list[CodeSymbol]] = {}
         for sym in symbols:
             bucket = fingerprint_bucket(self._structural_profile(sym))
             buckets.setdefault(bucket, []).append(sym)
@@ -149,9 +151,9 @@ class TransformExtractor:
     def _extract_variable_ops(
         self,
         file: str,
-        old_list: List[CodeSymbol],
-        new_list: List[CodeSymbol],
-        operators: List[SemanticOperator],
+        old_list: list[CodeSymbol],
+        new_list: list[CodeSymbol],
+        operators: list[SemanticOperator],
         commit: str,
     ):
         old_map = self._symbol_map(old_list)
@@ -191,11 +193,11 @@ class TransformExtractor:
             )
 
     def extract_repo_operators(
-        self, old_files: List[str], new_files: List[str], commit_sha: str = ""
-    ) -> List[SemanticOperator]:
+        self, old_files: list[str], new_files: list[str], commit_sha: str = ""
+    ) -> list[SemanticOperator]:
         import os
 
-        operators: List[SemanticOperator] = []
+        operators: list[SemanticOperator] = []
         old_set = set(old_files)
         new_set = set(new_files)
         deleted = old_set - new_set
@@ -233,16 +235,16 @@ class TransformExtractor:
 
     def _match_symbol_renames(
         self,
-        old_map: Dict[Tuple[str, str], CodeSymbol],
-        new_map: Dict[Tuple[str, str], CodeSymbol],
-        deleted_keys: Set[Tuple[str, str]],
-        added_keys: Set[Tuple[str, str]],
-    ) -> List[Tuple[Tuple[str, str], Tuple[str, str], float]]:
+        old_map: dict[tuple[str, str], CodeSymbol],
+        new_map: dict[tuple[str, str], CodeSymbol],
+        deleted_keys: set[tuple[str, str]],
+        added_keys: set[tuple[str, str]],
+    ) -> list[tuple[tuple[str, str], tuple[str, str], float]]:
         deleted_syms = [old_map[k] for k in deleted_keys]
         added_by_bucket = self._build_rename_buckets([new_map[k] for k in added_keys])
         key_of = self._symbol_key
 
-        candidates: List[Tuple[float, Tuple[str, str], Tuple[str, str]]] = []
+        candidates: list[tuple[float, tuple[str, str], tuple[str, str]]] = []
         for del_sym in deleted_syms:
             del_key = key_of(del_sym)
             bucket = fingerprint_bucket(self._structural_profile(del_sym))
@@ -260,8 +262,8 @@ class TransformExtractor:
                 candidates.append((score, del_key, add_key))
 
         candidates.sort(reverse=True, key=lambda item: item[0])
-        used: Set[str] = set()
-        matches: List[Tuple[Tuple[str, str], Tuple[str, str], float]] = []
+        used: set[str] = set()
+        matches: list[tuple[tuple[str, str], tuple[str, str], float]] = []
         for score, del_key, add_key in candidates:
             del_mark = f"deleted:{del_key}"
             add_mark = f"added:{add_key}"
@@ -275,9 +277,9 @@ class TransformExtractor:
     def _extract_function_ops(
         self,
         file: str,
-        old_list: List[CodeSymbol],
-        new_list: List[CodeSymbol],
-        operators: List[SemanticOperator],
+        old_list: list[CodeSymbol],
+        new_list: list[CodeSymbol],
+        operators: list[SemanticOperator],
         commit: str,
     ):
         old_map = self._symbol_map(old_list)
@@ -367,9 +369,9 @@ class TransformExtractor:
     def _extract_class_ops(
         self,
         file: str,
-        old_list: List[CodeSymbol],
-        new_list: List[CodeSymbol],
-        operators: List[SemanticOperator],
+        old_list: list[CodeSymbol],
+        new_list: list[CodeSymbol],
+        operators: list[SemanticOperator],
         commit: str,
     ):
         old_map = self._symbol_map(old_list)
@@ -445,9 +447,9 @@ class TransformExtractor:
     def _extract_import_ops(
         self,
         file: str,
-        old_list: List[CodeSymbol],
-        new_list: List[CodeSymbol],
-        operators: List[SemanticOperator],
+        old_list: list[CodeSymbol],
+        new_list: list[CodeSymbol],
+        operators: list[SemanticOperator],
         commit: str,
     ):
         old_modules = {s.module: s for s in old_list if s.module}

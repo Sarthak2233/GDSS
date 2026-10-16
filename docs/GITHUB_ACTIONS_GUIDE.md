@@ -176,7 +176,7 @@ ast:
 | `radar.provider` | `string` | `"github"` | Provider backend: `"github"` (native GitHub Models via `GITHUB_TOKEN`), `"openai"`, `"openrouter"`, `"ollama"`, or `"vllm"`. |
 | `radar.max_refinements` | `integer` | `2` | Maximum agentic self-correction attempts inside ephemeral sandbox worktrees before halting. |
 | `radar.risk_threshold` | `float` | `0.8` | The numeric collision risk cutoff score between `0.0` and `1.0`. |
-| `radar.fail_on_collision` | `boolean` | `false` | When `true`, the workflow exits with code `1` if $\Omega_{ij} \ge \text{risk\_threshold}$, blocking the merge button. |
+| `radar.fail_on_collision` | `boolean` | `false` | When `true`, the workflow exits with code `1` if $\Omega_{ij} \ge \text{risk threshold}$, blocking the merge button. |
 
 ---
 

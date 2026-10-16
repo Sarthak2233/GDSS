@@ -512,7 +512,6 @@ graph TD
 
 </details>
 
----
 
 ## 🔬 Core Concepts
 
@@ -522,22 +521,23 @@ $$
 I(B_i) \approx \alpha\, d_{\mathrm{tip}} + \beta\, \widehat{I}_{\mathrm{traj}}
 $$
 
-Quantifies how far branch \(B_i\) has diverged from the attractor (`main`), combining tip-to-tip cosine distance with cumulative trajectory length.
+Quantifies how far branch $B_i$ has diverged from the attractor (`main`), combining tip-to-tip cosine distance with cumulative trajectory length.
 
-### PR Collision Radar & Interaction Tensor Ω_ij
+### PR Collision Radar & Interaction Tensor ($\Omega_{ij}$)
 
-Computes pairwise interference between concurrent branches \(B_i\) and \(B_j\) before merge:
+Computes pairwise interference between concurrent branches $B_i$ and $B_j$ before merge:
 
 $$
 \begin{aligned}
-\Omega_{ij} ={}&
-w_{\text{file}} \cdot \text{same\_file} \\
-&+ w_{\text{function}} \cdot \text{same\_function} \\
-&+ w_{\text{symbol}} \cdot \text{same\_symbol} \\
-&+ w_{\text{dep}} \cdot \text{dep\_term} \\
+\Omega_{ij} ={}& w_{\text{file}} \cdot \text{same file} \\
+&+ w_{\text{function}} \cdot \text{same function} \\
+&+ w_{\text{symbol}} \cdot \text{same symbol} \\
+&+ w_{\text{dep}} \cdot \text{dep term} \\
 &+ w_{\text{interfere}} \cdot \text{interference}
 \end{aligned}
 $$
+
+---
 
 <p align="center">
   <img src="./assets/product/conflict_tensor.svg" alt="Conflict Tensor Matrix" width="100%">

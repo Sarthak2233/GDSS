@@ -10,6 +10,7 @@ Scans the Python source files under ``gdss/`` for common DSA anti-patterns:
 
 Violations can be suppressed using a '# dsa:ignore' comment on the offending line.
 """
+
 from __future__ import annotations
 
 import ast
@@ -87,7 +88,7 @@ class DSAChecker(ast.NodeVisitor):
                             node.lineno,
                             "Linear membership test with literal list/tuple",
                             "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-                            "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
+                            "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time.",
                         )
                     # Variable known to be a list
                     elif isinstance(comp, ast.Name) and comp.id in self.list_variables:
@@ -96,7 +97,7 @@ class DSAChecker(ast.NodeVisitor):
                             node.lineno,
                             f"Linear membership test on list variable '{comp.id}'",
                             f"Checking membership on the list variable '{comp.id}' takes O(N) time.",
-                            f"Convert '{comp.id}' to a set (or use a set for membership queries) for O(1) lookup."
+                            f"Convert '{comp.id}' to a set (or use a set for membership queries) for O(1) lookup.",
                         )
         self.generic_visit(node)
 
@@ -115,7 +116,7 @@ class DSAChecker(ast.NodeVisitor):
                         child.lineno,
                         f"Nested loops over the same collection '{outer_iter}'",
                         f"Iterating over '{outer_iter}' inside an outer loop iterating over the same collection leads to O(N^2) time complexity.",
-                        "Use a hash map (dict) or set to lookup elements in O(1) time instead of performing nested iterations."
+                        "Use a hash map (dict) or set to lookup elements in O(1) time instead of performing nested iterations.",
                     )
         self.generic_visit(node)
 
@@ -131,7 +132,7 @@ class DSAChecker(ast.NodeVisitor):
                             node.lineno,
                             "NetworkX graph reverse copy",
                             "Calling '.reverse(copy=True)' copies the entire graph, which is highly inefficient for large graphs.",
-                            "Use '.reverse(copy=False)' to return a read-only view of the reversed graph without copying memory."
+                            "Use '.reverse(copy=False)' to return a read-only view of the reversed graph without copying memory.",
                         )
         self.generic_visit(node)
 
@@ -146,7 +147,9 @@ class DSAChecker(ast.NodeVisitor):
                     list_name = comp.id
                     # Now check the body for append to list_name
                     for body_node in node.body:
-                        if isinstance(body_node, ast.Expr) and isinstance(body_node.value, ast.Call):
+                        if isinstance(body_node, ast.Expr) and isinstance(
+                            body_node.value, ast.Call
+                        ):
                             call = body_node.value
                             if isinstance(call.func, ast.Attribute) and call.func.attr == "append":
                                 obj_name = self._get_name_id(call.func.value)
@@ -155,7 +158,7 @@ class DSAChecker(ast.NodeVisitor):
                                         node.lineno,
                                         f"O(N^2) list-building via check-and-append on '{list_name}'",
                                         f"Checking membership in '{list_name}' before appending inside a loop results in quadratic O(N^2) time complexity.",
-                                        "Use a set to keep track of seen items, or use a dict/set directly."
+                                        "Use a set to keep track of seen items, or use a dict/set directly.",
                                     )
         self.generic_visit(node)
 
@@ -178,7 +181,7 @@ class DSAChecker(ast.NodeVisitor):
                         dup_call.lineno,
                         f"Repeated function call '{func_str}' in function '{func_node.name}'",
                         f"Calling '{func_str}' multiple times in the same function computes the same result repeatedly.",
-                        "Assign the result to a local variable or cache it using '@functools.lru_cache'."
+                        "Assign the result to a local variable or cache it using '@functools.lru_cache'.",
                     )
 
     def _call_to_str(self, node: ast.Call) -> str | None:
@@ -217,14 +220,43 @@ class DSAChecker(ast.NodeVisitor):
         parts = func_str.split("(")[0].split(".")
         name = parts[-1]
         return name in (
-            "append", "add", "remove", "pop", "insert", "update", "extend",
-            "write", "print", "debug", "info", "warning", "error", "log",
-            "add_node", "add_edge", "remove_node", "remove_nodes_from", "remove_edges_from",
+            "append",
+            "add",
+            "remove",
+            "pop",
+            "insert",
+            "update",
+            "extend",
+            "write",
+            "print",
+            "debug",
+            "info",
+            "warning",
+            "error",
+            "log",
+            "add_node",
+            "add_edge",
+            "remove_node",
+            "remove_nodes_from",
+            "remove_edges_from",
             # O(1) dict operations
-            "keys", "values", "items", "get",
+            "keys",
+            "values",
+            "items",
+            "get",
             # Basic string/path operations
-            "startswith", "endswith", "split", "strip", "lower", "upper", "join",
-            "is_dir", "exists", "read_text", "relative_to", "get_node_text"
+            "startswith",
+            "endswith",
+            "split",
+            "strip",
+            "lower",
+            "upper",
+            "join",
+            "is_dir",
+            "exists",
+            "read_text",
+            "relative_to",
+            "get_node_text",
         )
 
     def _get_name_id(self, node: ast.AST) -> str | None:
@@ -282,17 +314,14 @@ def check_file(path: Path, baseline: dict[str, list[dict[str, any]]]) -> list[st
                 break
 
         if not is_baselined:
-            violations.append(
-                f"WHAT: {rel}:{lineno} - {what}\n"
-                f"  WHY: {why}\n"
-                f"  FIX: {fix}"
-            )
+            violations.append(f"WHAT: {rel}:{lineno} - {what}\n  WHY: {why}\n  FIX: {fix}")
 
     return violations
 
 
 def load_baseline() -> dict[str, list[dict[str, any]]]:
     import json
+
     baseline_path = Path(__file__).resolve().parent / "dsa_baseline.json"
     if baseline_path.is_file():
         try:
@@ -304,6 +333,7 @@ def load_baseline() -> dict[str, list[dict[str, any]]]:
 
 def main() -> int:
     import json
+
     # Determine if we should generate/update the baseline
     generate_baseline = "--generate-baseline" in sys.argv
 
@@ -335,7 +365,9 @@ def main() -> int:
     if generate_baseline:
         baseline_path = Path(__file__).resolve().parent / "dsa_baseline.json"
         baseline_path.write_text(json.dumps(all_raw_violations, indent=2), encoding="utf-8")
-        print(f"Generated DSA baseline with {sum(len(v) for v in all_raw_violations.values())} violations at {baseline_path}")
+        print(
+            f"Generated DSA baseline with {sum(len(v) for v in all_raw_violations.values())} violations at {baseline_path}"
+        )
         return 0
 
     if violations:

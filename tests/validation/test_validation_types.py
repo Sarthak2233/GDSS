@@ -1,4 +1,5 @@
 """Tests for gdss.validation.types data structures."""
+
 from __future__ import annotations
 
 from gdss.validation.types import (

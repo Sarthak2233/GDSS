@@ -1,4 +1,5 @@
 """Result types and statuses for the GDSS validation sandbox."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

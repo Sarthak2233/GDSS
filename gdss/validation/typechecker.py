@@ -1,4 +1,5 @@
 """Targeted static type checking runner for the GDSS validation sandbox."""
+
 from __future__ import annotations
 
 import os
@@ -77,7 +78,9 @@ def run_targeted_typecheck(
     env["CI"] = "true"
     env["GDSS_SANDBOX"] = "true"
 
-    logger.debug("Running typechecker '%s' (command: %s, timeout=%.1fs)", tool_name, cmd, resolved_timeout)
+    logger.debug(
+        "Running typechecker '%s' (command: %s, timeout=%.1fs)", tool_name, cmd, resolved_timeout
+    )
     try:
         proc = subprocess.run(
             cmd,

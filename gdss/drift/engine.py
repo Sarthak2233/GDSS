@@ -121,7 +121,12 @@ class DriftEngine:
         self.history.record(snap)
         logger.info(
             "Drift snapshot: branch=%s ref=%s magnitude=%.3f velocity=%.3f convergence=%.3f affected_symbols=%d",
-            branch, reference_branch, magnitude.magnitude, velocity, convergence, len(affected),
+            branch,
+            reference_branch,
+            magnitude.magnitude,
+            velocity,
+            convergence,
+            len(affected),
         )
         return snap
 
@@ -187,9 +192,7 @@ class DriftEngine:
         # Prefer intersection of modified names; if empty, use shared names present on both tips
         # from branch_ops that also appear in ref tip embeddings
         if not shared:
-            shared = {
-                n for n in branch_names if n in ref_by_name and n in branch_by_name
-            }
+            shared = {n for n in branch_names if n in ref_by_name and n in branch_by_name}
 
         # For dual-modify fixture: both sides modify verify_token relative to merge base.
         # branch_ops has modifications on feature; ref_ops has modifications on attractor.
@@ -236,9 +239,7 @@ class DriftEngine:
             return 0.0 if tip_b.dim == tip_r.dim else 1.0
         return embedding_distance_to_attractor(tip_b.vector, tip_r.vector)
 
-    def _trajectory_integral(
-        self, branch: str, reference_branch: str, branch_sha: str
-    ) -> float:
+    def _trajectory_integral(self, branch: str, reference_branch: str, branch_sha: str) -> float:
         """Discrete path length Σ ||phi(C_{c+1}) - phi(C_c)|| along merge_base..tip."""
         if self.observer.repo is None:
             return 0.0

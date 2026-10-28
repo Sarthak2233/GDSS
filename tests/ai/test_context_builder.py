@@ -80,12 +80,22 @@ def _make_mock_analysis_context(
         parser=parser,
         extractor=extractor,
         branch_commits={
-            branch_a: ({"sha": "aaa111", "summary": "Update calculate in alpha", "author": "Alice"},),
+            branch_a: (
+                {"sha": "aaa111", "summary": "Update calculate in alpha", "author": "Alice"},
+            ),
             branch_b: ({"sha": "bbb222", "summary": "Update calculate in beta", "author": "Bob"},),
         },
         branch_intents={
-            branch_a: {"title": "PR #10: Alpha calc", "description": "Add factor parameter", "author": "Alice"},
-            branch_b: {"title": "PR #11: Beta calc", "description": "Add offset parameter", "author": "Bob"},
+            branch_a: {
+                "title": "PR #10: Alpha calc",
+                "description": "Add factor parameter",
+                "author": "Alice",
+            },
+            branch_b: {
+                "title": "PR #11: Beta calc",
+                "description": "Add offset parameter",
+                "author": "Bob",
+            },
         },
     )
 
@@ -160,7 +170,9 @@ def test_extract_3way_symbol_context_all_branches_present():
     assert extracted.branch_b_line_range == (1, 2)
 
     # Verify impacted callers
-    assert any("caller.py" in caller or "run_calc" in caller for caller in extracted.impacted_callers)
+    assert any(
+        "caller.py" in caller or "run_calc" in caller for caller in extracted.impacted_callers
+    )
 
 
 def test_extract_3way_symbol_context_added_in_branches_missing_in_base():

@@ -49,6 +49,7 @@ def global_helper():
     # Statically resolved call to 'add'
     assert "add" in helper_func.calls
 
+
 def test_parse_javascript_code():
     code = """
 import { helper } from './utils';
@@ -161,9 +162,7 @@ def test_javascript_and_go_symbols_expose_one_based_column_bounds():
     javascript = parser.parse_file(
         "anchors.js", content="  function calculate() {\n    return 1;\n  }\n"
     )[0]
-    go = parser.parse_file(
-        "anchors.go", content="  func Calculate() int {\n    return 1\n  }\n"
-    )[0]
+    go = parser.parse_file("anchors.go", content="  func Calculate() int {\n    return 1\n  }\n")[0]
 
     assert javascript.start_column == 3
     assert javascript.end_column == 4

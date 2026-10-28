@@ -52,4 +52,3 @@ def test_find_similar_fuzzy_matching_and_exclusions():
         assert "charge_card" in names
     finally:
         shutil.rmtree(temp, ignore_errors=True)
-

@@ -3,6 +3,7 @@
 Provides zero-dependency logging infrastructure adhering to Two-Brain purity
 and layer direction invariants across all GDSS modules and CI workflows.
 """
+
 from __future__ import annotations
 
 import logging

@@ -71,9 +71,7 @@ def _anchored_block(context: AnalysisContext, suggestion: Suggestion) -> str:
     anchor = suggestion.anchor
     if anchor is None:
         return ""
-    content = context.observer.get_file_content_at_commit(
-        anchor.target_branch, anchor.file_path
-    )
+    content = context.observer.get_file_content_at_commit(anchor.target_branch, anchor.file_path)
     if content is None:
         return ""
     return "".join(content.splitlines(keepends=True)[anchor.line_start - 1 : anchor.line_end])
@@ -123,6 +121,7 @@ def _draft_combinations(
         )
         try:
             from gdss.ai.patch_parser import parse_strategy_patches
+
             batch_text = provider.complete(batch_prompt)
             parsed = parse_strategy_patches(batch_text, expected_strategies=labels)
             for combination in suggestion.patch_combinations:
@@ -179,7 +178,12 @@ def _pick_provider(
         return provider
     if not llm:
         return None
-    if os.getenv("OPENROUTER_API_KEY") or os.getenv("GITHUB_TOKEN") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_BASE_URL"):
+    if (
+        os.getenv("OPENROUTER_API_KEY")
+        or os.getenv("GITHUB_TOKEN")
+        or os.getenv("OPENAI_API_KEY")
+        or os.getenv("OPENAI_BASE_URL")
+    ):
         return OpenAICompatibleProvider()
     if _server_reachable("http://localhost:8000"):
         return VLLMProvider()
@@ -217,9 +221,7 @@ def suggest(
         branches=branches,
         exclude_branches=exclude_branches,
     )
-    ranked = rank_tensor_entries(
-        ctx.tensor, drift_magnitudes=ctx.drift_magnitudes
-    )
+    ranked = rank_tensor_entries(ctx.tensor, drift_magnitudes=ctx.drift_magnitudes)
     suggestions: list[Suggestion] = []
     seen: set[tuple[str, str, str, str]] = set()
     draft_provider = _pick_provider(llm, provider)
@@ -235,9 +237,7 @@ def suggest(
             if key in seen:
                 continue
             seen.add(key)
-            anchor = resolve_anchor(
-                ctx.observer, ctx.parser, left, entry.i
-            )
+            anchor = resolve_anchor(ctx.observer, ctx.parser, left, entry.i)
             if anchor is None:
                 continue
             topology = classify_conflict(

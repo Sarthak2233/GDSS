@@ -18,7 +18,7 @@ class RemoteMonitor:
                 cwd=self.repo_path,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             current_state = {}
             for line in result.stdout.splitlines():
@@ -31,20 +31,21 @@ class RemoteMonitor:
             # Compare with last state
             for ref, sha in current_state.items():
                 if ref in self.last_remote_state and self.last_remote_state[ref] != sha:
-                    self.bus.emit("remote", {
-                        "event": "branch_update",
-                        "ref": ref,
-                        "old_sha": self.last_remote_state[ref],
-                        "new_sha": sha,
-                        "timestamp": now
-                    })
+                    self.bus.emit(
+                        "remote",
+                        {
+                            "event": "branch_update",
+                            "ref": ref,
+                            "old_sha": self.last_remote_state[ref],
+                            "new_sha": sha,
+                            "timestamp": now,
+                        },
+                    )
                 elif ref not in self.last_remote_state:
-                    self.bus.emit("remote", {
-                        "event": "branch_created",
-                        "ref": ref,
-                        "sha": sha,
-                        "timestamp": now
-                    })
+                    self.bus.emit(
+                        "remote",
+                        {"event": "branch_created", "ref": ref, "sha": sha, "timestamp": now},
+                    )
 
             self.last_remote_state = current_state
         except Exception:

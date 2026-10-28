@@ -1,0 +1,215 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 540" width="100%" height="540">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+
+    <!-- Stage Gradients -->
+    <linearGradient id="gitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="routerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+
+    <linearGradient id="reducerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#5b21b6"/>
+    </linearGradient>
+
+    <linearGradient id="tensorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+
+    <!-- Arrow Markers -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#a78bfa"/>
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#fbbf24"/>
+    </marker>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1100" height="540" rx="16" fill="url(#bgGrad)" stroke="#1e293b" stroke-width="2"/>
+
+  <!-- Title & Subtitle -->
+  <text x="40" y="46" font-family="Segoe UI, Roboto, sans-serif" font-size="22" font-weight="700" fill="#f8fafc">
+    🌐 GDSS Universal Multi-Asset Intelligence &amp; Collision Flow
+  </text>
+  <text x="40" y="72" font-family="Segoe UI, Roboto, sans-serif" font-size="13" fill="#94a3b8">
+    100% Git file ingestion, autonomous dual-stage routing, domain-specialized semantic reducers, and conflict tensor classification
+  </text>
+
+  <!-- Column 1: Git Ground Truth (x=35, y=105, w=195, h=395) -->
+  <g transform="translate(35, 105)">
+    <rect width="195" height="395" rx="12" fill="#1e293b" stroke="#06b6d4" stroke-width="2"/>
+    <rect x="0" y="0" width="195" height="38" rx="12" fill="url(#gitGrad)"/>
+    <text x="97" y="24" font-family="Segoe UI, Roboto, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">
+      1. 100% GIT INGESTION
+    </text>
+    <text x="16" y="66" font-family="Segoe UI, Roboto, sans-serif" font-size="12" font-weight="600" fill="#e2e8f0">
+      Tracked File Diffs:
+    </text>
+    <text x="16" y="90" font-family="monospace" font-size="11" fill="#38bdf8">• *.py, *.ts, *.go, *.rs</text>
+    <text x="16" y="112" font-family="monospace" font-size="11" fill="#a78bfa">• package.json, Cargo</text>
+    <text x="16" y="134" font-family="monospace" font-size="11" fill="#fbbf24">• alembic/, drizzle/</text>
+    <text x="16" y="156" font-family="monospace" font-size="11" fill="#34d399">• *.sql (DDL schemas)</text>
+    <text x="16" y="178" font-family="monospace" font-size="11" fill="#cbd5e1">• *.md, *.rst (Docs)</text>
+    <text x="16" y="200" font-family="monospace" font-size="11" fill="#f43f5e">• .env, .github/ci.yml</text>
+
+    <rect x="14" y="230" width="167" height="85" rx="8" fill="#0f172a" stroke="#334155"/>
+    <text x="24" y="252" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#38bdf8">Zero False Negatives:</text>
+    <text x="24" y="272" font-family="Segoe UI, Roboto, sans-serif" font-size="10" fill="#94a3b8">No extensions filtered.</text>
+    <text x="24" y="290" font-family="Segoe UI, Roboto, sans-serif" font-size="10" fill="#94a3b8">Every modified path is</text>
+    <text x="24" y="306" font-family="Segoe UI, Roboto, sans-serif" font-size="10" fill="#94a3b8">routed and evaluated.</text>
+
+    <rect x="14" y="335" width="167" height="42" rx="8" fill="#0369a1" fill-opacity="0.25" stroke="#0ea5e9"/>
+    <text x="97" y="361" font-family="monospace" font-size="11" font-weight="700" fill="#38bdf8" text-anchor="middle">GitObserver Diff Stream</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <line x1="230" y1="290" x2="275" y2="290" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Column 2: Dual-Stage Router (x=280, y=105, w=220, h=395) -->
+  <g transform="translate(280, 105)">
+    <rect width="220" height="395" rx="12" fill="#1e293b" stroke="#0ea5e9" stroke-width="2"/>
+    <rect x="0" y="0" width="220" height="38" rx="12" fill="url(#routerGrad)"/>
+    <text x="110" y="24" font-family="Segoe UI, Roboto, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">
+      2. DUAL-STAGE ROUTER
+    </text>
+
+    <!-- Stage A: Advisory Path -->
+    <rect x="14" y="55" width="192" height="135" rx="8" fill="#0f172a" stroke="#0284c7"/>
+    <text x="24" y="78" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#38bdf8">Stage A: Advisory Path</text>
+    <text x="24" y="98" font-family="Segoe UI, Roboto, sans-serif" font-size="10" fill="#94a3b8">Fast dispatch by filename &amp; dir:</text>
+    <text x="24" y="118" font-family="monospace" font-size="10" fill="#7dd3fc">• package.json, Cargo.toml</text>
+    <text x="24" y="136" font-family="monospace" font-size="10" fill="#7dd3fc">• **/migrations/**, alembic/</text>
+    <text x="24" y="154" font-family="monospace" font-size="10" fill="#7dd3fc">• *.sql, *.md, *.rst</text>
+    <text x="24" y="172" font-family="monospace" font-size="10" fill="#7dd3fc">• *.py, *.ts, *.go, *.rs</text>
+
+    <!-- Stage B: Content-First Sniffer -->
+    <rect x="14" y="205" width="192" height="145" rx="8" fill="#0f172a" stroke="#7c3aed"/>
+    <text x="24" y="228" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#c084fc">Stage B: Deep Sniffer</text>
+    <text x="24" y="248" font-family="Segoe UI, Roboto, sans-serif" font-size="10" fill="#94a3b8">Inspects content signatures:</text>
+    <text x="24" y="268" font-family="monospace" font-size="10" fill="#e9d5ff">• down_revision, _journal</text>
+    <text x="24" y="286" font-family="monospace" font-size="10" fill="#e9d5ff">• CREATE/ALTER TABLE DDL</text>
+    <text x="24" y="304" font-family="monospace" font-size="10" fill="#e9d5ff">• Manifest keys (dependencies)</text>
+    <text x="24" y="322" font-family="monospace" font-size="10" fill="#e9d5ff">• ATX # / ## Headings</text>
+    <text x="24" y="340" font-family="monospace" font-size="10" fill="#e9d5ff">• Lexical Diff Chunks</text>
+
+    <text x="110" y="378" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="600" fill="#38bdf8" text-anchor="middle">
+      Resolves Best Domain Reducer
+    </text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <line x1="500" y1="290" x2="545" y2="290" stroke="#a78bfa" stroke-width="2.5" marker-end="url(#arrow-purple)"/>
+
+  <!-- Column 3: Specialized Domain Reducers (x=550, y=105, w=245, h=395) -->
+  <g transform="translate(550, 105)">
+    <rect width="245" height="395" rx="12" fill="#1e293b" stroke="#7c3aed" stroke-width="2"/>
+    <rect x="0" y="0" width="245" height="38" rx="12" fill="url(#reducerGrad)"/>
+    <text x="122" y="24" font-family="Segoe UI, Roboto, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">
+      3. DOMAIN REDUCERS
+    </text>
+
+    <!-- 6 Sub-boxes for the 6 Reducers -->
+    <g transform="translate(12, 50)">
+      <rect width="221" height="48" rx="6" fill="#0f172a" stroke="#3b82f6"/>
+      <text x="12" y="20" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#60a5fa">Code AST Reducer</text>
+      <text x="12" y="36" font-family="monospace" font-size="9.5" fill="#94a3b8">Tree-sitter: functions, classes, imports</text>
+    </g>
+
+    <g transform="translate(12, 106)">
+      <rect width="221" height="48" rx="6" fill="#0f172a" stroke="#a855f7"/>
+      <text x="12" y="20" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#c084fc">Manifest Reducer</text>
+      <text x="12" y="36" font-family="monospace" font-size="9.5" fill="#94a3b8">JSON/TOML: dependencies, semver ranges</text>
+    </g>
+
+    <g transform="translate(12, 162)">
+      <rect width="221" height="48" rx="6" fill="#0f172a" stroke="#f59e0b"/>
+      <text x="12" y="20" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#fbbf24">Migration DAG Reducer</text>
+      <text x="12" y="36" font-family="monospace" font-size="9.5" fill="#94a3b8">Alembic, Prisma, Drizzle, Django parents</text>
+    </g>
+
+    <g transform="translate(12, 218)">
+      <rect width="221" height="48" rx="6" fill="#0f172a" stroke="#10b981"/>
+      <text x="12" y="20" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#34d399">SQL Schema Reducer</text>
+      <text x="12" y="36" font-family="monospace" font-size="9.5" fill="#94a3b8">DDL: table/column addition &amp; drops</text>
+    </g>
+
+    <g transform="translate(12, 274)">
+      <rect width="221" height="48" rx="6" fill="#0f172a" stroke="#06b6d4"/>
+      <text x="12" y="20" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#38bdf8">Markdown Reducer</text>
+      <text x="12" y="36" font-family="monospace" font-size="9.5" fill="#94a3b8">ATX Headings, list union candidates</text>
+    </g>
+
+    <g transform="translate(12, 330)">
+      <rect width="221" height="48" rx="6" fill="#0f172a" stroke="#f43f5e"/>
+      <text x="12" y="20" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#fb7185">Universal Lexical Safety Net</text>
+      <text x="12" y="36" font-family="monospace" font-size="9.5" fill="#94a3b8">Line chunks for YAML, .env, Dockerfile</text>
+    </g>
+  </g>
+
+  <!-- Arrow 3 -> 4 -->
+  <line x1="795" y1="290" x2="840" y2="290" stroke="#fbbf24" stroke-width="2.5" marker-end="url(#arrow-amber)"/>
+
+  <!-- Column 4: Conflict Tensor & Radar (x=845, y=105, w=220, h=395) -->
+  <g transform="translate(845, 105)">
+    <rect width="220" height="395" rx="12" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+    <rect x="0" y="0" width="220" height="38" rx="12" fill="url(#tensorGrad)"/>
+    <text x="110" y="24" font-family="Segoe UI, Roboto, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">
+      4. RADAR &amp; TENSOR Ω_ij
+    </text>
+
+    <!-- Tensor Commutativity Computation -->
+    <rect x="14" y="52" width="192" height="60" rx="8" fill="#0f172a" stroke="#334155"/>
+    <text x="24" y="73" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#fbbf24">Pairwise Commutativity:</text>
+    <text x="24" y="93" font-family="monospace" font-size="10" fill="#e2e8f0">[T_A, T_B] = T_A T_B - T_B T_A</text>
+
+    <text x="16" y="132" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#f8fafc">
+      Domain Topologies:
+    </text>
+
+    <!-- Topologies Badges -->
+    <rect x="14" y="145" width="192" height="36" rx="6" fill="#450a0a" stroke="#ef4444"/>
+    <text x="24" y="167" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="700" fill="#fca5a5">
+      🗄️ Split-Head Hazard (Ω=1.0)
+    </text>
+
+    <rect x="14" y="190" width="192" height="36" rx="6" fill="#3b0764" stroke="#c084fc"/>
+    <text x="24" y="212" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="700" fill="#e9d5ff">
+      📦 Manifest Divergence (Ω&gt;0.5)
+    </text>
+
+    <rect x="14" y="235" width="192" height="36" rx="6" fill="#064e3b" stroke="#10b981"/>
+    <text x="24" y="257" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="700" fill="#6ee7b7">
+      🔀 Doc Section Union (Ω≤0.25)
+    </text>
+
+    <rect x="14" y="280" width="192" height="36" rx="6" fill="#1e1b4b" stroke="#6366f1"/>
+    <text x="24" y="302" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="700" fill="#a5b4fc">
+      ⚙️ Lexical Overlap (Chunk Clash)
+    </text>
+
+    <rect x="14" y="325" width="192" height="36" rx="6" fill="#172554" stroke="#3b82f6"/>
+    <text x="24" y="347" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="700" fill="#93c5fd">
+      ⚡ Code AST Intersection
+    </text>
+
+    <rect x="14" y="370" width="192" height="22" rx="4" fill="#0f172a"/>
+    <text x="110" y="385" font-family="Segoe UI, Roboto, sans-serif" font-size="9.5" fill="#94a3b8" text-anchor="middle">
+      Native Sandbox Lockfile Sync
+    </text>
+  </g>
+</svg>

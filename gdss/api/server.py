@@ -1,4 +1,5 @@
 """FastAPI Server for GDSS Local API."""
+
 import datetime
 from pathlib import Path
 
@@ -73,9 +74,7 @@ def create_app(repo_path: Path) -> FastAPI:
 
     @app.get("/v1/embeddings/projection")
     def embeddings_projection(dims: int = 2, limit: int = 500):
-        return format_resp(
-            service.get_embeddings_projection(repo_path_str, dims=dims, limit=limit)
-        )
+        return format_resp(service.get_embeddings_projection(repo_path_str, dims=dims, limit=limit))
 
     @app.get("/v1/tensor")
     def tensor(
@@ -123,8 +122,17 @@ def create_app(repo_path: Path) -> FastAPI:
     ):
         if format in {"prompt", "source"}:
             token = request.headers.get("X-GDSS-Local-Token")
-            if not getattr(app.state, "allow_local_source", False) and token != getattr(app.state, "local_token", ""):
-                return JSONResponse(status_code=403, content={"error": "Source-bearing requests require --allow-local-source or valid X-GDSS-Local-Token"})
-        return format_resp(service.get_suggestions(repo_path_str, ref, format, llm, combos, max_candidates))
+            if not getattr(app.state, "allow_local_source", False) and token != getattr(
+                app.state, "local_token", ""
+            ):
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "error": "Source-bearing requests require --allow-local-source or valid X-GDSS-Local-Token"
+                    },
+                )
+        return format_resp(
+            service.get_suggestions(repo_path_str, ref, format, llm, combos, max_candidates)
+        )
 
     return app

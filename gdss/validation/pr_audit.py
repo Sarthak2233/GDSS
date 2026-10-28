@@ -8,6 +8,7 @@ Automated PR collision audit interface for GitHub Actions CI:
 - Creates or updates sticky comment on the pull request
 - Enforces fail_on_collision thresholds
 """
+
 from __future__ import annotations
 
 import functools
@@ -22,6 +23,7 @@ from typing import Any
 
 import yaml
 
+from gdss.core.transform_types import OperatorType, SemanticOperator
 from gdss.logger import ci_group, get_logger
 from gdss.runtime.hierarchy import matches_any_pattern
 
@@ -65,7 +67,6 @@ class PRCollisionDetail:
     strategy_label: str | None = None
     reasons: list[str] = field(default_factory=list)
     refinement_attempts: int = 0
-
 
 
 @dataclass
@@ -202,7 +203,9 @@ def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
     target_bases = hierarchy_data.get("target_bases") or radar_data.get("target_bases") or []
 
     return {
-        "fail_on_collision": bool(radar_data.get("fail_on_collision", default_config["fail_on_collision"])),
+        "fail_on_collision": bool(
+            radar_data.get("fail_on_collision", default_config["fail_on_collision"])
+        ),
         "risk_threshold": float(radar_data.get("risk_threshold", default_config["risk_threshold"])),
         "model": str(radar_data.get("model", default_config["model"])),
         "provider": provider_name,
@@ -408,8 +411,12 @@ def generate_pr_convergence_patch(
     topology = ConflictTopology(
         kind="union",
         symbol_id=symbol_id,
-        operator_i=current_ops[0].operator.value if current_ops and hasattr(current_ops[0], "operator") else "modify_function",
-        operator_j=other_ops[0].operator.value if other_ops and hasattr(other_ops[0], "operator") else "modify_function",
+        operator_i=current_ops[0].operator.value
+        if current_ops and hasattr(current_ops[0], "operator")
+        else "modify_function",
+        operator_j=other_ops[0].operator.value
+        if other_ops and hasattr(other_ops[0], "operator")
+        else "modify_function",
         commutativity="interfere",
         justification="concurrent PR contractual overlap",
     )
@@ -524,7 +531,9 @@ def audit_pr_collisions(
     repo_root_str = str(repo_root)
     git_dir = repo_root / ".git"
     if git_dir.exists():
-        logger.debug("Found git repository metadata at %s, proceeding with git analysis", repo_root_str)
+        logger.debug(
+            "Found git repository metadata at %s, proceeding with git analysis", repo_root_str
+        )
         try:
             from gdss.ai.context import build_pr_analysis_context
             from gdss.ai.openai_provider import OpenAICompatibleProvider
@@ -533,7 +542,6 @@ def audit_pr_collisions(
             from gdss.core.ast_parser import ASTParser
             from gdss.core.trajectory import extract_trajectory_operators
             from gdss.core.transform_extractor import TransformExtractor
-            from gdss.core.transform_types import SemanticOperator
             from gdss.watcher.git_observer import GitObserver
 
             observer = GitObserver(repo_root_str)
@@ -545,7 +553,9 @@ def audit_pr_collisions(
                     or os.environ.get("OPENROUTER_API_KEY")
                     or os.environ.get("OPENAI_API_KEY")
                 )
-                effective_base_url = (config.get("base_url") if config else None) or os.environ.get("OPENAI_BASE_URL")
+                effective_base_url = (config.get("base_url") if config else None) or os.environ.get(
+                    "OPENAI_BASE_URL"
+                )
                 provider = (
                     OpenAICompatibleProvider(
                         base_url=effective_base_url,
@@ -601,7 +611,9 @@ def audit_pr_collisions(
                         observer=observer,
                     )
                 except Exception as e:
-                    logger.warning("Failed to build multi-branch PR analysis context: %s", e, exc_info=True)
+                    logger.warning(
+                        "Failed to build multi-branch PR analysis context: %s", e, exc_info=True
+                    )
 
                 # 2. Run LangGraph-powered orchestration pipeline if context succeeded
                 if analysis_ctx is not None:
@@ -632,15 +644,27 @@ def audit_pr_collisions(
                                 p_num_str = str(p.get("number"))
                                 p_ref = str(p.get("head_ref") or "")
                                 p_sha = str(p.get("head_sha") or "")
-                                if p_num_str in cand_branch or (p_ref and p_ref in cand_branch) or (p_sha and p_sha in cand_branch):
+                                if (
+                                    p_num_str in cand_branch
+                                    or (p_ref and p_ref in cand_branch)
+                                    or (p_sha and p_sha in cand_branch)
+                                ):
                                     matched_pr = p
                                     break
                             if matched_pr is None and concurrent_prs:
                                 matched_pr = concurrent_prs[0]
 
                             other_pr_num = int(matched_pr["number"]) if matched_pr else 0
-                            other_pr_author = str(matched_pr.get("author", "unknown")) if matched_pr else "unknown"
-                            other_pr_branch = str(matched_pr.get("head_ref", cand_branch)) if matched_pr else cand_branch
+                            other_pr_author = (
+                                str(matched_pr.get("author", "unknown"))
+                                if matched_pr
+                                else "unknown"
+                            )
+                            other_pr_branch = (
+                                str(matched_pr.get("head_ref", cand_branch))
+                                if matched_pr
+                                else cand_branch
+                            )
 
                             topo_kind = sug.topology.kind if sug.topology else "intersection"
                             reasons = list(sug.reason)
@@ -660,7 +684,8 @@ def audit_pr_collisions(
                                         break
 
                             refinement_attempts = sum(
-                                1 for entry in orchestrated_state.refinement_history
+                                1
+                                for entry in orchestrated_state.refinement_history
                                 if entry.get("suggestion_id") == sug.suggestion_id
                             )
 
@@ -713,7 +738,11 @@ def audit_pr_collisions(
                         current_ops = list(analysis_ctx.branch_operators.get(current_head, ()))
                     else:
                         current_ops = extract_trajectory_operators(
-                            observer, parser, extractor, ref_branch=context.base_ref, head=current_head
+                            observer,
+                            parser,
+                            extractor,
+                            ref_branch=context.base_ref,
+                            head=current_head,
                         )
 
                     for other_pr in concurrent_prs:
@@ -725,24 +754,161 @@ def audit_pr_collisions(
                                 other_ops = list(analysis_ctx.branch_operators.get(other_ref, ()))
                             else:
                                 other_ops = extract_trajectory_operators(
-                                    observer, parser, extractor, ref_branch=context.base_ref, head=other_ref
+                                    observer,
+                                    parser,
+                                    extractor,
+                                    ref_branch=context.base_ref,
+                                    head=other_ref,
                                 )
                             if current_ops and other_ops:
                                 branch_ops: dict[str, list[SemanticOperator]] = {
                                     f"PR#{context.pr_number}": current_ops,
                                     f"PR#{other_pr['number']}": other_ops,
                                 }
-                                drift_map = {f"PR#{context.pr_number}": 0.5, f"PR#{other_pr['number']}": 0.5}
+                                drift_map = {
+                                    f"PR#{context.pr_number}": 0.5,
+                                    f"PR#{other_pr['number']}": 0.5,
+                                }
                                 tensor = engine.compute(branch_ops, drift_map)
                                 pair_key = (f"PR#{context.pr_number}", f"PR#{other_pr['number']}")
                                 entry = tensor.entries.get(pair_key)
                                 if entry is None:
-                                    pair_key = (f"PR#{other_pr['number']}", f"PR#{context.pr_number}")
+                                    pair_key = (
+                                        f"PR#{other_pr['number']}",
+                                        f"PR#{context.pr_number}",
+                                    )
                                     entry = tensor.entries.get(pair_key)
                                 risk = float(entry.omega) if entry else 0.0
                                 if risk > 0.1:
-                                    target_file = current_ops[0].file or "code"
-                                    sym_name = current_ops[0].get_target_name() or "symbol"
+                                    files_current = {op.file for op in current_ops if op.file}
+                                    files_other = {op.file for op in other_ops if op.file}
+                                    common_files = files_current & files_other
+
+                                    syms_current: set[str] = set()
+                                    for op in current_ops:
+                                        t = op.get_target_name()
+                                        if t:
+                                            syms_current.add(t)
+
+                                    syms_other: set[str] = set()  # dsa:ignore
+                                    for op in other_ops:
+                                        t = op.get_target_name()  # dsa:ignore
+                                        if t:
+                                            syms_other.add(t)
+
+                                    common_syms = syms_current & syms_other
+
+                                    target_file = (
+                                        sorted(common_files)[0]
+                                        if common_files
+                                        else (current_ops[0].file or "code")
+                                    )
+                                    fallback_sym = current_ops[0].get_target_name() or "symbol"  # dsa:ignore
+                                    sym_name: str = (
+                                        sorted(common_syms)[0]
+                                        if common_syms
+                                        else fallback_sym
+                                    )
+
+                                    is_migration = (
+                                        "migration" in target_file
+                                        or "alembic" in target_file
+                                        or "drizzle" in target_file
+                                        or "prisma" in target_file
+                                    )
+                                    is_manifest = Path(target_file).name in {
+                                        "package.json",
+                                        "Cargo.toml",
+                                        "pyproject.toml",
+                                    }
+                                    is_sql = target_file.endswith(".sql")
+                                    is_doc = target_file.endswith((".md", ".rst"))
+                                    is_lexical = False
+
+                                    _MIGRATION_OPS = {
+                                        OperatorType.SPLIT_HEAD_HAZARD,
+                                        OperatorType.MIGRATION_STEP,
+                                        OperatorType.MIGRATION_JOURNAL_CLASH,
+                                    }
+                                    _MANIFEST_OPS = {
+                                        OperatorType.ADD_DEPENDENCY,
+                                        OperatorType.MODIFY_DEPENDENCY,
+                                        OperatorType.REMOVE_DEPENDENCY,
+                                    }
+                                    _SQL_OPS = {
+                                        OperatorType.SCHEMA_ADD_TABLE,
+                                        OperatorType.SCHEMA_ADD_COLUMN,
+                                        OperatorType.SCHEMA_DROP_COLUMN,
+                                    }
+                                    _DOC_OPS = {
+                                        OperatorType.DOC_SECTION_APPEND,
+                                        OperatorType.DOC_SECTION_MODIFY,
+                                    }
+
+                                    for op in current_ops + other_ops:
+                                        op_k = getattr(op, "operator", None)
+                                        t_name = (op.get_target_name() or "")  # dsa:ignore
+                                        if (
+                                            op_k in _MIGRATION_OPS
+                                            or t_name.startswith("migration_parent::")
+                                            or t_name.startswith("migration::")
+                                        ):
+                                            is_migration = True
+                                        if op_k in _MANIFEST_OPS or t_name.startswith("manifest::"):
+                                            is_manifest = True
+                                        if op_k in _SQL_OPS:
+                                            is_sql = True
+                                        if op_k in _DOC_OPS or t_name.startswith("doc::"):
+                                            is_doc = True
+                                        if op_k == OperatorType.LEXICAL_CHUNK_EDIT or t_name.startswith("chunk::"):
+                                            is_lexical = True
+
+                                    if is_migration:
+                                        topology_kind = "split_head"
+                                        description = (
+                                            f"Database Migration Split-Head: concurrent migrations branching off identical parent revision "
+                                            f"on PR #{other_pr['number']} ({other_pr['head_ref']})."
+                                        )
+                                        merge_rec = (
+                                            f"Split-Head Hazard: Rebase PR #{context.pr_number} onto PR #{other_pr['number']} "
+                                            f"and update child down_revision/timestamp to sequence migrations serially."
+                                        )
+                                    elif is_manifest:
+                                        topology_kind = "manifest_divergence"
+                                        description = (
+                                            f"Package Manifest Divergence: concurrent dependency changes in '{target_file}' "
+                                            f"with PR #{other_pr['number']} ({other_pr['head_ref']})."
+                                        )
+                                        merge_rec = (
+                                            f"Merge PR #{other_pr['number']} first, then rebase PR #{context.pr_number} "
+                                            f"and regenerate lockfile in sandbox."
+                                        )
+                                    elif is_sql:
+                                        topology_kind = "schema_conflict"
+                                        description = f"SQL Schema DDL collision on table/column '{sym_name}' in '{target_file}' with PR #{other_pr['number']}."
+                                        merge_rec = f"Merge PR #{other_pr['number']} first, then verify schema compatibility for '{sym_name}'."
+                                    elif is_doc:
+                                        topology_kind = "union"
+                                        description = f"Documentation section additions under '{sym_name}' in '{target_file}'. Independent union candidate."
+                                        merge_rec = f"Independent doc additions (Union). Either PR #{context.pr_number} or PR #{other_pr['number']} can merge first."
+                                    elif is_lexical:
+                                        topology_kind = "lexical_overlap"
+                                        description = f"Concurrent textual modifications in '{target_file}' (overlapping line chunks) with PR #{other_pr['number']}."
+                                        merge_rec = f"Concurrent lexical edits. Merge PR #{other_pr['number']} first, then rebase PR #{context.pr_number}."
+                                    else:
+                                        cur_desc = _format_ops_description(current_ops, target_file)
+                                        other_desc = _format_ops_description(other_ops, target_file)
+                                        ops_detail = (
+                                            f" [{cur_desc} vs {other_desc}]"
+                                            if (cur_desc or other_desc)
+                                            else ""
+                                        )
+                                        topology_kind = "intersection"
+                                        description = (
+                                            f"Semantic interaction ({risk:.2f}){ops_detail} with PR #{other_pr['number']} "
+                                            f"on branch {other_pr['head_ref']}."
+                                        )
+                                        merge_rec = f"Merge PR #{other_pr['number']} first, then rebase PR #{context.pr_number}."
 
                                     suggestion_code = None
                                     if effective_token or effective_base_url:
@@ -757,10 +923,6 @@ def audit_pr_collisions(
                                             base_url=effective_base_url,
                                         )
 
-                                    cur_desc = _format_ops_description(current_ops, target_file)
-                                    other_desc = _format_ops_description(other_ops, target_file)
-                                    ops_detail = f" [{cur_desc} vs {other_desc}]" if (cur_desc or other_desc) else ""
-
                                     collisions.append(
                                         PRCollisionDetail(
                                             colliding_pr=int(other_pr["number"]),
@@ -769,19 +931,21 @@ def audit_pr_collisions(
                                             target_file=target_file,
                                             overlapping_symbol=sym_name,
                                             risk=risk,
-                                            description=(
-                                                f"Semantic interaction ({risk:.2f}){ops_detail} with PR #{other_pr['number']} "
-                                                f"on branch {other_pr['head_ref']}."
-                                            ),
-                                            merge_order_recommendation=f"Merge PR #{other_pr['number']} first, then rebase PR #{context.pr_number}.",
+                                            description=description,
+                                            merge_order_recommendation=merge_rec,
                                             suggestion_code=suggestion_code,
-                                            topology_kind="intersection",
+                                            topology_kind=topology_kind,
                                         )
                                     )
                                     if risk > max_risk:
                                         max_risk = risk
                         except Exception as e:
-                            logger.debug("Pairwise comparison skipped for PR #%s vs PR #%s: %s", context.pr_number, other_pr.get("number"), e)
+                            logger.debug(
+                                "Pairwise comparison skipped for PR #%s vs PR #%s: %s",
+                                context.pr_number,
+                                other_pr.get("number"),
+                                e,
+                            )
         except Exception as e:
             logger.warning("Error during Git-based collision audit: %s", e, exc_info=True)
 
@@ -802,7 +966,7 @@ def audit_pr_collisions(
     )
 
 
-@functools.lru_cache(maxsize=16)
+@functools.lru_cache(maxsize=32)
 def _get_topology_badge(kind: str) -> str:
     """Return formatted emoji and badge label for a conflict topology kind."""
     topology_icons = {
@@ -810,6 +974,11 @@ def _get_topology_badge(kind: str) -> str:
         "intersection": "⚡ Intersection",
         "asymmetric": "📐 Asymmetric",
         "disjoint": "🔘 Disjoint",
+        "split_head": "🗄️ Split-Head Hazard",
+        "manifest_divergence": "📦 Manifest Divergence",
+        "schema_conflict": "🗃️ Schema Conflict",
+        "doc_union": "📄 Doc Section Union",
+        "lexical_overlap": "⚙️ Lexical Overlap",
     }
     cleaned_kind = kind.lower()
     if cleaned_kind in topology_icons:
@@ -845,7 +1014,9 @@ def render_radar_markdown(context: PRAuditContext, result: PRCollisionResult) ->
 
     for col in result.collisions:
         badge = "🚨" if col.risk >= 0.8 else "⚠️"
-        risk_label = f"**{col.risk:.2f} (Critical)**" if col.risk >= 0.8 else f"**{col.risk:.2f} (High)**"
+        risk_label = (
+            f"**{col.risk:.2f} (Critical)**" if col.risk >= 0.8 else f"**{col.risk:.2f} (High)**"
+        )
         colliding_info = f"#{col.colliding_pr} by @{col.author} (`{col.branch}`)"
         topo_badge = _get_topology_badge(col.topology_kind)
         lines.append(
@@ -877,17 +1048,25 @@ def render_radar_markdown(context: PRAuditContext, result: PRCollisionResult) ->
             attempts_note = ""
             if s.refinement_attempts > 0:
                 attempts_note = f" - refined in {s.refinement_attempts} self-correction attempt(s)"
-            lines.append(f"Tested in ephemeral sandbox worktree (syntax: OK, types: OK{attempts_note}):")
+            lines.append(
+                f"Tested in ephemeral sandbox worktree (syntax: OK, types: OK{attempts_note}):"
+            )
             lines.append("```suggestion")
             lines.append(str(s.suggestion_code))
             lines.append("```")
-            lines.append("*Click **\"Commit suggestion\"** above to apply the verified reconciliation.*")
+            lines.append(
+                '*Click **"Commit suggestion"** above to apply the verified reconciliation.*'
+            )
             if s.suggestion_id:
                 strat_label = f" --strategy {s.strategy_label}" if s.strategy_label else ""
-                lines.append(f"*Or apply locally via GDSS CLI: `gdss apply {s.suggestion_id}{strat_label}`*")
+                lines.append(
+                    f"*Or apply locally via GDSS CLI: `gdss apply {s.suggestion_id}{strat_label}`*"
+                )
 
     lines.append("")
-    lines.append(f"*Audited {result.audited_prs_count} open pull request(s) concurrently targeting `{context.base_ref}`.*")
+    lines.append(
+        f"*Audited {result.audited_prs_count} open pull request(s) concurrently targeting `{context.base_ref}`.*"
+    )
     return "\n".join(lines)
 
 
@@ -912,10 +1091,14 @@ def post_or_update_sticky_comment(context: PRAuditContext, markdown_body: str) -
 
     if target_comment_id is not None:
         patch_url = f"{context.api_url}/repos/{context.repo_owner}/{context.repo_name}/issues/comments/{target_comment_id}"
-        _github_api_request(patch_url, context.github_token, method="PATCH", data={"body": markdown_body})
+        _github_api_request(
+            patch_url, context.github_token, method="PATCH", data={"body": markdown_body}
+        )
         return {"action": "updated", "comment_id": target_comment_id}
 
-    post_resp = _github_api_request(comments_url, context.github_token, method="POST", data={"body": markdown_body})
+    post_resp = _github_api_request(
+        comments_url, context.github_token, method="POST", data={"body": markdown_body}
+    )
     new_id = post_resp.get("id") if isinstance(post_resp, dict) else None
     return {"action": "created", "comment_id": new_id}
 
@@ -975,7 +1158,11 @@ def run_pr_audit(
     with ci_group("GDSS PR Radar: Concurrent PR Discovery & Collision Analysis"):
         # In dry-run or mock mode without network token
         if dry_run or not ctx.github_token:
-            logger.info("Running in dry-run or unauthenticated mode (dry_run=%s, has_token=%s)", dry_run, bool(ctx.github_token))
+            logger.info(
+                "Running in dry-run or unauthenticated mode (dry_run=%s, has_token=%s)",
+                dry_run,
+                bool(ctx.github_token),
+            )
             result = PRCollisionResult(
                 current_pr=ctx.pr_number,
                 has_collisions=False,
@@ -1015,11 +1202,19 @@ def run_pr_audit(
             try:
                 logger.info("Posting or updating sticky comment on PR #%s", ctx.pr_number)
                 res = post_or_update_sticky_comment(ctx, report_markdown)
-                logger.info("Sticky comment successfully %s (ID: %s)", res.get("action"), res.get("comment_id"))
+                logger.info(
+                    "Sticky comment successfully %s (ID: %s)",
+                    res.get("action"),
+                    res.get("comment_id"),
+                )
                 if console:
-                    console.print(f"[bold green]✓[/] Radar sticky comment {res.get('action')} (ID: {res.get('comment_id')})")
+                    console.print(
+                        f"[bold green]✓[/] Radar sticky comment {res.get('action')} (ID: {res.get('comment_id')})"
+                    )
             except Exception as e:
-                logger.warning("Failed to post or update sticky comment on PR #%s: %s", ctx.pr_number, e)
+                logger.warning(
+                    "Failed to post or update sticky comment on PR #%s: %s", ctx.pr_number, e
+                )
                 if console:
                     console.print(f"[bold yellow]⚠️ Failed to post sticky comment:[/] {e}")
 

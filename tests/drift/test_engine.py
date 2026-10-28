@@ -34,10 +34,7 @@ def branched_repo():
     repo.head.reference = feature
     repo.head.reset(index=True, working_tree=True)
     with open(path, "w") as f:
-        f.write(
-            "def add(a, b):\n    return a + b + 1\n\n"
-            "def mul(a, b):\n    return a * b\n"
-        )
+        f.write("def add(a, b):\n    return a + b + 1\n\ndef mul(a, b):\n    return a * b\n")
     repo.index.add(["calc.py"])
     repo.index.commit("diverge add and mul")
 
@@ -95,11 +92,7 @@ def dual_modify_repo():
     repo.head.reference = feature
     repo.head.reset(index=True, working_tree=True)
     with open(path, "w") as f:
-        f.write(
-            "def verify_token(t):\n"
-            "    validate_card()\n"
-            "    return charge(t)\n"
-        )
+        f.write("def verify_token(t):\n    validate_card()\n    return charge(t)\n")
     repo.index.add(["auth.py"])
     repo.index.commit("feature changes verify")
 
@@ -107,11 +100,7 @@ def dual_modify_repo():
     repo.head.reference = repo.heads[base_name]
     repo.head.reset(index=True, working_tree=True)
     with open(path, "w") as f:
-        f.write(
-            "def verify_token(t):\n"
-            "    check_redis()\n"
-            "    return t.startswith('tok')\n"
-        )
+        f.write("def verify_token(t):\n    check_redis()\n    return t.startswith('tok')\n")
     repo.index.add(["auth.py"])
     repo.index.commit("attractor changes verify")
 
@@ -240,4 +229,3 @@ def test_drift_engine_symbol_and_vector_caching(branched_repo):
     clear_drift_cache()
     syms3 = engine._symbols_at_commit(commit_sha)
     assert syms3 is not syms1, "Cache clear should force fresh parse"
-

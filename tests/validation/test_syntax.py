@@ -1,4 +1,5 @@
 """Tests for gdss.validation.syntax (Multi-language AST Syntax Validator)."""
+
 from __future__ import annotations
 
 from gdss.validation.syntax import validate_file_syntax, validate_source_syntax
@@ -49,7 +50,7 @@ def test_validate_file_syntax_on_disk(tmp_path):
 
 
 def test_validate_unknown_extension_fallback():
-    code = "(module (func (export \"main\")))"
+    code = '(module (func (export "main")))'
     res = validate_source_syntax(code, "module.wat")
     # For unsupported language without registered parser, passes with informative status
     assert res.valid is True

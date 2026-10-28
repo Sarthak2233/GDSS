@@ -168,9 +168,15 @@ class VectorStore:
             # pyrefly: ignore [missing-attribute]
             faiss.write_index(self._index, str(directory / "index.faiss"))
         else:
-            mat = self._matrix if self._matrix is not None else np.zeros((0, self.dim), dtype=np.float32)
+            mat = (
+                self._matrix
+                if self._matrix is not None
+                else np.zeros((0, self.dim), dtype=np.float32)
+            )
             np.save(directory / "vectors.npy", mat)
-        logger.debug("Saved vector store (%s backend, %d vectors) to %s", self.backend, self.size, directory)
+        logger.debug(
+            "Saved vector store (%s backend, %d vectors) to %s", self.backend, self.size, directory
+        )
         return directory
 
     @classmethod
@@ -206,7 +212,12 @@ class VectorStore:
                 "WHY: expected index.faiss or vectors.npy.\n"
                 "FIX: rebuild with VectorStore.upsert then save()."
             )
-        logger.debug("Loaded vector store (%s backend, %d vectors) from %s", store.backend, store.size, directory)
+        logger.debug(
+            "Loaded vector store (%s backend, %d vectors) from %s",
+            store.backend,
+            store.size,
+            directory,
+        )
         return store
 
 

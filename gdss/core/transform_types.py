@@ -9,15 +9,23 @@ from typing import Any
 
 class SymbolType(str, Enum):
     """Types of code symbols that can be tracked"""
+
     FUNCTION = "function"
     CLASS = "class"
     IMPORT = "import"
     VARIABLE = "variable"
     CONSTANT = "constant"
+    DEPENDENCY = "dependency"
+    MIGRATION = "migration"
+    SCHEMA_TABLE = "schema_table"
+    SCHEMA_COLUMN = "schema_column"
+    DOC_SECTION = "doc_section"
+    LEXICAL_CHUNK = "lexical_chunk"
 
 
 class OperatorType(str, Enum):
     """Semantic transformation operators"""
+
     ADD_FUNCTION = "add_function"
     DELETE_FUNCTION = "delete_function"
     RENAME_FUNCTION = "rename_function"
@@ -41,10 +49,27 @@ class OperatorType(str, Enum):
     DELETE_FILE = "delete_file"
     RENAME_FILE = "rename_file"
 
+    MIGRATION_STEP = "migration_step"
+    SPLIT_HEAD_HAZARD = "split_head_hazard"
+    MIGRATION_JOURNAL_CLASH = "migration_journal_clash"
+
+    SCHEMA_ADD_TABLE = "schema_add_table"
+    SCHEMA_MODIFY_TABLE = "schema_modify_table"
+    SCHEMA_DROP_TABLE = "schema_drop_table"
+    SCHEMA_ADD_COLUMN = "schema_add_column"
+    SCHEMA_MODIFY_COLUMN = "schema_modify_column"
+    SCHEMA_DROP_COLUMN = "schema_drop_column"
+
+    DOC_SECTION_APPEND = "doc_section_append"
+    DOC_SECTION_MODIFY = "doc_section_modify"
+
+    LEXICAL_CHUNK_EDIT = "lexical_chunk_edit"
+
 
 @dataclass
 class BodyBlock:
     """Sub-symbolic scope inside a function or class body."""
+
     block_id: str
     node_type: str
     start_line: int
@@ -62,6 +87,7 @@ class BodyBlock:
 @dataclass
 class CodeSymbol:
     """Represents a code symbol (function, class, import, etc.)"""
+
     name: str
     type: SymbolType
     start_line: int
@@ -110,6 +136,7 @@ class SemanticOperator:
     Executable semantic transformation operator.
     Supports serialization for CLI/storage and apply/invert on CodeGraph.
     """
+
     operator: OperatorType
     file: str
     commit: str = ""
@@ -159,7 +186,9 @@ class SemanticOperator:
             from_name=d.get("from_name"),
             to_name=d.get("to_name"),
             details=d.get("details", {}),
-            timestamp=datetime.fromisoformat(d["timestamp"]) if d.get("timestamp") else datetime.now(),
+            timestamp=datetime.fromisoformat(d["timestamp"])
+            if d.get("timestamp")
+            else datetime.now(),
             author=d.get("author"),
             symbol_id=d.get("symbol_id"),
             from_symbol_id=d.get("from_symbol_id"),

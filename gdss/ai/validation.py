@@ -87,7 +87,9 @@ def validate_patch(
             start = min(old_start, new_start)
             end = max(old_start + max(1, old_count) - 1, new_start + max(1, new_count) - 1)
             if start < suggestion.line_start or end > suggestion.line_end:
-                return PatchValidationResult(False, "patch hunk is outside the approved symbol range")
+                return PatchValidationResult(
+                    False, "patch hunk is outside the approved symbol range"
+                )
 
         return PatchValidationResult(True)
 

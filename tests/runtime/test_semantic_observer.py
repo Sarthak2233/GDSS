@@ -20,6 +20,7 @@ def repo(tmp_path):
     repo.index.commit("Initial commit")
     return repo, repo_path
 
+
 def test_semantic_observer_emits_operators(repo):
     repo_obj, repo_path = repo
     bus = EventBus()
@@ -43,8 +44,9 @@ def test_semantic_observer_emits_operators(repo):
     assert len(event["semantic_operators"]) > 0
 
     # Find the rename operator
-    rename_op = next((op for op in event["semantic_operators"]
-                      if op["operator"] == "rename_function"), None)
+    rename_op = next(
+        (op for op in event["semantic_operators"] if op["operator"] == "rename_function"), None
+    )
 
     assert rename_op is not None
     assert rename_op["from_name"] == "foo"

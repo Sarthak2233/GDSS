@@ -25,7 +25,9 @@ def resolve_context_window(
     """
     # Tier 1: User / Environment Override
     if user_override is not None and user_override > 0:
-        logger.debug("Resolved context window from user configuration override: %d tokens", user_override)
+        logger.debug(
+            "Resolved context window from user configuration override: %d tokens", user_override
+        )
         return user_override
 
     env_val = os.getenv("GDSS_CONTEXT_WINDOW")
@@ -56,7 +58,11 @@ def resolve_context_window(
                         if item.get("id") == normalized_model:
                             ctx_len = int(item.get("context_length", 0))
                             if ctx_len > 0:
-                                logger.info("Discovered context window for '%s' from OpenRouter API: %d tokens", normalized_model, ctx_len)
+                                logger.info(
+                                    "Discovered context window for '%s' from OpenRouter API: %d tokens",
+                                    normalized_model,
+                                    ctx_len,
+                                )
                                 _METADATA_CACHE[normalized_model] = ctx_len
                                 return ctx_len
 
@@ -65,20 +71,30 @@ def resolve_context_window(
             # Ollama /api/show API
             host = str(getattr(provider, "host", "") or "")
             if "11434" in host or provider_cls_name == "OllamaProvider":
-                ollama_url = f"{host.rstrip('/')}/api/show" if host else "http://localhost:11434/api/show"
+                ollama_url = (
+                    f"{host.rstrip('/')}/api/show" if host else "http://localhost:11434/api/show"
+                )
                 ollama_resp = httpx.post(ollama_url, json={"name": normalized_model}, timeout=3.0)
                 if ollama_resp.status_code == 200:
                     ollama_info = ollama_resp.json().get("model_info", {})  # dsa:ignore
                     for k, v in ollama_info.items():
                         if "context_length" in k and isinstance(v, (int, float)) and v > 0:
                             ctx_len = int(v)
-                            logger.info("Discovered context window for '%s' from Ollama API: %d tokens", normalized_model, ctx_len)
+                            logger.info(
+                                "Discovered context window for '%s' from Ollama API: %d tokens",
+                                normalized_model,
+                                ctx_len,
+                            )
                             _METADATA_CACHE[normalized_model] = ctx_len
                             return ctx_len
 
             # vLLM /v1/models API
             if "8000" in base_url or provider_cls_name == "VLLMProvider":
-                vllm_url = f"{base_url.rstrip('/')}/models" if base_url else "http://localhost:8000/v1/models"
+                vllm_url = (
+                    f"{base_url.rstrip('/')}/models"
+                    if base_url
+                    else "http://localhost:8000/v1/models"
+                )
                 vllm_resp = httpx.get(vllm_url, timeout=3.0)
                 if vllm_resp.status_code == 200:
                     vllm_data = vllm_resp.json().get("data", [])  # dsa:ignore
@@ -86,11 +102,17 @@ def resolve_context_window(
                         if item.get("id") == normalized_model:
                             max_len = int(item.get("max_model_len", 0))
                             if max_len > 0:
-                                logger.info("Discovered context window for '%s' from vLLM API: %d tokens", normalized_model, max_len)
+                                logger.info(
+                                    "Discovered context window for '%s' from vLLM API: %d tokens",
+                                    normalized_model,
+                                    max_len,
+                                )
                                 _METADATA_CACHE[normalized_model] = max_len
                                 return max_len
         except Exception as exc:
-            logger.debug("Dynamic provider metadata inspection failed for '%s': %s", normalized_model, exc)
+            logger.debug(
+                "Dynamic provider metadata inspection failed for '%s': %s", normalized_model, exc
+            )
 
     # Tier 3: Resilient Family Pattern Heuristics
     m = normalized_model.lower()
@@ -109,7 +131,11 @@ def resolve_context_window(
     else:
         ctx = 16384
 
-    logger.debug("Resolved context window for '%s' via family pattern heuristic: %d tokens", normalized_model, ctx)
+    logger.debug(
+        "Resolved context window for '%s' via family pattern heuristic: %d tokens",
+        normalized_model,
+        ctx,
+    )
     if normalized_model:
         _METADATA_CACHE[normalized_model] = ctx
     return ctx
@@ -145,7 +171,9 @@ def condense_block(
     if not anchor:
         return original_block
 
-    full_content = context.observer.get_file_content_at_commit(context.reference_branch, anchor.file_path)
+    full_content = context.observer.get_file_content_at_commit(
+        context.reference_branch, anchor.file_path
+    )
     if not full_content:
         return original_block
 
@@ -170,8 +198,10 @@ def condense_block(
 
     # Find child symbols entirely inside the anchor that are NOT modified
     children = [
-        s for s in symbols
-        if s.start_line > anchor.line_start and s.end_line <= anchor.line_end
+        s
+        for s in symbols
+        if s.start_line > anchor.line_start
+        and s.end_line <= anchor.line_end
         and s.name not in modified_names
     ]
 
@@ -196,7 +226,8 @@ def condense_block(
     if len(condensed) > budget:
         lines = condensed.splitlines(keepends=True)
         if len(lines) > 200:
-            condensed = "".join(lines[:100]) + "\n# ... (hard omitted) ...\n" + "".join(lines[-100:])
+            condensed = (
+                "".join(lines[:100]) + "\n# ... (hard omitted) ...\n" + "".join(lines[-100:])
+            )
 
     return condensed
-

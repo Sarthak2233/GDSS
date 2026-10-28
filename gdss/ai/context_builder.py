@@ -169,9 +169,7 @@ def _find_impacted_callers(
             op_target = op.get_target_name() or ""
             details_to = str(op.details.get("to") or "")
             if is_dep_op and (symbol_name in op_target or symbol_name in details_to):
-                callers.append(
-                    f"{b}: {op.operator.value} in {op.file} ({op.name} -> {details_to})"
-                )
+                callers.append(f"{b}: {op.operator.value} in {op.file} ({op.name} -> {details_to})")
             elif symbol_name in op_target and op.file != "":
                 callers.append(f"{b}: {op.operator.value} on {op.file}::{op_target}")
 
@@ -239,11 +237,7 @@ def extract_3way_symbol_context(
         if suggestion.anchor and suggestion.anchor.target_branch
         else (suggestion.context.candidate_branch if suggestion.context else "HEAD")
     )
-    branch_b = (
-        other_branch
-        or (suggestion.context.other_branch if suggestion.context else "")
-        or ""
-    )
+    branch_b = other_branch or (suggestion.context.other_branch if suggestion.context else "") or ""
 
     parser = context.parser if getattr(context, "parser", None) else ASTParser()
 

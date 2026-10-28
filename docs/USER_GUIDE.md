@@ -416,6 +416,8 @@ gdss apply sug_8f2a91c3 --rollback
 
 
 > 📖 **Full Configuration Guide:** See [`docs/CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md) for detailed directives, provider-specific recipes (Ollama, vLLM, OpenRouter, OpenAI, GitHub Models), and context window allocation strategies.
+>
+> 🌐 **Universal Multi-Asset & Reducers Guide:** See [`docs/UNIVERSAL_MULTI_ASSET_GUIDE.md`](UNIVERSAL_MULTI_ASSET_GUIDE.md) for in-depth coverage of non-code asset support (manifests, migration split-head DAGs, DDL schemas, and lockfile synchronization).
 
 ---
 

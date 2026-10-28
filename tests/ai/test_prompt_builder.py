@@ -9,7 +9,9 @@ from gdss.ai.types import (
 
 
 def _suggestion() -> Suggestion:
-    topology = ConflictTopology("disjoint", "a.py::run", "rename_function", "delete_function", "interfere", "same symbol")
+    topology = ConflictTopology(
+        "disjoint", "a.py::run", "rename_function", "delete_function", "interfere", "same symbol"
+    )
     return Suggestion(
         "conflict",
         "a.py",
@@ -23,12 +25,8 @@ def _suggestion() -> Suggestion:
         0.8,
         topology=topology,
         patch_combinations=enumerate_combinations(topology),
-        anchor=SuggestionAnchor(
-            "a.py", 2, 5, 1, 1, "feature/a", "content-digest", "symbol-digest"
-        ),
-        context=SuggestionContext(
-            "main", "feature/a", 0.8, 1.1, "feature-op", "main-op"
-        ),
+        anchor=SuggestionAnchor("a.py", 2, 5, 1, 1, "feature/a", "content-digest", "symbol-digest"),
+        context=SuggestionContext("main", "feature/a", 0.8, 1.1, "feature-op", "main-op"),
     )
 
 
@@ -55,8 +53,16 @@ def test_conflict_prompt_injects_developer_intent_and_commits():
         "feature/b": [{"sha": "5e6f7a8b", "summary": "Refactor B", "author": "bob"}],
     }
     branch_intents = {
-        "feature/a": {"title": "PR #1: Feature A", "description": "Adds user login", "author": "alice"},
-        "feature/b": {"title": "PR #2: Refactor B", "description": "Migrates to v2", "author": "bob"},
+        "feature/a": {
+            "title": "PR #1: Feature A",
+            "description": "Adds user login",
+            "author": "alice",
+        },
+        "feature/b": {
+            "title": "PR #2: Refactor B",
+            "description": "Migrates to v2",
+            "author": "bob",
+        },
     }
 
     prompt = build_conflict_prompt(
@@ -146,7 +152,14 @@ def test_conflict_prompt_topology_directives():
 
     suggestion = _suggestion()
     # Test signature divergence
-    top_sig = ConflictTopology("union", "a.py::run", "modify_function", "modify_function", "interfere", "signature divergence")
+    top_sig = ConflictTopology(
+        "union",
+        "a.py::run",
+        "modify_function",
+        "modify_function",
+        "interfere",
+        "signature divergence",
+    )
     sug_sig = Suggestion(
         suggestion.kind,
         suggestion.file_path,
@@ -203,4 +216,3 @@ def test_build_tool_aware_prompt():
     assert "gdss_inspect_symbol_impact" in prompt
     assert "gdss_validate_patch" in prompt
     assert "gdss_sandbox_validate_patch" in prompt
-

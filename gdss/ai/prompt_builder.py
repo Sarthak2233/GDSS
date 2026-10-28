@@ -180,7 +180,9 @@ def _format_developer_intent_block(
     return lines
 
 
-def _format_topology_directive(topology_kind: str | None, rationale: str | None = None) -> list[str]:
+def _format_topology_directive(
+    topology_kind: str | None, rationale: str | None = None
+) -> list[str]:
     """Retrieve operational directives for the detected topology."""
     key = (topology_kind or "").lower().strip()
     directive = TOPOLOGY_DIRECTIVES.get(key)
@@ -227,13 +229,19 @@ def _format_3way_code_blocks(
         lines.extend(
             [
                 f"### [1] BASE CANONICAL DEFINITION ({collision_context.base_branch}: {base_range_str})",
-                collision_context.base_code if collision_context.base_code.strip() else "(symbol did not exist in base reference)",
+                collision_context.base_code
+                if collision_context.base_code.strip()
+                else "(symbol did not exist in base reference)",
                 "",
                 f"### [2] INCOMING BRANCH A ({collision_context.branch_a_name}: lines {collision_context.branch_a_line_range or 'unknown'})",
-                collision_context.branch_a_code if collision_context.branch_a_code.strip() else "(symbol deleted in Branch A)",
+                collision_context.branch_a_code
+                if collision_context.branch_a_code.strip()
+                else "(symbol deleted in Branch A)",
                 "",
                 f"### [3] CONCURRENT BRANCH B ({collision_context.branch_b_name}: lines {collision_context.branch_b_line_range or 'unknown'})",
-                collision_context.branch_b_code if collision_context.branch_b_code.strip() else "(symbol deleted in Branch B)",
+                collision_context.branch_b_code
+                if collision_context.branch_b_code.strip()
+                else "(symbol deleted in Branch B)",
             ]
         )
 
@@ -275,7 +283,11 @@ def build_conflict_prompt(
     """Build a unified, production-grade convergence prompt."""
     anchor = suggestion.anchor
     file_path = suggestion.file_path
-    sym_name = suggestion.symbol_id.split("::")[-1] if "::" in suggestion.symbol_id else suggestion.symbol_id
+    sym_name = (
+        suggestion.symbol_id.split("::")[-1]
+        if "::" in suggestion.symbol_id
+        else suggestion.symbol_id
+    )
     lang = collision_context.language if collision_context else "python"
     line_start = anchor.line_start if anchor else suggestion.line_start
     line_end = anchor.line_end if anchor else suggestion.line_end
@@ -342,7 +354,9 @@ def build_conflict_prompt(
             new_len=old_len,
         )
         lines.append(grammar)
-        lines.append("DO NOT apply or run anything; return only patch text with file paths and line ranges.")
+        lines.append(
+            "DO NOT apply or run anything; return only patch text with file paths and line ranges."
+        )
     else:
         grammar = REPLACEMENT_BLOCK_GRAMMAR_EXAMPLE.format(
             language=lang,
@@ -440,7 +454,9 @@ def build_refinement_prompt(
     )
 
     # 3-Way code blocks or anchored fallback
-    code_blocks = _format_3way_code_blocks(collision_context, anchored_symbol_block, suggestion.file_path)
+    code_blocks = _format_3way_code_blocks(
+        collision_context, anchored_symbol_block, suggestion.file_path
+    )
     lines.extend(code_blocks)
 
     lines.extend(

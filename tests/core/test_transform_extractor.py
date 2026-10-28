@@ -170,7 +170,9 @@ def test_block_level_modification_is_orthogonal():
             signature="()",
             body="...",
             body_blocks=[
-                BodyBlock("expression_statement_0", "expression_statement", 2, 4, ["expression_statement"]),
+                BodyBlock(
+                    "expression_statement_0", "expression_statement", 2, 4, ["expression_statement"]
+                ),
                 BodyBlock("return_statement_0", "return_statement", 16, 18, ["return_statement"]),
             ],
             structural_tokens=["expression_statement", "return_statement"],
@@ -186,7 +188,13 @@ def test_block_level_modification_is_orthogonal():
             signature="()",
             body="...",
             body_blocks=[
-                BodyBlock("expression_statement_0", "expression_statement", 2, 5, ["expression_statement", "comment"]),
+                BodyBlock(
+                    "expression_statement_0",
+                    "expression_statement",
+                    2,
+                    5,
+                    ["expression_statement", "comment"],
+                ),
                 BodyBlock("return_statement_0", "return_statement", 16, 18, ["return_statement"]),
             ],
             structural_tokens=["expression_statement", "return_statement"],
@@ -268,6 +276,7 @@ def test_same_method_name_in_different_classes_does_not_collide():
     assert len(modifies) == 1
     assert modifies[0].details["parent_class"] == "ServiceA"
     assert modifies[0].details["signature_changed"] is True
+
 
 def test_dissimilar_stub_pair_is_delete_and_add_not_rename():
     """Near-empty stubs must not be treated as renames of each other."""

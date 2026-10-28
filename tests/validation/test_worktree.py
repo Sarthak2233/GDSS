@@ -1,4 +1,5 @@
 """Tests for gdss.validation.worktree (Ephemeral Git Worktree Manager)."""
+
 from __future__ import annotations
 
 import subprocess
@@ -12,8 +13,12 @@ from gdss.validation.worktree import (
 
 def _init_test_git_repo(path):
     subprocess.run(["git", "init"], cwd=path, check=True, capture_output=True)
-    subprocess.run(["git", "config", "user.email", "test@gdss.dev"], cwd=path, check=True, capture_output=True)
-    subprocess.run(["git", "config", "user.name", "GDSS Test"], cwd=path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@gdss.dev"], cwd=path, check=True, capture_output=True
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "GDSS Test"], cwd=path, check=True, capture_output=True
+    )
     (path / "file.txt").write_text("initial content\n", encoding="utf-8")
     subprocess.run(["git", "add", "file.txt"], cwd=path, check=True, capture_output=True)
     subprocess.run(["git", "commit", "-m", "init"], cwd=path, check=True, capture_output=True)
@@ -40,7 +45,9 @@ def test_ephemeral_worktree_lifecycle_and_cleanup(tmp_path):
         assert (wt / "file.txt").read_text(encoding="utf-8") == "initial content\n"
 
         # Check that git worktree list lists it
-        res = subprocess.run(["git", "worktree", "list"], cwd=tmp_path, capture_output=True, text=True, check=True)
+        res = subprocess.run(
+            ["git", "worktree", "list"], cwd=tmp_path, capture_output=True, text=True, check=True
+        )
         assert str(wt) in res.stdout
 
         # Mutate inside worktree
@@ -49,7 +56,9 @@ def test_ephemeral_worktree_lifecycle_and_cleanup(tmp_path):
 
     # After context block exits, worktree must be removed
     assert not worktree_path.exists()
-    res = subprocess.run(["git", "worktree", "list"], cwd=tmp_path, capture_output=True, text=True, check=True)
+    res = subprocess.run(
+        ["git", "worktree", "list"], cwd=tmp_path, capture_output=True, text=True, check=True
+    )
     assert str(worktree_path) not in res.stdout
 
 
@@ -67,5 +76,7 @@ def test_ephemeral_worktree_cleanup_on_exception(tmp_path):
 
     assert worktree_path is not None
     assert not worktree_path.exists()
-    res = subprocess.run(["git", "worktree", "list"], cwd=tmp_path, capture_output=True, text=True, check=True)
+    res = subprocess.run(
+        ["git", "worktree", "list"], cwd=tmp_path, capture_output=True, text=True, check=True
+    )
     assert str(worktree_path) not in res.stdout

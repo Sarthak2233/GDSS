@@ -81,7 +81,6 @@ class SuggestionContext:
         }
 
 
-
 @dataclass(frozen=True)
 class ConflictTopology:
     """Deterministic classification of one pair of contacting operators."""
@@ -213,7 +212,5 @@ class Suggestion:
 
     def to_local_source(self) -> dict[str, Any]:
         data = self.to_metadata()
-        data["patch_combinations"] = [
-            item.to_local_source() for item in self.patch_combinations
-        ]
+        data["patch_combinations"] = [item.to_local_source() for item in self.patch_combinations]
         return data

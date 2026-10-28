@@ -15,6 +15,7 @@
 
 - **User & Integrator Manual:** [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)
 - **Contributor & Developer Guide:** [`CONTRIBUTING.md`](CONTRIBUTING.md) (or [`DEVELOPER_GUIDE.md`](DEVELOPER_GUIDE.md))
+- **Universal Multi-Asset & Domain Reducers Guide:** [`docs/UNIVERSAL_MULTI_ASSET_GUIDE.md`](docs/UNIVERSAL_MULTI_ASSET_GUIDE.md)
 - **Repository Configuration Guide (`.gdss.yml`):** [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md)
 - **GitHub Actions PR Radar Guide:** [`docs/GITHUB_ACTIONS_GUIDE.md`](docs/GITHUB_ACTIONS_GUIDE.md)
 - **Convergence & Suggestion Guide:** [`docs/SUGGESTION_AND_CONVERGENCE_GUIDE.md`](docs/SUGGESTION_AND_CONVERGENCE_GUIDE.md)

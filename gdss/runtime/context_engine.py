@@ -18,8 +18,8 @@ class ContextEngine:
         self.bus.subscribe("all", self.on_any_event)
 
     def on_any_event(self, event_packet: dict):
-        topic = event_packet['topic']
-        data = event_packet['data']
+        topic = event_packet["topic"]
+        data = event_packet["data"]
 
         # Construct Awareness Packet
         packet = {
@@ -29,7 +29,7 @@ class ContextEngine:
             "repo_id": self.repo_id,
             "reference_branch": self.get_reference_branch(),
             "remote_aware": topic == "remote",
-            "semantic_operators": data.get("semantic_operators", [])
+            "semantic_operators": data.get("semantic_operators", []),
         }
         if topic == "drift":
             packet["drift"] = {
@@ -65,18 +65,22 @@ class ContextEngine:
         self.hierarchy.set_config(self.repo_id, config)
 
     def log_context(self, packet: dict):
-        logger.debug("Logging awareness context packet for repo_id=%d: source=%s", self.repo_id, packet.get("source"))
+        logger.debug(
+            "Logging awareness context packet for repo_id=%d: source=%s",
+            self.repo_id,
+            packet.get("source"),
+        )
         with self.registry.db._get_connection() as conn:
             conn.execute(
                 "INSERT INTO contexts (repo_id, packet) VALUES (?, ?)",
-                (self.repo_id, json.dumps(packet))
+                (self.repo_id, json.dumps(packet)),
             )
 
     def get_latest_context(self) -> dict:
         with self.registry.db._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT packet FROM contexts WHERE repo_id = ? ORDER BY id DESC LIMIT 1",
-                (self.repo_id,)
+                (self.repo_id,),
             )
             row = cursor.fetchone()
-            return json.loads(row['packet']) if row else {}
+            return json.loads(row["packet"]) if row else {}

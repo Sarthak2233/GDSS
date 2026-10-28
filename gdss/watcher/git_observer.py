@@ -66,14 +66,18 @@ class GitObserver:
             return None
         try:
             # Ensure path is relative to repository root
-            rel_path = os.path.relpath(os.path.join(self.repo_path, file_path), self.repo.working_tree_dir)
+            rel_path = os.path.relpath(
+                os.path.join(self.repo_path, file_path), self.repo.working_tree_dir
+            )
             commit = self.repo.commit(commit_sha)
             blob = commit.tree / rel_path
             return blob.data_stream.read().decode("utf-8", errors="ignore")
         except Exception:
             return None
 
-    def get_file_diffs_between_commits(self, commit_sha_a: str, commit_sha_b: str) -> dict[str, list[str]]:
+    def get_file_diffs_between_commits(
+        self, commit_sha_a: str, commit_sha_b: str
+    ) -> dict[str, list[str]]:
         """
         Calculates file list changes between commit A and commit B.
         Returns dictionary mapping:
@@ -139,7 +143,6 @@ class GitObserver:
             pass
         return changes
 
-
     def list_local_branches(self) -> list[str]:
         """Return local branch names."""
         if not self.repo:
@@ -172,9 +175,7 @@ class GitObserver:
             pass
         return branches
 
-    def get_remote_sync_status(
-        self, ref_branch: str, remote: str = "origin"
-    ) -> dict[str, object]:
+    def get_remote_sync_status(self, ref_branch: str, remote: str = "origin") -> dict[str, object]:
         """
         Compare HEAD to origin/<ref> (or configured remote).
 
@@ -246,4 +247,3 @@ class GitObserver:
             return commits
         except Exception:
             return []
-

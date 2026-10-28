@@ -1,4 +1,5 @@
 """Tests for gdss.ai.orchestration (Phase 5a Agent Orchestration)."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -146,7 +147,9 @@ def test_orchestration_pipeline_with_validation(tmp_path: Path, monkeypatch):
     # 2. Test dynamic sandbox resolution
     mock_sandbox = MagicMock()
     mock_sandbox.validate_patch.return_value = MagicMock(is_clean=True, error_summary=None)
-    monkeypatch.setattr("gdss.validation.sandbox.ValidationSandbox", lambda *args, **kwargs: mock_sandbox)
+    monkeypatch.setattr(
+        "gdss.validation.sandbox.ValidationSandbox", lambda *args, **kwargs: mock_sandbox
+    )
 
     pipeline_dynamic = OrchestrationPipeline(
         repo_path=str(tmp_path),
@@ -164,6 +167,7 @@ def test_build_langgraph_workflow_graceful_handling():
     # If langgraph is not installed, it should raise a clear ImportError
     try:
         import langgraph  # noqa: F401
+
         has_langgraph = True
     except ImportError:
         has_langgraph = False

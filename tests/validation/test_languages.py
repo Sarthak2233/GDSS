@@ -1,4 +1,5 @@
 """Tests for gdss.validation.languages (Pluggable Language Registry)."""
+
 from __future__ import annotations
 
 from gdss.validation.languages import (

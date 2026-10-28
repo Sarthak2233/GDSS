@@ -51,6 +51,7 @@ class HierarchyManager:
     Layer 3: Distributed Hierarchy Manager.
     Resolves branch priorities, filters, and development trajectories.
     """
+
     def __init__(self, db: RuntimeDB):
         self.db = db
 

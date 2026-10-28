@@ -16,6 +16,7 @@ agents as WHAT / WHY / FIX so they can self-correct. Exit code 0 = clean,
 Tighten this sensor (add layers/rules) via the ratchet principle as the codebase
 grows; see .cursor/skills/audit-harness.
 """
+
 from __future__ import annotations
 
 import ast
@@ -28,6 +29,7 @@ from pathlib import Path
 LAYER_RANK: dict[str, int] = {
     "watcher": 2,
     "core": 4,
+    "reducers": 4,
     "graph": 5,
     "embeddings": 6,
     "conflict": 7,
@@ -40,7 +42,7 @@ LAYER_RANK: dict[str, int] = {
 ENTRYPOINTS: set[str] = {"cli", "api", "daemon", "mcp"}
 
 # Two-brain partition: deterministic brain must never import probabilistic brain.
-DETERMINISTIC: set[str] = {"core", "graph", "watcher", "mcp"}
+DETERMINISTIC: set[str] = {"core", "reducers", "graph", "watcher", "mcp"}
 PROBABILISTIC: set[str] = {"ai", "embeddings"}
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -147,8 +149,7 @@ def main() -> int:
         for v in violations:
             print("- " + v, file=sys.stderr)
         print(
-            f"\n{len(violations)} violation(s). See "
-            ".cursor/rules/10-architecture-invariants.mdc.",
+            f"\n{len(violations)} violation(s). See .cursor/rules/10-architecture-invariants.mdc.",
             file=sys.stderr,
         )
         return 1

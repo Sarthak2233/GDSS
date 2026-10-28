@@ -1,4 +1,5 @@
 """Tests for GDSS Layer 10: GitHub Actions PR Collision Radar (Phase D)."""
+
 from __future__ import annotations
 
 import json
@@ -159,7 +160,8 @@ def test_fetch_concurrent_prs_hierarchy_filtering():
 
 def test_load_radar_config_with_hierarchy(tmp_path):
     config_file = tmp_path / ".gdss.yml"
-    config_file.write_text("""
+    config_file.write_text(
+        """
 radar:
   fail_on_collision: true
   risk_threshold: 0.85
@@ -173,7 +175,9 @@ hierarchy:
   target_bases:
     - "main"
     - "develop"
-""", encoding="utf-8")
+""",
+        encoding="utf-8",
+    )
 
     cfg = load_radar_config(tmp_path)
     assert cfg["fail_on_collision"] is True
@@ -452,7 +456,10 @@ def test_generate_pr_convergence_patch_success(tmp_path: Path):
     )
 
     valid_llm_code = "def login(user: str, timeout: int = 30) -> bool:\n    return True\n"
-    with patch("gdss.ai.openai_provider.OpenAICompatibleProvider.complete", return_value=f"```python\n{valid_llm_code}\n```"):
+    with patch(
+        "gdss.ai.openai_provider.OpenAICompatibleProvider.complete",
+        return_value=f"```python\n{valid_llm_code}\n```",
+    ):
         patch_code = generate_pr_convergence_patch(
             repo_path=tmp_path,
             target_file="auth.py",
@@ -484,7 +491,9 @@ def test_generate_pr_convergence_patch_syntax_error_discarded(tmp_path: Path):
     )
 
     invalid_llm_code = "def login(user: str, timeout: int = \n    broken syntax {"
-    with patch("gdss.ai.openai_provider.OpenAICompatibleProvider.complete", return_value=invalid_llm_code):
+    with patch(
+        "gdss.ai.openai_provider.OpenAICompatibleProvider.complete", return_value=invalid_llm_code
+    ):
         patch_code = generate_pr_convergence_patch(
             repo_path=tmp_path,
             target_file="auth.py",
@@ -538,8 +547,13 @@ def test_audit_pr_collisions_generates_verified_suggestion_in_radar(tmp_path: Pa
 
     with patch("git.Repo"):
         with patch("gdss.watcher.git_observer.GitObserver.is_valid", return_value=True):
-            with patch("gdss.core.trajectory.extract_trajectory_operators", side_effect=[cur_ops, oth_ops]):
-                with patch("gdss.validation.pr_audit.generate_pr_convergence_patch", return_value=mock_patch):
+            with patch(
+                "gdss.core.trajectory.extract_trajectory_operators", side_effect=[cur_ops, oth_ops]
+            ):
+                with patch(
+                    "gdss.validation.pr_audit.generate_pr_convergence_patch",
+                    return_value=mock_patch,
+                ):
                     result = audit_pr_collisions(
                         repo_path=str(tmp_path),
                         context=ctx,
@@ -588,5 +602,3 @@ def test_render_radar_markdown_displays_refinement_attempts():
     md = render_radar_markdown(ctx, result)
     assert "refined in 2 self-correction attempt(s)" in md
     assert "def login(): return True" in md
-
-

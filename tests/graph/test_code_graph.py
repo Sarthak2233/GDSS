@@ -15,8 +15,16 @@ def test_code_graph_dependencies():
     graph.add_file_symbols("utils.py", [helper])
     helper_id = helper.symbol_id
 
-    run = CodeSymbol(name="run", type=SymbolType.FUNCTION, start_line=3, end_line=6, calls=["helper", "internal_func"])
-    internal = CodeSymbol(name="internal_func", type=SymbolType.FUNCTION, start_line=8, end_line=10, calls=[])
+    run = CodeSymbol(
+        name="run",
+        type=SymbolType.FUNCTION,
+        start_line=3,
+        end_line=6,
+        calls=["helper", "internal_func"],
+    )
+    internal = CodeSymbol(
+        name="internal_func", type=SymbolType.FUNCTION, start_line=8, end_line=10, calls=[]
+    )
     run.ensure_identity("app.py")
     internal.ensure_identity("app.py")
 
@@ -102,4 +110,3 @@ def test_build_code_graph_excludes_build_and_package_dirs(tmp_path):
     assert not any(".next" in f for f in files_in_graph)
     assert not any(".venv" in f for f in files_in_graph)
     assert not any("bundle.min.js" in f for f in files_in_graph)
-

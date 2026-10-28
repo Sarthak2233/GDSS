@@ -20,7 +20,10 @@ class ModelManager:
 
     def __init__(self, base_url: str = "http://127.0.0.1:11434") -> None:
         host = urlparse(base_url).hostname
-        if host not in {"127.0.0.1", "localhost", "::1"} and os.getenv("GDSS_LLM_ALLOW_REMOTE") != "1":
+        if (
+            host not in {"127.0.0.1", "localhost", "::1"}
+            and os.getenv("GDSS_LLM_ALLOW_REMOTE") != "1"
+        ):
             raise ValueError("Ollama base URL must be localhost unless GDSS_LLM_ALLOW_REMOTE=1")
         self.base_url = base_url.rstrip("/")
 
@@ -49,7 +52,7 @@ class ModelManager:
                 "POST",
                 f"{self.base_url}/api/pull",
                 json={"name": model, "stream": True},
-                timeout=None
+                timeout=None,
             ) as response:
                 response.raise_for_status()
                 for line in response.iter_lines():
@@ -62,10 +65,7 @@ class ModelManager:
         """Remove a model from the local Ollama registry."""
         try:
             response = httpx.request(
-                "DELETE",
-                f"{self.base_url}/api/delete",
-                json={"name": model},
-                timeout=10.0
+                "DELETE", f"{self.base_url}/api/delete", json={"name": model}, timeout=10.0
             )
             response.raise_for_status()
         except Exception as e:

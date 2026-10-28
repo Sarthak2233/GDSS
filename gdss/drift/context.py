@@ -33,6 +33,7 @@ def _load_repo_hierarchy_config(repo_path: str) -> dict[str, Any]:
         return {}
     try:
         import yaml
+
         data = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
         hierarchy = data.get("hierarchy", {})
         if isinstance(hierarchy, dict):
@@ -277,4 +278,3 @@ def build_pr_analysis_context(
         branch_commits=branch_commits,
         branch_intents=dict(pr_intents or {}),
     )
-

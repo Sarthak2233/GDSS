@@ -1,4 +1,5 @@
 """Tests for gdss.validation.typechecker (Targeted Type Checking)."""
+
 from __future__ import annotations
 
 from pathlib import Path

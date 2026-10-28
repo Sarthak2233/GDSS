@@ -1,4 +1,5 @@
 """Service layer for gdss API."""
+
 import os
 from typing import Any
 
@@ -53,14 +54,7 @@ def _wrap_err(code: str, what: str, why: str, fix: str) -> dict[str, Any]:
     logger.debug("API error [%s]: %s (why: %s)", code, what, why)
     return {
         "status": "error",
-        "error": {
-            "code": code,
-            "details": {
-                "what": what,
-                "why": why,
-                "fix": fix
-            }
-        }
+        "error": {"code": code, "details": {"what": what, "why": why, "fix": fix}},
     }
 
 
@@ -99,9 +93,7 @@ def _serialize_drift_row(
         "convergence_score": snap.convergence,
         "convergence_label": _convergence_label(snap.velocity),
         "affected": _serialize_affected(snap.affected),
-        "history": [
-            {"timestamp": t, "magnitude": m} for t, m in (history or [])
-        ],
+        "history": [{"timestamp": t, "magnitude": m} for t, m in (history or [])],
     }
     if conflict is not None:
         row["conflict_probability"] = conflict
@@ -132,9 +124,7 @@ def _conflict_for_snapshot(
         observer, parser, extractor, ref_branch=snap.branch, head=snap.reference_branch
     )
     shared = sorted({op.file for op in branch_ops} & {op.file for op in ref_ops})
-    result = estimator.estimate(
-        branch_ops, ref_ops, shared, snap.magnitude.magnitude
-    )
+    result = estimator.estimate(branch_ops, ref_ops, shared, snap.magnitude.magnitude)
     return {
         "score": result.score,
         "reasons": list(result.reasons),
@@ -143,10 +133,7 @@ def _conflict_for_snapshot(
 
 
 def _serialize_op(op):
-    base = {
-        "type": op.operator.value,
-        "file": str(op.file)
-    }
+    base = {"type": op.operator.value, "file": str(op.file)}
     if op.operator.value == "rename_function" or op.operator.value == "rename_class":
         base["name"] = f"{getattr(op, 'from_name', '')} -> {getattr(op, 'to_name', '')}"
         base["symbol_id"] = getattr(op, "symbol_id", "")
@@ -206,33 +193,46 @@ def get_status(repo_path: str, ref: str | None = None) -> dict[str, Any]:
         ref = "main"
 
     if not observer.is_valid() or not observer.repo:
-        return _wrap_err("INVALID_REPO", "Not a valid git repo", "Path does not contain a git database", "Check path")
+        return _wrap_err(
+            "INVALID_REPO",
+            "Not a valid git repo",
+            "Path does not contain a git database",
+            "Check path",
+        )
 
     try:
         remote = observer.get_remote_sync_status(ref)
         if remote["label"] == "N/A" and ref != "main" and ref not in observer.repo.heads:
-             # branch might not exist locally or remotely
-             raise ValueError("Branch not found")
+            # branch might not exist locally or remotely
+            raise ValueError("Branch not found")
     except Exception:
-        return _wrap_err("INVALID_REF", f"Branch '{ref}' missing", "Branch does not exist", f"Check {ref}")
+        return _wrap_err(
+            "INVALID_REF", f"Branch '{ref}' missing", "Branch does not exist", f"Check {ref}"
+        )
 
     parser = ASTParser()
     extractor = TransformExtractor()
 
     try:
-         traj_ops = extract_trajectory_operators(observer, parser, extractor, ref_branch=ref, head="HEAD")
+        traj_ops = extract_trajectory_operators(
+            observer, parser, extractor, ref_branch=ref, head="HEAD"
+        )
     except Exception:
-         return _wrap_err("INVALID_REF", f"Invalid trajectory for {ref}", "Branch not found", "Check ref")
+        return _wrap_err(
+            "INVALID_REF", f"Invalid trajectory for {ref}", "Branch not found", "Check ref"
+        )
 
     wt_ops = _get_uncommitted_ops(observer, parser, extractor, repo_path)
 
-    return _wrap_ok({
-        "active_branch": observer.get_active_branch() or "DETACHED",
-        "reference": ref,
-        "remote_sync": remote,
-        "committed_operators": [_serialize_op(o) for o in traj_ops],  # dsa:ignore
-        "uncommitted_operators": [_serialize_op(o) for o in wt_ops]  # dsa:ignore
-    })
+    return _wrap_ok(
+        {
+            "active_branch": observer.get_active_branch() or "DETACHED",
+            "reference": ref,
+            "remote_sync": remote,
+            "committed_operators": [_serialize_op(o) for o in traj_ops],  # dsa:ignore
+            "uncommitted_operators": [_serialize_op(o) for o in wt_ops],  # dsa:ignore
+        }
+    )
 
 
 def get_graph(repo_path: str, ref: str | None = None) -> dict[str, Any]:
@@ -246,24 +246,20 @@ def get_graph(repo_path: str, ref: str | None = None) -> dict[str, Any]:
     edges = []
 
     for n, data in g.g.nodes(data=True):
-        nodes.append({
-            "id": n,
-            "name": data.get("name", ""),
-            "type": data.get("type", ""),
-            "location": data.get("chart_location", "")
-        })
+        nodes.append(
+            {
+                "id": n,
+                "name": data.get("name", ""),
+                "type": data.get("type", ""),
+                "location": data.get("chart_location", ""),
+            }
+        )
     for u, v, data in g.g.edges(data=True):
-        edges.append({
-            "source": u,
-            "target": v,
-            "relationship": data.get("relationship", "imports")
-        })
+        edges.append(
+            {"source": u, "target": v, "relationship": data.get("relationship", "imports")}
+        )
 
-    return _wrap_ok({
-        "summary": g.get_summary(),
-        "nodes": nodes,
-        "edges": edges
-    })
+    return _wrap_ok({"summary": g.get_summary(), "nodes": nodes, "edges": edges})
 
 
 def get_symbols(repo_path: str, ref: str | None = None) -> dict[str, Any]:
@@ -275,12 +271,14 @@ def get_symbols(repo_path: str, ref: str | None = None) -> dict[str, Any]:
 
     symbols = []
     for n, data in g.g.nodes(data=True):
-        symbols.append({
-            "id": n,
-            "name": data.get("name", ""),
-            "type": data.get("type", ""),
-            "location": data.get("chart_location", "")
-        })
+        symbols.append(
+            {
+                "id": n,
+                "name": data.get("name", ""),
+                "type": data.get("type", ""),
+                "location": data.get("chart_location", ""),
+            }
+        )
     return _wrap_ok({"symbols": symbols})
 
 
@@ -304,7 +302,7 @@ def get_drift(
         observer=observer,
         parser=parser,
         extractor=extractor,
-        history=SnapshotHistory(default_history_path(repo_path))
+        history=SnapshotHistory(default_history_path(repo_path)),
     )
     conflict_est = ConflictProbabilityEstimator()
 
@@ -337,9 +335,7 @@ def get_drift(
                 continue
 
             snap = engine.snapshot(b, ref)
-            conflict = _conflict_for_snapshot(
-                observer, parser, extractor, snap, conflict_est
-            )
+            conflict = _conflict_for_snapshot(observer, parser, extractor, snap, conflict_est)
             history_pts = engine.history.recent(b, n=10) if engine.history else None
             row = _serialize_drift_row(snap, conflict, history=history_pts)
             if b_sha and ref_sha:
@@ -363,7 +359,7 @@ def get_alerts(repo_path: str, ref: str | None = None) -> dict[str, Any]:
         observer=observer,
         parser=parser,
         extractor=extractor,
-        history=SnapshotHistory(default_history_path(repo_path))
+        history=SnapshotHistory(default_history_path(repo_path)),
     )
     alerts = DriftAlerts()
 
@@ -405,7 +401,7 @@ def get_log(repo_path: str, n: int = 20) -> dict[str, Any]:
     if not observer.is_valid() or not observer.repo:
         return _wrap_err("INVALID_REPO", "repo invalid", "repo invalid", "fix")
 
-    n = min(n, 100) # conservative maximum
+    n = min(n, 100)  # conservative maximum
     try:
         commits = list(observer.repo.iter_commits("HEAD", max_count=n))
     except Exception:
@@ -426,23 +422,33 @@ def get_log(repo_path: str, n: int = 20) -> dict[str, Any]:
                     oldc = observer.get_file_content_at_commit(parent, f)  # dsa:ignore
                     newc = observer.get_file_content_at_commit(sha, f)  # dsa:ignore
                     if oldc and newc:
-                        ops.extend(extractor.extract_operators(f, parser.parse_file(f, oldc), parser.parse_file(f, newc), sha))  # dsa:ignore
+                        ops.extend(
+                            extractor.extract_operators(
+                                f, parser.parse_file(f, oldc), parser.parse_file(f, newc), sha
+                            )
+                        )  # dsa:ignore
             for f in changes["added"]:
                 if f.endswith(SOURCE_EXTENSIONS):
                     newc = observer.get_file_content_at_commit(sha, f)  # dsa:ignore
                     if newc:
-                        ops.extend(extractor.extract_operators(f, [], parser.parse_file(f, newc), sha))  # dsa:ignore
+                        ops.extend(
+                            extractor.extract_operators(f, [], parser.parse_file(f, newc), sha)
+                        )  # dsa:ignore
             for f in changes["deleted"]:
                 if f.endswith(SOURCE_EXTENSIONS):
                     oldc = observer.get_file_content_at_commit(parent, f)  # dsa:ignore
                     if oldc:
-                        ops.extend(extractor.extract_operators(f, parser.parse_file(f, oldc), [], sha))  # dsa:ignore
+                        ops.extend(
+                            extractor.extract_operators(f, parser.parse_file(f, oldc), [], sha)
+                        )  # dsa:ignore
 
-        res.append({
-            "sha": sha,
-            "timestamp": str(commit.authored_datetime),
-            "operators": [_serialize_op(o) for o in ops]  # dsa:ignore
-        })
+        res.append(
+            {
+                "sha": sha,
+                "timestamp": str(commit.authored_datetime),
+                "operators": [_serialize_op(o) for o in ops],  # dsa:ignore
+            }
+        )
 
     return _wrap_ok(res)
 
@@ -452,16 +458,15 @@ def get_similar(repo_path: str, symbol: str, k: int = 5) -> dict[str, Any]:
         res = find_similar_symbols(repo_path, symbol, min(k, 50))
         hits = []
         for sid, score, sym in res:
-            hits.append({
-                "id": sid,
-                "score": score,
-                "name": sym.name if sym else sid,
-                "location": (sym.chart_location or "") if sym else ""
-            })
-        return _wrap_ok({
-            "assistive": True,
-            "hits": hits
-        })
+            hits.append(
+                {
+                    "id": sid,
+                    "score": score,
+                    "name": sym.name if sym else sid,
+                    "location": (sym.chart_location or "") if sym else "",
+                }
+            )
+        return _wrap_ok({"assistive": True, "hits": hits})
     except Exception as e:
         return _wrap_err("INDEX_ERROR", "search failed", str(e), "reindex via gdss reindex")
 
@@ -639,12 +644,14 @@ def get_branches(repo_path: str) -> dict[str, Any]:
     branches = observer.list_local_branches()
     all_branches = observer.list_all_available_branches(include_remotes=True)
     active = observer.get_active_branch()
-    return _wrap_ok({
-        "branches": branches,
-        "all_branches": all_branches,
-        "active_branch": active,
-        "repo": repo_path,
-    })
+    return _wrap_ok(
+        {
+            "branches": branches,
+            "all_branches": all_branches,
+            "active_branch": active,
+            "repo": repo_path,
+        }
+    )
 
 
 def get_drift_history(
@@ -665,14 +672,17 @@ def get_drift_history(
     n = min(max(n, 1), 100)
     history = SnapshotHistory(default_history_path(repo_path))
     rows = history.recent(branch, n=n)
-    return _wrap_ok({
-        "branch": branch,
-        "history": [{"timestamp": t, "magnitude": m} for t, m in rows],
-    })
+    return _wrap_ok(
+        {
+            "branch": branch,
+            "history": [{"timestamp": t, "magnitude": m} for t, m in rows],
+        }
+    )
 
 
 def get_model_status() -> dict[str, Any]:
     from gdss.ai.model_manager import ModelManager
+
     try:
         mgr = ModelManager()
         return _wrap_ok(mgr.status())
@@ -689,6 +699,7 @@ def get_suggestions(
     max_candidates: int = 50,
 ) -> dict[str, Any]:
     from gdss.ai.suggester import suggest
+
     if not ref:
         ref = "main"
     try:
@@ -697,7 +708,7 @@ def get_suggestions(
             reference_branch=ref,
             llm=llm,
             combos=combos,
-            max_candidates=max_candidates
+            max_candidates=max_candidates,
         )
         if format == "prompt":
             from gdss.ai.context import build_analysis_context
@@ -713,7 +724,9 @@ def get_suggestions(
             res = []
             for s in suggestions:
                 other_br = getattr(s.context, "other_branch", "") if s.context else ""
-                collision_ctx = extract_3way_symbol_context(ctx, s, other_branch=other_br) if ctx else None
+                collision_ctx = (
+                    extract_3way_symbol_context(ctx, s, other_branch=other_br) if ctx else None
+                )
                 prompt_text = build_conflict_prompt(
                     suggestion=s,
                     repo=repo_path,
@@ -741,11 +754,13 @@ def get_hierarchy(repo_path: str) -> dict[str, Any]:
     repo_id = 1
     chain = mgr.resolve_priority_chain(repo_id)
     inc, exc = mgr.get_branch_filters(repo_id)
-    return _wrap_ok({
-        "priority_chain": chain,
-        "include": inc,
-        "exclude": exc,
-    })
+    return _wrap_ok(
+        {
+            "priority_chain": chain,
+            "include": inc,
+            "exclude": exc,
+        }
+    )
 
 
 def update_hierarchy(repo_path: str, payload: dict[str, Any]) -> dict[str, Any]:

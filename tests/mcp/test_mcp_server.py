@@ -47,11 +47,7 @@ def test_mcp_tools_list() -> None:
 def test_mcp_validate_patch_valid() -> None:
     server = MCPServer()
     patch_text = (
-        "--- a/test.py\n"
-        "+++ b/test.py\n"
-        "@@ -1,1 +1,1 @@\n"
-        "-def old(): pass\n"
-        "+def new(): pass\n"
+        "--- a/test.py\n+++ b/test.py\n@@ -1,1 +1,1 @@\n-def old(): pass\n+def new(): pass\n"
     )
     req = {
         "jsonrpc": "2.0",
@@ -93,11 +89,7 @@ def test_mcp_validate_patch_invalid_format() -> None:
 def test_mcp_validate_patch_syntax_error() -> None:
     server = MCPServer()
     patch_text = (
-        "--- a/test.py\n"
-        "+++ b/test.py\n"
-        "@@ -1,1 +1,1 @@\n"
-        "-def old(): pass\n"
-        "+def broken(: pass\n"
+        "--- a/test.py\n+++ b/test.py\n@@ -1,1 +1,1 @@\n-def old(): pass\n+def broken(: pass\n"
     )
     req = {
         "jsonrpc": "2.0",
@@ -119,13 +111,7 @@ def test_mcp_validate_patch_context_mismatch(tmp_path: Path) -> None:
     py_file = tmp_path / "mod.py"
     py_file.write_text("x = 10\n", encoding="utf-8")
     server = MCPServer()
-    patch_text = (
-        "--- a/mod.py\n"
-        "+++ b/mod.py\n"
-        "@@ -1,1 +1,1 @@\n"
-        "-x = 999\n"
-        "+x = 20\n"
-    )
+    patch_text = "--- a/mod.py\n+++ b/mod.py\n@@ -1,1 +1,1 @@\n-x = 999\n+x = 20\n"
     req = {
         "jsonrpc": "2.0",
         "id": 6,

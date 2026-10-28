@@ -12,15 +12,18 @@ def db(tmp_path):
     db_path = os.path.join(tmp_path, "runtime.db")
     return RuntimeDB(db_path)
 
+
 @pytest.fixture
 def bus():
     return EventBus()
+
 
 def test_local_observer_detection(db, bus, tmp_path):
     # Setup a dummy git repo
     repo_path = tmp_path / "dummy_repo"
     repo_path.mkdir()
     from git import Repo
+
     repo = Repo.init(repo_path)
     # Need initial commit for HEAD to exist
     readme = repo_path / "README"
@@ -31,6 +34,7 @@ def test_local_observer_detection(db, bus, tmp_path):
     observer = LocalObserver(repo_path, bus)
 
     events = []
+
     def on_event(event):
         events.append(event)
 

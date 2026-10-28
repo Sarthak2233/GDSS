@@ -17,6 +17,7 @@ def detect_typecheck_command(
     changed_files: list[str] | None = None,
 ) -> tuple[str | None, str]:
     """Detect appropriate typechecker command and tool name for the worktree."""
+    _ = changed_files
     root = Path(worktree_path)
     config = load_validation_config(root)
 

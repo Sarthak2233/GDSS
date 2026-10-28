@@ -16,8 +16,11 @@ interface RepoContextState {
   refName: string;
   setRefName: (refName: string) => void;
   branches: string[];
+  allBranches: string[];
   branchesLoading: boolean;
   branchesError: string | null;
+  selectedBranches: string[];
+  setSelectedBranches: (branches: string[]) => void;
 }
 
 const RepoContext = createContext<RepoContextState | undefined>(undefined);
@@ -32,8 +35,10 @@ export function RepoProvider({
   const [repo, setRepo] = useState(initialRepo);
   const [refName, setRefName] = useState("main");
   const [branches, setBranches] = useState<string[]>([]);
+  const [allBranches, setAllBranches] = useState<string[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(true);
   const [branchesError, setBranchesError] = useState<string | null>(null);
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,6 +60,7 @@ export function RepoProvider({
         if (cancelled) return;
         const data = resp.data;
         setBranches(data.branches || []);
+        setAllBranches(data.all_branches && data.all_branches.length > 0 ? data.all_branches : data.branches || []);
         if (data.repo) setRepo(data.repo);
         if (data.active_branch) {
           setRefName((prev) =>
@@ -89,8 +95,11 @@ export function RepoProvider({
         refName,
         setRefName,
         branches,
+        allBranches,
         branchesLoading,
         branchesError,
+        selectedBranches,
+        setSelectedBranches,
       }}
     >
       {children}

@@ -149,6 +149,29 @@ class GitObserver:
         except Exception:
             return []
 
+    def list_all_available_branches(self, include_remotes: bool = True) -> list[str]:
+        """Return all local and optionally remote tracking branch names without HEAD aliases."""
+        if not self.repo:
+            return []
+        branches: list[str] = []
+        seen: set[str] = set()
+        try:
+            for head in self.repo.heads:
+                if head.name not in seen:
+                    seen.add(head.name)
+                    branches.append(head.name)
+            if include_remotes:
+                for remote in self.repo.remotes:
+                    for ref in remote.refs:
+                        if ref.name.endswith("/HEAD"):
+                            continue
+                        if ref.name not in seen:
+                            seen.add(ref.name)
+                            branches.append(ref.name)
+        except Exception:
+            pass
+        return branches
+
     def get_remote_sync_status(
         self, ref_branch: str, remote: str = "origin"
     ) -> dict[str, object]:

@@ -39,6 +39,16 @@ TOOLS = [
               "description": "Path to the git repository (default: current directory)",
               "default": ".",
             },
+            "branches": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Optional subset of branch names or wildcard patterns to include (e.g. ['feature/*'])",
+            },
+            "exclude_branches": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Optional branch names or wildcard patterns to exclude (e.g. ['spike/*', 'wip/*'])",
+            },
           },
         },
     },
@@ -57,6 +67,16 @@ TOOLS = [
               "type": "string",
               "description": "Path to the git repository (default: current directory)",
               "default": ".",
+            },
+            "branches": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Optional subset of branch names or wildcard patterns to include",
+            },
+            "exclude_branches": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Optional branch names or wildcard patterns to exclude",
             },
           },
         },
@@ -132,6 +152,16 @@ TOOLS = [
               "description": "Path to the git repository (default: current directory)",
               "default": ".",
             },
+            "branches": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Optional subset of branch names or wildcard patterns to include",
+            },
+            "exclude_branches": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Optional branch names or wildcard patterns to exclude",
+            },
           },
           "required": ["source_branch", "target_branch"],
         },
@@ -179,14 +209,26 @@ class MCPServer:
 
     def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Dispatch a tool call and return result dict."""
+        branches = arguments.get("branches")
+        exclude_branches = arguments.get("exclude_branches")
         if name == "gdss_find_collisions":
             ref = arguments.get("reference_branch", "main")
             repo = arguments.get("repo_path", ".")
-            return find_collisions(reference_branch=ref, repo_path=repo)
+            return find_collisions(
+                reference_branch=ref,
+                repo_path=repo,
+                branches=branches,
+                exclude_branches=exclude_branches,
+            )
         elif name == "gdss_get_merge_order":
             ref = arguments.get("reference_branch", "main")
             repo = arguments.get("repo_path", ".")
-            return get_merge_order(reference_branch=ref, repo_path=repo)
+            return get_merge_order(
+                reference_branch=ref,
+                repo_path=repo,
+                branches=branches,
+                exclude_branches=exclude_branches,
+            )
         elif name == "gdss_inspect_symbol_impact":
             sym = arguments.get("symbol", "")
             ref = arguments.get("reference_branch", "main")
@@ -197,7 +239,14 @@ class MCPServer:
             tgt = arguments.get("target_branch", "")
             ref = arguments.get("reference_branch", "main")
             repo = arguments.get("repo_path", ".")
-            return plan_semantic_rebase(source_branch=src, target_branch=tgt, reference_branch=ref, repo_path=repo)
+            return plan_semantic_rebase(
+                source_branch=src,
+                target_branch=tgt,
+                reference_branch=ref,
+                repo_path=repo,
+                branches=branches,
+                exclude_branches=exclude_branches,
+            )
         elif name == "gdss_validate_patch":
             patch = arguments.get("patch", "")
             fpath = arguments.get("file_path", "")

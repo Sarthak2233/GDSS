@@ -23,12 +23,28 @@ from gdss.watcher.git_observer import GitObserver
 logger = get_logger("gdss.mcp.tools")
 
 
-def find_collisions(reference_branch: str = "main", repo_path: str = ".") -> dict[str, Any]:
+def find_collisions(
+    reference_branch: str = "main",
+    repo_path: str = ".",
+    branches: list[str] | None = None,
+    exclude_branches: list[str] | None = None,
+) -> dict[str, Any]:
     """Compute pairwise branch collision matrix (Omega_ij) and integration risk with concrete AST contacts."""
     path = str(Path(repo_path).resolve())
-    logger.debug("mcp.find_collisions: repo=%s, ref=%s", path, reference_branch)
+    logger.debug(
+        "mcp.find_collisions: repo=%s, ref=%s, branches=%s, exclude=%s",
+        path,
+        reference_branch,
+        branches,
+        exclude_branches,
+    )
     try:
-        context = build_analysis_context(path, reference_branch)
+        context = build_analysis_context(
+            path,
+            reference_branch,
+            branches=branches,
+            exclude_branches=exclude_branches,
+        )
     except AnalysisContextError as e:
         logger.warning("mcp.find_collisions context error: %s", e)
         return {
@@ -96,11 +112,21 @@ def find_collisions(reference_branch: str = "main", repo_path: str = ".") -> dic
     }
 
 
-def get_merge_order(reference_branch: str = "main", repo_path: str = ".") -> dict[str, Any]:
+def get_merge_order(
+    reference_branch: str = "main",
+    repo_path: str = ".",
+    branches: list[str] | None = None,
+    exclude_branches: list[str] | None = None,
+) -> dict[str, Any]:
     """Calculate optimal merge sequence across active branches minimizing drift and friction."""
     path = str(Path(repo_path).resolve())
     try:
-        context = build_analysis_context(path, reference_branch)
+        context = build_analysis_context(
+            path,
+            reference_branch,
+            branches=branches,
+            exclude_branches=exclude_branches,
+        )
     except AnalysisContextError as e:
         return {
             "error": str(e),
@@ -220,12 +246,25 @@ def _serialize_op(op: SemanticOperator) -> dict[str, Any]:
 
 
 def plan_semantic_rebase(
-    source_branch: str, target_branch: str, reference_branch: str = "main", repo_path: str = "."
+    source_branch: str,
+    target_branch: str,
+    reference_branch: str = "main",
+    repo_path: str = ".",
+    branches: list[str] | None = None,
+    exclude_branches: list[str] | None = None,
 ) -> dict[str, Any]:
     """Compute semantic rebase plan: identifies cleanly commuting vs blocked operators."""
     path = str(Path(repo_path).resolve())
+    effective_branches = branches
+    if effective_branches is not None:
+        effective_branches = list(set(effective_branches) | {source_branch, target_branch})
     try:
-        context = build_analysis_context(path, reference_branch)
+        context = build_analysis_context(
+            path,
+            reference_branch,
+            branches=effective_branches,
+            exclude_branches=exclude_branches,
+        )
     except AnalysisContextError as e:
         return {"error": str(e), "source_branch": source_branch, "target_branch": target_branch}
     except Exception as e:

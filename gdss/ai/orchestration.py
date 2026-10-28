@@ -55,6 +55,8 @@ class ConvergenceState:
     checkpoint: CheckpointStatus = "init"
     errors: list[str] = field(default_factory=list)
     analysis_context: AnalysisContext | None = None
+    branches: list[str] | None = None
+    exclude_branches: list[str] | None = None
     max_refinements: int = 2
     refinement_count: int = 0
     refinement_history: list[dict[str, Any]] = field(default_factory=list)
@@ -91,6 +93,8 @@ def analyze_step(state: ConvergenceState) -> ConvergenceState:
         suggestions = suggest(
             st.repo_path,
             st.reference_branch,
+            branches=st.branches,
+            exclude_branches=st.exclude_branches,
             llm=False,
             combos=st.combos,
             max_candidates=st.max_candidates,
@@ -267,10 +271,15 @@ def refine_step(state: ConvergenceState) -> ConvergenceState:
         updated_combos: list[PatchCombination] = []
         for combo in sug.patch_combinations:
             if not combo.validated and combo.patch_text and combo.validation_error:
-                block = _anchored_block(context, sug) if context else ""
+                from gdss.ai.context_builder import extract_3way_symbol_context
+                from gdss.ai.patch_parser import extract_patch_or_replacement
+
+                other_branch = getattr(sug.context, "other_branch", None) if sug.context else None
+                collision_ctx = extract_3way_symbol_context(context, sug, other_branch=other_branch) if context else None
+                block = (collision_ctx.branch_a_code if collision_ctx else None) or (_anchored_block(context, sug) if context else "")
                 branch_commits = context.branch_commits if context else None
                 branch_intents = context.branch_intents if context else None
-                other_branch = getattr(sug.context, "other_branch", None) if sug.context else None
+
                 prompt = build_refinement_prompt(
                     suggestion=sug,
                     strategy_label=combo.label,
@@ -279,21 +288,17 @@ def refine_step(state: ConvergenceState) -> ConvergenceState:
                     repo=st.repo_path,
                     ref=st.reference_branch,
                     anchored_symbol_block=block,
+                    collision_context=collision_ctx,
                     branch_commits=branch_commits,
                     branch_intents=branch_intents,
                     other_branch=other_branch,
                 )
                 try:
-                    refined_text = active_provider.complete(prompt).strip()
-                    if refined_text.startswith("```"):
-                        lines = refined_text.splitlines()
-                        if lines and lines[0].startswith("```"):
-                            lines = lines[1:]
-                        if lines and lines[-1].strip() == "```":
-                            lines = lines[:-1]
-                        refined_text = "\n".join(lines).strip()
+                    raw_resp = active_provider.complete(prompt).strip()
+                    refined_text, _ = extract_patch_or_replacement(raw_resp, expected_file=sug.file_path)
 
-                    validation = validate_patch(sug, refined_text)
+                    validation = validate_patch(sug, refined_text, original_code=block)
+                    effective_patch = validation.synthesized_diff or refined_text
                     st.refinement_history.append(
                         {
                             "suggestion_id": sug.suggestion_id,
@@ -305,7 +310,7 @@ def refine_step(state: ConvergenceState) -> ConvergenceState:
                     updated_combos.append(
                         replace(
                             combo,
-                            patch_text=refined_text if validation.valid else combo.patch_text,
+                            patch_text=effective_patch if validation.valid else combo.patch_text,
                             validated=False,
                             validation_status="draft",
                             validation_error=validation.reason if not validation.valid else None,

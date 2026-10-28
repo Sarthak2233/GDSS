@@ -20,6 +20,7 @@ class StubProvider:
         self.response = response
 
     def complete(self, prompt: str, *, temperature: float = 0.0, max_tokens: int = -1) -> str:
+        _ = (prompt, temperature, max_tokens)
         return self.response
 
 

@@ -104,6 +104,24 @@ Errors (HTTP 4xx/5xx) always return WHAT/WHY/FIX details.
 - `404 Not Found`: Invalid ref or index error.
 - `500 Internal Server Error`: Safe WHAT/WHY/FIX only.
 
+## Performance & Content-Addressed In-Memory Caching
+
+To prevent long-running Tree-Sitter AST traversals from blocking the local HTTP event loop during frontend dashboard polling, GDSS leverages Git's cryptographic Merkle DAG immutability:
+
+1. **Commit-SHA Service Memoization (`GET /v1/drift`):**
+   - Cache key: `(repo_path, branch, branch_sha, ref, ref_sha)`
+   - Because a Git commit SHA permanently identifies the exact state of the source tree, drift calculations between two unchanged commit hashes are mathematically identical.
+   - **Performance:** Cold request $\approx 15\text{s} \rightarrow$ subsequent polls $\approx 6\text{ms}$ (**2,700x speedup**).
+   - **Invalidation:** Zero-maintenance. As soon as a developer pushes or creates a commit, `branch_sha` advances, automatically triggering fresh analysis.
+
+2. **Commit-Level Symbol & Tip Vector Caching (`DriftEngine`):**
+   - `DriftEngine` caches parsed symbol lists (`_COMMIT_SYMBOLS_CACHE`) and tip vectors (`_TIP_VECTOR_CACHE`) keyed by immutable `commit_sha`.
+   - When evaluating trajectory path integrals ($I(B_i)$) across historical commits, each historical commit is parsed at most once in memory.
+
+3. **Client Polling & Timeout Contracts:**
+   - **Axios Timeout:** 60 seconds (`timeout: 60000`) in `web/lib/api.ts` to accommodate cold multi-branch AST analysis on large repositories.
+   - **Polling Interval:** 30 seconds (`refetchInterval: 30000`) in `DashboardGrid` to ensure polling does not outpace server computation.
+
 ## CLI
 
 ```bash

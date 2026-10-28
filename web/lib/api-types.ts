@@ -108,6 +108,7 @@ export interface DriftHistoryData {
 
 export interface BranchesData {
   branches: string[];
+  all_branches?: string[];
   active_branch: string | null;
   repo: string;
 }

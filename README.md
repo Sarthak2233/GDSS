@@ -232,15 +232,16 @@ gdss ▶ quit              # 8. exit (or press Ctrl+D)
 | `gdss log` | `--repo`, `-n` | Semantic AST operators per commit |
 | `gdss analyze` | `--repo` | Build dependency graph, print node/edge summary |
 | `gdss diff` | `TARGET`, `--repo` | Semantic AST diff vs another branch |
-| `gdss drift` | `--repo`, `--ref` | Per-branch drift magnitude (tip + trajectory integral) |
+| `gdss drift` | `--repo`, `--ref`, `--branches`, `--exclude` | Per-branch drift magnitude (tip + trajectory integral) with branch scoping |
+| `gdss tensor` | `--repo`, `--ref`, `--branches`, `--exclude` | Sparse conflict tensor ($\Omega_{ij}$) and merge risk with branch scoping |
 | `gdss alerts` | `--repo`, `--ref` | Drift alerts above severity thresholds |
 | `gdss similar` | `SYMBOL`, `--repo`, `-k` | Assistive FAISS/bag neighbors for a symbol |
 | `gdss reindex` | `--repo` | Rebuild `.gdss/vectors/` embedding index |
 | `gdss watch` | `--repo` | Real-time event bus monitor |
 | `gdss graph export` | `--repo`, `--format`, `-o` | Export dependency graph to DOT or JSON |
-| `gdss suggest` | `--repo`, `--ref`, `--llm`, `--provider`, `--model`, `--validate`, `--sandbox-timeout` | Propose ranked semantic resolution patches (with optional ephemeral sandbox validation) |
+| `gdss suggest` | `--repo`, `--ref`, `--branches`, `--exclude`, `--llm`, `--validate` | Propose ranked semantic resolution patches (with optional ephemeral sandbox validation) |
 | `gdss apply` | `SUGGESTION_ID`, `--strategy`, `--dry-run`, `--rollback` | Guarded local application of an approved suggestion with preflight security and rollback |
-| `gdss audit-pr` | `--repo`, `--pr-number`, `--token`, `--dry-run`, `--output` | Audit concurrent pull requests for semantic collisions and post sticky radar reports |
+| `gdss audit-pr` | `--repo`, `--pr-number`, `--branches`, `--exclude`, `--same-base-only` | Audit concurrent pull requests for semantic collisions and post sticky radar reports |
 
 
 ---

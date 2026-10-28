@@ -15,6 +15,7 @@ import json
 import os
 import urllib.error
 import urllib.request
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,7 @@ from typing import Any
 import yaml
 
 from gdss.logger import ci_group, get_logger
+from gdss.runtime.hierarchy import matches_any_pattern
 
 logger = get_logger("gdss.validation.pr_audit")
 
@@ -147,14 +149,20 @@ def parse_github_env(event_path: str | None = None) -> PRAuditContext | None:
 
 
 def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
-    """Load radar configuration from .gdss.yml or return defaults."""
+    """Load radar and hierarchy configuration from .gdss.yml or return defaults."""
     repo_root = Path(repo_path)
     default_config: dict[str, Any] = {
         "fail_on_collision": False,
         "risk_threshold": 0.8,
         "model": "gpt-4o-mini",
+        "provider": "github",
+        "base_url": None,
         "context_window": None,
         "max_refinements": 2,
+        "same_base_only": True,
+        "include": [],
+        "exclude": [],
+        "target_bases": [],
     }
 
     config_file = repo_root / ".gdss.yml"
@@ -173,18 +181,38 @@ def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
 
     radar_data = data.get("radar", {})
     if not isinstance(radar_data, dict):
-        return default_config
+        radar_data = {}
+
+    hierarchy_data = data.get("hierarchy", {})
+    if not isinstance(hierarchy_data, dict):
+        hierarchy_data = {}
 
     raw_ctx = radar_data.get("context_window")
     ctx_win = int(raw_ctx) if raw_ctx is not None and str(raw_ctx).isdigit() else None
     max_ref = int(radar_data.get("max_refinements", 2))
+    base_url = radar_data.get("base_url") or os.environ.get("OPENAI_BASE_URL")
+    provider_name = str(radar_data.get("provider", default_config["provider"]))
+
+    same_base = hierarchy_data.get("same_base_only")
+    if same_base is None:
+        same_base = radar_data.get("same_base_only", default_config["same_base_only"])
+
+    include = hierarchy_data.get("include") or radar_data.get("include") or []
+    exclude = hierarchy_data.get("exclude") or radar_data.get("exclude") or []
+    target_bases = hierarchy_data.get("target_bases") or radar_data.get("target_bases") or []
 
     return {
         "fail_on_collision": bool(radar_data.get("fail_on_collision", default_config["fail_on_collision"])),
         "risk_threshold": float(radar_data.get("risk_threshold", default_config["risk_threshold"])),
         "model": str(radar_data.get("model", default_config["model"])),
+        "provider": provider_name,
+        "base_url": str(base_url).strip() if base_url else None,
         "context_window": ctx_win,
         "max_refinements": max_ref,
+        "same_base_only": bool(same_base),
+        "include": list(include) if isinstance(include, list) else [],
+        "exclude": list(exclude) if isinstance(exclude, list) else [],
+        "target_bases": list(target_bases) if isinstance(target_bases, list) else [],
     }
 
 
@@ -215,8 +243,14 @@ def _github_api_request(
         return {}
 
 
-def fetch_concurrent_prs(context: PRAuditContext) -> list[dict[str, Any]]:
-    """Fetch all open pull requests for the repository excluding the current PR."""
+def fetch_concurrent_prs(
+    context: PRAuditContext,
+    same_base_only: bool = True,
+    include: Sequence[str] | None = None,
+    exclude: Sequence[str] | None = None,
+    target_bases: Sequence[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Fetch all open pull requests for the repository filtered by hierarchy rules."""
     url = f"{context.api_url}/repos/{context.repo_owner}/{context.repo_name}/pulls?state=open&per_page=50"
     logger.info("Fetching concurrent open PRs from %s", url)
     try:
@@ -229,6 +263,10 @@ def fetch_concurrent_prs(context: PRAuditContext) -> list[dict[str, Any]]:
         logger.debug("GitHub API returned non-list payload for open PRs: %s", type(raw_prs))
         return []
 
+    include_patterns = [p for p in include if p] if include else []
+    exclude_patterns = [p for p in exclude if p] if exclude else []
+    target_bases_set = {b for b in target_bases if b} if target_bases else set()
+
     concurrent: list[dict[str, Any]] = []
     for pr in raw_prs:
         if not isinstance(pr, dict):
@@ -239,23 +277,74 @@ def fetch_concurrent_prs(context: PRAuditContext) -> list[dict[str, Any]]:
         user = pr.get("user") or {}
         head = pr.get("head") or {}
         base = pr.get("base") or {}
+        head_ref = head.get("ref", "")
+        base_ref = base.get("ref", "")
+
+        # Mode 1 Rule: same_base_only
+        if same_base_only and base_ref != context.base_ref:
+            logger.debug(
+                "Skipping PR #%s (targets base '%s', but current PR targets '%s')",
+                num,
+                base_ref,
+                context.base_ref,
+            )
+            continue
+
+        # Mode 1 Rule: target_bases constraint
+        if target_bases_set and base_ref not in target_bases_set:
+            logger.debug(
+                "Skipping PR #%s (base '%s' not in target_bases: %s)",
+                num,
+                base_ref,
+                target_bases_set,
+            )
+            continue
+
+        num_str = str(num)
+        # Mode 1 Rule: include filter (matches branch name or PR number)
+        if include_patterns:
+            matches_head = matches_any_pattern(head_ref, include_patterns)
+            matches_num = num_str in include_patterns
+            if not (matches_head or matches_num):
+                logger.debug(
+                    "Skipping PR #%s ('%s' does not match include patterns %s)",
+                    num,
+                    head_ref,
+                    include_patterns,
+                )
+                continue
+
+        # Mode 1 Rule: exclude filter
+        if exclude_patterns:
+            matches_head = matches_any_pattern(head_ref, exclude_patterns)
+            matches_num = num_str in exclude_patterns
+            if matches_head or matches_num:
+                logger.debug(
+                    "Skipping PR #%s ('%s' matches exclude patterns %s)",
+                    num,
+                    head_ref,
+                    exclude_patterns,
+                )
+                continue
+
         concurrent.append(
             {
                 "number": num,
                 "title": pr.get("title", ""),
                 "body": pr.get("body", "") or "",
                 "author": user.get("login", "unknown"),
-                "head_ref": head.get("ref", ""),
+                "head_ref": head_ref,
                 "head_sha": head.get("sha", ""),
-                "base_ref": base.get("ref", ""),
+                "base_ref": base_ref,
             }
         )
 
     logger.info(
-        "Discovered %d concurrent open PR(s) on %s/%s targeting base '%s'",
+        "Discovered %d concurrent open PR(s) on %s/%s matching filters (same_base_only=%s, base='%s')",
         len(concurrent),
         context.repo_owner,
         context.repo_name,
+        same_base_only,
         context.base_ref,
     )
     return concurrent
@@ -280,38 +369,112 @@ def generate_pr_convergence_patch(
     other_ops: list[Any],
     token: str | None = None,
     model: str | None = None,
+    base_url: str | None = None,
 ) -> str | None:
-    """Generate candidate reconciliation patch via GitHub Models / AI and validate syntax in sandbox."""
-    cur_desc = _format_ops_description(current_ops, target_file)
-    oth_desc = _format_ops_description(other_ops, target_file)
+    """Generate candidate reconciliation patch via unified prompt engine and validate syntax in sandbox."""
+    from gdss.ai.context_builder import SemanticCollisionContext
+    from gdss.ai.prompt_builder import build_conflict_prompt
+    from gdss.ai.types import (
+        ConflictTopology,
+        Suggestion,
+        SuggestionAnchor,
+        SuggestionContext,
+    )
 
-    prompt = (
-        f"You are an automated merge conflict convergence assistant in GitHub Actions CI.\n"
-        f"Target File: {target_file}\n"
-        f"Colliding Symbol: {overlapping_symbol}\n"
-        f"Incoming PR changes: {cur_desc or 'modified definition'}\n"
-        f"Concurrent PR changes: {oth_desc or 'modified definition'}\n"
-        f"Reconcile both contractual modifications into a unified, clean, syntactically valid definition.\n"
-        f"Output ONLY the reconciled code block to replace '{overlapping_symbol}'. "
-        f"Do not include conversational preamble or explanation."
+    # Inspect source code on disk if available
+    base_code = ""
+    disk_file = Path(repo_path) / target_file
+    if disk_file.is_file():
+        try:
+            base_code = disk_file.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            base_code = ""
+
+    # Extract branch modifications from operation diffs or base
+    a_code = ""
+    if current_ops and getattr(current_ops[0], "details", None):
+        a_code = str(current_ops[0].details.get("diff") or "")
+    if not a_code:
+        a_code = base_code or f"// Modification to {overlapping_symbol} in current PR"
+
+    b_code = ""
+    if other_ops and getattr(other_ops[0], "details", None):
+        b_code = str(other_ops[0].details.get("diff") or "")
+    if not b_code:
+        b_code = base_code or f"// Modification to {overlapping_symbol} in concurrent PR"
+
+    base_lines_len = len(base_code.splitlines()) if base_code else 0
+    symbol_id = f"{target_file}::{overlapping_symbol}"
+    topology = ConflictTopology(
+        kind="union",
+        symbol_id=symbol_id,
+        operator_i=current_ops[0].operator.value if current_ops and hasattr(current_ops[0], "operator") else "modify_function",
+        operator_j=other_ops[0].operator.value if other_ops and hasattr(other_ops[0], "operator") else "modify_function",
+        commutativity="interfere",
+        justification="concurrent PR contractual overlap",
+    )
+    suggestion = Suggestion(
+        kind="conflict",
+        file_path=target_file,
+        line_start=1,
+        line_end=max(1, base_lines_len or 50),
+        symbol_id=symbol_id,
+        operator="modify_function",
+        action="reconcile",
+        rationale="signature_divergence",
+        reason=("Concurrent pull requests modify the same symbol contract",),
+        confidence=0.9,
+        topology=topology,
+        anchor=SuggestionAnchor(
+            file_path=target_file,
+            line_start=1,
+            line_end=max(1, base_lines_len or 50),
+            target_branch="HEAD",
+        ),
+        context=SuggestionContext(
+            reference_branch="main",
+            candidate_branch="current_pr",
+            omega=0.8,
+            merge_risk=1.0,
+            operator_i_id="current_pr_op",
+            operator_j_id="other_pr_op",
+            other_branch="other_pr",
+        ),
+    )
+
+    collision_ctx = SemanticCollisionContext(
+        file_path=target_file,
+        symbol_name=overlapping_symbol,
+        language="python" if target_file.endswith(".py") else "unknown",
+        base_branch="main",
+        base_code=base_code,
+        base_line_range=(1, base_lines_len) if base_code else None,
+        branch_a_name="current_pr",
+        branch_a_code=a_code,
+        branch_a_line_range=None,
+        branch_b_name="other_pr",
+        branch_b_code=b_code,
+        branch_b_line_range=None,
+    )
+
+    prompt = build_conflict_prompt(
+        suggestion=suggestion,
+        repo=str(repo_path),
+        ref="main",
+        collision_context=collision_ctx,
+        output_format="replacement_block",
     )
 
     raw_code: str = ""
     try:
         from gdss.ai.openai_provider import OpenAICompatibleProvider
+        from gdss.ai.patch_parser import extract_patch_or_replacement
 
-        provider = OpenAICompatibleProvider(model=model, api_key=token)
+        effective_base_url = base_url or os.environ.get("OPENAI_BASE_URL")
+        provider = OpenAICompatibleProvider(base_url=effective_base_url, model=model, api_key=token)
         response_text = provider.complete(prompt).strip()
-        # Clean markdown code block fences if present
-        if response_text.startswith("```"):
-            lines = response_text.splitlines()
-            if lines and lines[0].startswith("```"):
-                lines = lines[1:]
-            if lines and lines[-1].strip() == "```":
-                lines = lines[:-1]
-            raw_code = "\n".join(lines).strip()
-        else:
-            raw_code = response_text
+        raw_code, _ = extract_patch_or_replacement(response_text, expected_file=target_file)
+        raw_code = raw_code.strip()
     except Exception:
         raw_code = ""
 
@@ -376,10 +539,20 @@ def audit_pr_collisions(
             observer = GitObserver(repo_root_str)
             if observer.is_valid():
                 current_head = context.head_sha or context.head_ref or "HEAD"
-                effective_token = context.github_token or os.environ.get("GITHUB_TOKEN") or os.environ.get("OPENAI_API_KEY")
+                effective_token = (
+                    context.github_token
+                    or os.environ.get("GITHUB_TOKEN")
+                    or os.environ.get("OPENROUTER_API_KEY")
+                    or os.environ.get("OPENAI_API_KEY")
+                )
+                effective_base_url = (config.get("base_url") if config else None) or os.environ.get("OPENAI_BASE_URL")
                 provider = (
-                    OpenAICompatibleProvider(model=config.get("model") if config else None, api_key=effective_token)
-                    if effective_token
+                    OpenAICompatibleProvider(
+                        base_url=effective_base_url,
+                        model=config.get("model") if config else None,
+                        api_key=effective_token,
+                    )
+                    if (effective_token or effective_base_url)
                     else None
                 )
 
@@ -572,7 +745,7 @@ def audit_pr_collisions(
                                     sym_name = current_ops[0].get_target_name() or "symbol"
 
                                     suggestion_code = None
-                                    if effective_token:
+                                    if effective_token or effective_base_url:
                                         suggestion_code = generate_pr_convergence_patch(
                                             repo_path=repo_root,
                                             target_file=target_file,
@@ -581,7 +754,12 @@ def audit_pr_collisions(
                                             other_ops=other_ops,
                                             token=effective_token,
                                             model=config.get("model") if config else None,
+                                            base_url=effective_base_url,
                                         )
+
+                                    cur_desc = _format_ops_description(current_ops, target_file)
+                                    other_desc = _format_ops_description(other_ops, target_file)
+                                    ops_detail = f" [{cur_desc} vs {other_desc}]" if (cur_desc or other_desc) else ""
 
                                     collisions.append(
                                         PRCollisionDetail(
@@ -592,7 +770,7 @@ def audit_pr_collisions(
                                             overlapping_symbol=sym_name,
                                             risk=risk,
                                             description=(
-                                                f"Semantic interaction ({risk:.2f}) with PR #{other_pr['number']} "
+                                                f"Semantic interaction ({risk:.2f}){ops_detail} with PR #{other_pr['number']} "
                                                 f"on branch {other_pr['head_ref']}."
                                             ),
                                             merge_order_recommendation=f"Merge PR #{other_pr['number']} first, then rebase PR #{context.pr_number}.",
@@ -750,6 +928,9 @@ def run_pr_audit(
     dry_run: bool = False,
     output_file: str | None = None,
     console: Any = None,
+    branches: list[str] | None = None,
+    exclude: list[str] | None = None,
+    same_base_only: bool | None = None,
 ) -> int:
     """Main orchestration entrypoint for PR collision audit.
 
@@ -773,12 +954,22 @@ def run_pr_audit(
             logger.debug("Operating in local execution mode without GitHub Actions event")
 
         config = load_radar_config(repo_path)
+        if branches:
+            config["include"] = branches
+        if exclude:
+            config["exclude"] = exclude
+        if same_base_only is not None:
+            config["same_base_only"] = same_base_only
+
         logger.info(
-            "Loaded radar configuration: fail_on_collision=%s, threshold=%.2f, model=%s, context_window=%s",
+            "Loaded radar configuration: fail_on_collision=%s, threshold=%.2f, model=%s, context_window=%s, same_base_only=%s, include=%s, exclude=%s",
             config.get("fail_on_collision"),
             config.get("risk_threshold", 0.8),
             config.get("model"),
             config.get("context_window"),
+            config.get("same_base_only"),
+            config.get("include"),
+            config.get("exclude"),
         )
 
     with ci_group("GDSS PR Radar: Concurrent PR Discovery & Collision Analysis"):
@@ -793,7 +984,13 @@ def run_pr_audit(
                 audited_prs_count=0,
             )
         else:
-            concurrent_prs = fetch_concurrent_prs(ctx)
+            concurrent_prs = fetch_concurrent_prs(
+                ctx,
+                same_base_only=config.get("same_base_only", True),
+                include=config.get("include"),
+                exclude=config.get("exclude"),
+                target_bases=config.get("target_bases"),
+            )
             result = audit_pr_collisions(repo_path, ctx, concurrent_prs, config)
 
     with ci_group("GDSS PR Radar: Report Generation & Sticky Comment"):

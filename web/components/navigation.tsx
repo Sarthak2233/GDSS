@@ -54,6 +54,22 @@ export function Navigation() {
           );
         })}
       </nav>
+
+      {/* Box 4: Deterministic Engine Status Badge */}
+      <div className="bg-surface border border-border rounded-xl p-3 flex flex-col gap-1 shadow-md text-xs font-mono shrink-0">
+        <div className="flex items-center justify-between">
+          <span className="text-textSubtle text-[10px] uppercase font-bold tracking-wider">
+            Engine Mode
+          </span>
+          <span className="h-2 w-2 rounded-full bg-success animate-pulse" aria-hidden="true" />
+        </div>
+        <p className="text-text font-semibold text-[11px]">
+          Deterministic Core
+        </p>
+        <span className="text-[10px] text-accent font-semibold">
+          $0 Tokens · Local AST Proof
+        </span>
+      </div>
     </aside>
   );
 }

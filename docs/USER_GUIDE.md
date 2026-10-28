@@ -116,11 +116,48 @@ GDSS runs as a local MCP server exposing deterministic analysis tools over stand
 ```
 
 #### Available MCP Tools
-- `gdss_find_collisions`: Scans for semantic collisions across all active local branches.
-- `gdss_get_merge_order`: Computes the mathematically optimal merge sequence to minimize conflicts.
+- `gdss_find_collisions`: Scans for semantic collisions across active local branches (supports `branches` and `exclude_branches` parameters).
+- `gdss_get_merge_order`: Computes the mathematically optimal merge sequence to minimize conflicts (supports `branches` and `exclude_branches`).
 - `gdss_inspect_symbol_impact`: Traces callers and dependents affected by a change.
-- `gdss_plan_semantic_rebase`: Generates a rebase plan classifying kept, remapped, and blocked operators.
+- `gdss_plan_semantic_rebase`: Generates a rebase plan classifying kept, remapped, and blocked operators (supports `branches` and `exclude_branches`).
 - `gdss_validate_patch`: Dry-run validates candidate patch diffs against syntax and type checkers.
+
+#### Branch Scoping in MCP Tool Invocations
+When pairing with Cursor or Claude Code, your assistant can filter branches to focus on relevant PRs and ignore experimental spikes:
+
+```json
+{
+  "name": "gdss_find_collisions",
+  "arguments": {
+    "repo_path": ".",
+    "reference_branch": "main",
+    "branches": ["feature/auth", "feature/billing"],
+    "exclude_branches": ["spike/*", "dependabot/*"]
+  }
+}
+```
+
+#### 🤖 How MCP Autonomous Tool Execution Works (Zero Manual Prompt Typing)
+
+Developers **never need to type out long prompt templates or AST definitions manually**.
+
+The interaction in Cursor, Claude Code, or Copilot is conversational:
+1. **Natural Language Input:** You type a standard request in your IDE chat:
+   > *"Check if my branch `feature/auth` has any collisions with `develop`, and help me resolve them."*
+2. **Autonomous Background Tool Calling:** The IDE's AI assistant inspects the registered GDSS tool definitions and automatically executes the pipeline in the background:
+   - Calls `gdss_find_collisions(reference_branch='develop', branches=['feature/auth'])`
+   - Calls `gdss_inspect_symbol_impact(symbol='login')`
+   - Synthesizes the candidate patch using the pre-extracted 3-way AST context
+   - Calls `gdss_sandbox_validate_patch(patch=...)` to test syntax and unit tests inside an ephemeral worktree
+3. **Verified Suggestion:** The assistant presents only the verified patch along with sandbox execution evidence (e.g. *"Tested in sandbox worktree: syntax OK, 14 tests passing"*).
+
+#### 📋 Alternative: One-Click Prompt Templates & Web Model Paste
+- **MCP Prompt Templates:** Under the Model Context Protocol standard (`prompts/get`), IDEs that support slash commands (such as Claude Desktop or Cursor) allow you to trigger prompt shortcuts directly from the UI.
+- **Air-Gapped / Web LLM Mode:** If you use web models (ChatGPT, Claude.ai) without a local MCP connection, run:
+  ```bash
+  gdss suggest --as-prompt
+  ```
+  GDSS prints the complete, self-contained 3-way prompt directly to your terminal for one-click copy and paste.
 
 ---
 
@@ -128,11 +165,35 @@ GDSS runs as a local MCP server exposing deterministic analysis tools over stand
 
 GDSS provides an interactive terminal shell and subcommands for repository analysis:
 
-#### 1. Interactive Shell
+#### 1. Interactive Shell & Runtime Configuration
 ```bash
 gdss start
 ```
-Displays branch status indicators, uncommitted semantic deltas, and live collision alerts in a Rich terminal UI.
+Displays branch status indicators, uncommitted semantic deltas, and live collision alerts. You can persist branch scoping and hierarchy preferences directly in `.gdss/runtime.db`:
+
+```
+gdss (main)> config hierarchy main develop staging
+Updated priority chain in database: ['main', 'develop', 'staging']
+
+gdss (main)> config branches include feature/* fix/*
+Added 2 include branch pattern(s) to runtime database.
+
+gdss (main)> config branches exclude spike/* archive/*
+Added 2 exclude branch pattern(s) to runtime database.
+
+gdss (main)> hierarchy
+Attractor: main
+Priority Chain: ['main', 'develop', 'staging']
+Active Branch Filters:
+  Include: ['feature/*', 'fix/*']
+  Exclude: ['spike/*', 'archive/*']
+
+gdss (main)> tensor
+# Computes Omega_ij ONLY across branches matching include patterns!
+
+gdss (main)> config branches clear
+Cleared branch filters from runtime database.
+```
 
 #### 2. Checking Collision Status
 ```bash
@@ -140,16 +201,28 @@ gdss status --ref main
 ```
 Reports active branch trajectories, uncommitted semantic operators, and drift distance from `main`.
 
-#### 3. PR Collision Matrix ($\Omega_{ij}$)
+#### 3. PR Collision Matrix ($\Omega_{ij}$) with Branch Scoping
 ```bash
+# Unconstrained evaluation across all local branches
 gdss tensor --ref main
-```
-Prints the sparse interaction matrix showing pairwise interference scores across all local branches.
 
-#### 4. Requesting Assisted Suggestions
+# Targeted evaluation between specific feature branches only
+gdss tensor --ref main --branches feature/auth --branches feature/billing
+
+# Tensor evaluation excluding experimental or archived spikes
+gdss tensor --ref main --exclude "spike/*" --exclude "archive/*"
+```
+
+#### 4. Semantic Drift Tracking with Scoping
 ```bash
-# Model-Free (Deterministic Algebraic Strategies)
-gdss suggest --repo . --ref main
+# Track drift for specific feature branches only
+gdss drift --ref main --branches "feature/*" --exclude "spike/*"
+```
+
+#### 5. Requesting Assisted Suggestions
+```bash
+# Model-Free (Deterministic Algebraic Strategies) on specific branches
+gdss suggest --repo . --ref main -b feature/auth -b feature/billing
 
 # With Local LLM (Ollama or vLLM) + Sandbox Validation
 gdss suggest --repo . --ref main --llm --provider ollama --model qwen2.5-coder:7b --validate
@@ -169,7 +242,77 @@ GDSS audits incoming pull requests for semantic collisions against all concurren
   <img src="../assets/ci/github_actions_flow.svg" alt="GDSS GitHub Actions Flow" width="100%">
 </p>
 
-#### Drop-in Workflow (`.github/workflows/gdss-radar.yml`)
+#### 🔀 Multi-PR Batch Handling: How 1 CI Run Audits Multiple Concurrent PRs
+
+When an incoming pull request (e.g., PR #42) is opened while 5 other PRs are concurrently open (#39, #40, #41, #43, #44), **GDSS processes all 5 PRs in a single workflow run**:
+
+1. **Autonomous Discovery:** `fetch_concurrent_prs()` automatically lists all open pull requests targeting the same base attractor (`main`).
+2. **Pairwise 3-Way Triangles (One Concurrent PR at a Time):**
+   Instead of dumping all 5 branches into an unpredictable $N$-way monolithic prompt, GDSS evaluates each concurrent PR pairwise:
+   - **Triangle 1:** Base (`main`) vs Incoming PR #42 vs Concurrent PR #39
+   - **Triangle 2:** Base (`main`) vs Incoming PR #42 vs Concurrent PR #40
+   - **Triangle 3:** Base (`main`) vs Incoming PR #42 vs Concurrent PR #41
+   - ... and so on for each concurrent PR.
+3. **Isolated Reconciliation & Ephemeral Sandboxing:**
+   For each pair with significant collision ($\Omega_{ij} > 0.1$):
+   - GDSS extracts the exact 3-way symbol representation ($V_{base}, V_{incoming}, V_{concurrent}$) and impacted callers.
+   - The convergence engine drafts the reconciled definition with zero cross-PR pollution.
+   - An ephemeral Git worktree sandbox compiles and tests the candidate patch against syntax and unit tests.
+4. **Aggregated Sticky Radar Report:**
+   All detected collisions and validated patches across all concurrent PRs are aggregated into a single, clean markdown comment posted to the incoming PR:
+
+| Colliding PR | Author | Target File | Overlapping Symbol | Risk ($\Omega_{ij}$) | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **#39** (feature-auth) | @alice | `auth/login.py` | `login()` | `0.85` | ⚡ Tested in sandbox (syntax: OK, 12 tests passed) |
+| **#41** (billing-v2) | @bob | `billing/pay.py` | `process()` | `0.64` | ⚡ Tested in sandbox (syntax: OK, 8 tests passed) |
+
+This pairwise 3-way batching guarantees that adding 5 or 50 concurrent PRs never creates prompt explosion or cross-feature hallucination.
+
+## ⚙️ Repository Configuration (`.gdss.yml`) Overview
+
+GDSS is **zero-config by default**. However, placing a `.gdss.yml` in the root of your repository ensures consistent behavior across developer laptops and CI runners:
+
+```yaml
+# .gdss.yml - Project-level semantic intelligence configuration
+
+radar:
+  model: "gpt-4o"
+  context_window: 128000
+  provider: "github"
+  max_refinements: 2
+  risk_threshold: 0.8
+  fail_on_collision: false
+
+validation:
+  test_command: "pytest {test_file}"
+  typecheck_command: "mypy {file}"
+  timeout_seconds: 60
+
+ast:
+  additional_extensions:
+    - .vue
+    - .svelte
+    - .sol
+    
+hierarchy:
+  reference_branch: "main"
+  priority_chain:
+    - "main"
+    - "develop"
+  # Only audit PRs that share the exact same base landing branch (eliminates cross-target false alarms)
+  same_base_only: true
+  include:
+    - "feature/*"
+    - "fix/*"
+  exclude:
+    - "spike/*"
+    - "dependabot/*"
+  target_bases:
+    - "main"
+    - "develop"
+```
+
+#### 2. Drop-in Workflow (`.github/workflows/gdss-radar.yml`)
 Add this workflow to your repository to activate automated PR audits:
 
 ```yaml
@@ -201,26 +344,48 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: gdss audit-pr
+        # Can use .gdss.yml defaults or override on CLI:
+        run: gdss audit-pr --branches "feature/*" --exclude "dependabot/*" --same-base-only
 ```
 
 > 📖 **Full CI/CD Guide:** See [`docs/GITHUB_ACTIONS_GUIDE.md`](GITHUB_ACTIONS_GUIDE.md) for blocking vs. informational modes, fork handling, and configuration options.
 
 ---
 
-### Mode 4: Web Visual Dashboard (Next.js 14)
+### Mode 4: Web Visual Dashboard (Next.js 14) & REST API
 
-GDSS includes a web dashboard in `web/` that provides an interactive geometric view of repository health:
+GDSS includes a web dashboard in `web/` and a local REST API that provides an interactive geometric view of repository health:
 
 ```bash
+# 1. Start the GDSS local REST API server
+gdss serve --repo . --port 8000
+
+# 2. Start the Next.js visual dashboard
 cd web
 pnpm install
 pnpm dev
 ```
 Open [http://localhost:3000](http://localhost:3000) to view:
-- **Collision Radar Matrix:** Live heatmap of $\Omega_{ij}$ scores across branches.
+- **Interactive Branch Scope Filter:** Click the **"Scope: All branches"** popover in the top navigation bar to interactively filter which branches participate in drift and tensor calculations.
+- **Collision Radar Matrix:** Live heatmap of $\Omega_{ij}$ scores across selected branches.
 - **Interactive Constellation & Code Graph:** 2D/3D symbol projection and caller/callee graphs powered by React Flow.
 - **Merge Order Visualizer:** Recommended sequence for landing open branches.
+
+#### REST API Branch Filtering Endpoints
+You can also query or automate the dashboard backend programmatically:
+```bash
+# Query Conflict Tensor with branch scoping
+curl "http://localhost:8000/v1/tensor?ref=main&branches=feature/auth,feature/billing&exclude=spike-*"
+
+# Query Drift with branch scoping
+curl "http://localhost:8000/v1/drift?ref=main&branches=feature/auth"
+
+# Inspect and dynamically update priority chain and filters
+curl "http://localhost:8000/v1/hierarchy"
+curl -X POST "http://localhost:8000/v1/hierarchy" \
+  -H "Content-Type: application/json" \
+  -d '{"priority_chain": ["main", "develop"], "include": ["feature/*"], "exclude": ["spike/*"]}'
+```
 
 ---
 
@@ -248,32 +413,7 @@ gdss apply sug_8f2a91c3 --rollback
 
 ---
 
-## ⚙️ Repository Configuration (`.gdss.yml`) Overview
 
-GDSS is **zero-config by default**. However, placing a `.gdss.yml` in the root of your repository ensures consistent behavior across developer laptops and CI runners:
-
-```yaml
-# .gdss.yml - Project-level semantic intelligence configuration
-
-radar:
-  model: "gpt-4o"
-  context_window: 128000
-  provider: "github"
-  max_refinements: 2
-  risk_threshold: 0.8
-  fail_on_collision: false
-
-validation:
-  test_command: "pytest {test_file}"
-  typecheck_command: "mypy {file}"
-  timeout_seconds: 60
-
-ast:
-  additional_extensions:
-    - .vue
-    - .svelte
-    - .sol
-```
 
 > 📖 **Full Configuration Guide:** See [`docs/CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md) for detailed directives, provider-specific recipes (Ollama, vLLM, OpenRouter, OpenAI, GitHub Models), and context window allocation strategies.
 

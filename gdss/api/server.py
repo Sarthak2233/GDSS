@@ -47,8 +47,13 @@ def create_app(repo_path: Path) -> FastAPI:
         return format_resp(service.get_graph(repo_path_str, ref))
 
     @app.get("/v1/drift")
-    def drift(ref: str | None = None, branch: str | None = None):
-        return format_resp(service.get_drift(repo_path_str, ref, branch))
+    def drift(
+        ref: str | None = None,
+        branch: str | None = None,
+        branches: str | None = None,
+        exclude: str | None = None,
+    ):
+        return format_resp(service.get_drift(repo_path_str, ref, branch, branches, exclude))
 
     @app.get("/v1/drift/history")
     def drift_history(branch: str, n: int = 20):
@@ -73,8 +78,15 @@ def create_app(repo_path: Path) -> FastAPI:
         )
 
     @app.get("/v1/tensor")
-    def tensor(ref: str | None = None):
-        return format_resp(service.get_tensor(repo_path_str, ref))
+    def tensor(
+        ref: str | None = None,
+        branches: str | None = None,
+        exclude: str | None = None,
+        include_remotes: bool = False,
+    ):
+        return format_resp(
+            service.get_tensor(repo_path_str, ref, branches, exclude, include_remotes)
+        )
 
     @app.get("/v1/symbols")
     def symbols(ref: str | None = None):
@@ -83,6 +95,18 @@ def create_app(repo_path: Path) -> FastAPI:
     @app.get("/v1/branches")
     def branches():
         return format_resp(service.get_branches(repo_path_str))
+
+    @app.get("/v1/hierarchy")
+    def get_hierarchy():
+        return format_resp(service.get_hierarchy(repo_path_str))
+
+    @app.post("/v1/hierarchy")
+    async def post_hierarchy(request: Request):
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        return format_resp(service.update_hierarchy(repo_path_str, body))
 
     @app.get("/v1/model/status")
     def model_status():

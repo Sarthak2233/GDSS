@@ -33,6 +33,15 @@ _MODIFY_OPS = {
     OperatorType.RENAME_CLASS,
 }
 
+_COMMIT_SYMBOLS_CACHE: dict[str, list[CodeSymbol]] = {}
+_TIP_VECTOR_CACHE: dict[tuple[str, str, str], np.ndarray] = {}
+
+
+def clear_drift_cache() -> None:
+    """Clear in-memory commit symbol and tip vector memoization."""
+    _COMMIT_SYMBOLS_CACHE.clear()
+    _TIP_VECTOR_CACHE.clear()
+
 
 class DriftEngine:
     """Compute divergence magnitude between a branch and its attractor."""
@@ -263,14 +272,27 @@ class DriftEngine:
         return total
 
     def _tip_vector_at(self, commit_sha: str, label: str) -> np.ndarray | None:
+        encoder_name = getattr(self.encoder, "name", "encoder")
+        cache_key = (commit_sha, label, encoder_name)
+        if cache_key in _TIP_VECTOR_CACHE:
+            return _TIP_VECTOR_CACHE[cache_key]
+
         syms = self._symbols_at_commit(commit_sha)
         if not syms:
-            return np.zeros(0, dtype=np.float32)
+            vec = np.zeros(0, dtype=np.float32)
+            _TIP_VECTOR_CACHE[cache_key] = vec
+            return vec
         emb = embed_symbols(syms, self.encoder)
         tip = aggregate_branch_tip(emb.values(), branch=label)
+        _TIP_VECTOR_CACHE[cache_key] = tip.vector
         return tip.vector
 
     def _symbols_at_commit(self, commit_sha: str) -> list[CodeSymbol]:
+        if not commit_sha:
+            return []
+        if commit_sha in _COMMIT_SYMBOLS_CACHE:
+            return _COMMIT_SYMBOLS_CACHE[commit_sha]
+
         if self.observer.repo is None:
             return []
         try:
@@ -296,6 +318,7 @@ class DriftEngine:
             for sym in file_syms:
                 sym.ensure_identity(path)
                 symbols.append(sym)
+        _COMMIT_SYMBOLS_CACHE[commit_sha] = symbols
         return symbols
 
     @staticmethod

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+from typing import Annotated
 from unittest.mock import patch
 
 import typer
@@ -101,9 +102,22 @@ def reindex(
 def drift(
     repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
     ref: str = typer.Option("main", "--ref", help="Reference attractor branch"),
+    branches: Annotated[
+        list[str] | None,
+        typer.Option("--branches", "-b", help="Branch names or wildcard patterns to include"),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option("--exclude", help="Branch names or wildcard patterns to exclude"),
+    ] = None,
 ):
     """Show per-branch drift magnitude (tip proxy + trajectory integral)."""
-    run_shell(repo, f"drift {ref}")
+    cmd = f"drift {ref}"
+    if branches:
+        cmd += f" --branches {','.join(branches)}"
+    if exclude:
+        cmd += f" --exclude {','.join(exclude)}"
+    run_shell(repo, cmd)
 
 @app.command()
 def alerts(
@@ -117,9 +131,22 @@ def alerts(
 def tensor(
     repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
     ref: str = typer.Option("main", "--ref", help="Reference attractor branch"),
+    branches: Annotated[
+        list[str] | None,
+        typer.Option("--branches", "-b", help="Branch names or wildcard patterns to include"),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option("--exclude", help="Branch names or wildcard patterns to exclude"),
+    ] = None,
 ):
     """Show sparse conflict tensor Omega_ij and R_merge."""
-    run_shell(repo, f"tensor {ref}")
+    cmd = f"tensor {ref}"
+    if branches:
+        cmd += f" --branches {','.join(branches)}"
+    if exclude:
+        cmd += f" --exclude {','.join(exclude)}"
+    run_shell(repo, cmd)
 
 @app.command()
 def serve(
@@ -167,6 +194,14 @@ def diff(target: str = typer.Argument("main"), repo: str = typer.Option(os.getcw
 def suggest(
     repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
     ref: str = typer.Option("main", "--ref", help="Reference attractor branch"),
+    branches: Annotated[
+        list[str] | None,
+        typer.Option("--branches", "-b", help="Branch names or wildcard patterns to include"),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option("--exclude", help="Branch names or wildcard patterns to exclude"),
+    ] = None,
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
     as_prompt: bool = typer.Option(False, "--as-prompt", help="Output LLM-ready prompt"),
     llm: bool = typer.Option(False, "--llm", help="Automatically request a patch from LLM (auto-detects vLLM or Ollama)"),
@@ -215,6 +250,8 @@ def suggest(
             state = ConvergenceState(
                 repo_path=repo,
                 reference_branch=ref,
+                branches=branches,
+                exclude_branches=exclude,
                 llm=llm,
                 validate=validate,
                 combos=combos,
@@ -229,6 +266,8 @@ def suggest(
             suggestions = get_suggestions(
                 repo_path=repo,
                 reference_branch=ref,
+                branches=branches,
+                exclude_branches=exclude,
                 llm=llm,
                 provider=provider,
                 combos=combos,
@@ -237,27 +276,24 @@ def suggest(
 
         if as_prompt:
             from gdss.ai.context import build_analysis_context
+            from gdss.ai.context_builder import extract_3way_symbol_context
             from gdss.ai.prompt_builder import build_conflict_prompt
-            ctx = build_analysis_context(repo, ref)
+            ctx = build_analysis_context(repo, ref, branches=branches, exclude_branches=exclude)
             for s in suggestions:
-                if s.anchor:
-                    content = ctx.observer.get_file_content_at_commit(
-                        s.anchor.target_branch, s.anchor.file_path
+                other_br = getattr(s.context, "other_branch", "") if s.context else ""
+                collision_ctx = extract_3way_symbol_context(ctx, s, other_branch=other_br)
+                console.print(
+                    build_conflict_prompt(
+                        suggestion=s,
+                        repo=repo,
+                        ref=ref,
+                        collision_context=collision_ctx,
+                        branch_commits=ctx.branch_commits,
+                        branch_intents=ctx.branch_intents,
+                        other_branch=other_br,
                     )
-                    block = "".join(content.splitlines(keepends=True)[s.anchor.line_start - 1 : s.anchor.line_end]) if content else ""
-                    other_br = getattr(s.context, "other_branch", "") if s.context else ""
-                    console.print(
-                        build_conflict_prompt(
-                            suggestion=s,
-                            anchored_symbol_block=block,
-                            repo=repo,
-                            ref=ref,
-                            branch_commits=ctx.branch_commits,
-                            branch_intents=ctx.branch_intents,
-                            other_branch=other_br,
-                        )
-                    )
-                    console.print("\n--- Next Suggestion ---\n")
+                )
+                console.print("\n--- Next Suggestion ---\n")
             return
 
         if json_output:
@@ -337,6 +373,15 @@ def audit_pr_cmd(
     token: str | None = typer.Option(None, "--token", help="GitHub token (defaults to GITHUB_TOKEN env var)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Simulate audit and print radar markdown report without modifying GitHub"),
     output: str | None = typer.Option(None, "--output", "-o", help="Write radar markdown report to file"),
+    branches: Annotated[
+        list[str] | None,
+        typer.Option("--branches", "-b", help="PR head branch names or patterns to audit against"),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option("--exclude", help="PR head branch names or patterns to exclude"),
+    ] = None,
+    same_base_only: bool | None = typer.Option(None, "--same-base-only/--no-same-base-only", help="Only audit PRs targeting the exact same base branch (default: true)"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose informational logging"),
     debug: bool = typer.Option(False, "--debug", help="Enable debug diagnostic logging"),
     log_file: str | None = typer.Option(None, "--log-file", help="Path to write log output"),
@@ -355,6 +400,9 @@ def audit_pr_cmd(
         dry_run=dry_run,
         output_file=output,
         console=console,
+        branches=branches,
+        exclude=exclude,
+        same_base_only=same_base_only,
     )
     if exit_code != 0:
         raise typer.Exit(code=exit_code)  # dsa:ignore

@@ -38,6 +38,11 @@ def test_mcp_tools_list() -> None:
     assert "gdss_sandbox_validate_patch" in tool_names
     assert "gdss_suggest_resolutions" not in tool_names
 
+    # Verify branches and exclude_branches are present in find_collisions schema
+    col_tool = next(t for t in tools if t["name"] == "gdss_find_collisions")
+    assert "branches" in col_tool["inputSchema"]["properties"]
+    assert "exclude_branches" in col_tool["inputSchema"]["properties"]
+
 
 def test_mcp_validate_patch_valid() -> None:
     server = MCPServer()
@@ -264,3 +269,51 @@ def test_mcp_sandbox_validate_patch(tmp_path: Path) -> None:
     assert content["clean"] is True
     assert content["patch_applied"] is True
     assert content["syntax"]["valid"] is True
+
+
+def test_mcp_find_collisions_with_branch_filter(tmp_path: Path) -> None:
+    from git import Repo
+
+    repo = Repo.init(tmp_path)
+    with repo.config_writer() as config:
+        config.set_value("user", "name", "GDSS Test")
+        config.set_value("user", "email", "test@gdss.dev")
+
+    calc = tmp_path / "calc.py"
+    calc.write_text("def add(a, b): return a + b\n", encoding="utf-8")
+    repo.index.add(["calc.py"])
+    base = repo.index.commit("base")
+    ref = repo.active_branch.name
+
+    b1 = repo.create_head("feature-1", base)
+    b1.checkout()
+    calc.write_text("def add(a, b): return a + b + 1\n", encoding="utf-8")
+    repo.index.add(["calc.py"])
+    repo.index.commit("feat 1")
+
+    b2 = repo.create_head("feature-2", base)
+    b2.checkout()
+    calc.write_text("def add(a, b): return a + b + 2\n", encoding="utf-8")
+    repo.index.add(["calc.py"])
+    repo.index.commit("feat 2")
+
+    server = MCPServer()
+    req = {
+        "jsonrpc": "2.0",
+        "id": 20,
+        "method": "tools/call",
+        "params": {
+            "name": "gdss_find_collisions",
+            "arguments": {
+                "repo_path": str(tmp_path),
+                "reference_branch": ref,
+                "branches": ["feature-1"],
+            },
+        },
+    }
+    resp = server.handle_request(req)
+    assert resp is not None
+    assert not resp["result"]["isError"]
+    content = json.loads(resp["result"]["content"][0]["text"])
+    assert content["branch_count"] == 1
+    assert content["branches"] == ["feature-1"]

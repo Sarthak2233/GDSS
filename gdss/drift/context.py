@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
 
 from gdss.conflict.tensor import ConflictTensor, TensorEngine, TensorEntry
 from gdss.core import trajectory
@@ -13,9 +15,31 @@ from gdss.core.transform_extractor import TransformExtractor
 from gdss.core.transform_types import SemanticOperator
 from gdss.drift.engine import DriftEngine
 from gdss.logger import get_logger
+from gdss.runtime.hierarchy import filter_branches
 from gdss.watcher.git_observer import GitObserver
 
 logger = get_logger("gdss.drift.context")
+
+
+def _load_repo_hierarchy_config(repo_path: str) -> dict[str, Any]:
+    """Safely load hierarchy configuration block from .gdss.yml or .gdss.yaml."""
+    repo_root = Path(repo_path)
+    config_file = repo_root / ".gdss.yml"
+    has_config = config_file.is_file()
+    if not has_config:
+        config_file = repo_root / ".gdss.yaml"
+        has_config = config_file.is_file()  # dsa:ignore
+    if not has_config:
+        return {}
+    try:
+        import yaml
+        data = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
+        hierarchy = data.get("hierarchy", {})
+        if isinstance(hierarchy, dict):
+            return hierarchy
+        return {}
+    except Exception:
+        return {}
 
 
 class AnalysisContextError(ValueError):
@@ -81,6 +105,9 @@ def build_analysis_context(
     repo_path: str,
     reference_branch: str,
     *,
+    branches: Sequence[str] | None = None,
+    exclude_branches: Sequence[str] | None = None,
+    branch_intents: Mapping[str, dict[str, str]] | None = None,
     observer: GitObserver | None = None,
     parser: ASTParser | None = None,
     extractor: TransformExtractor | None = None,
@@ -100,15 +127,33 @@ def build_analysis_context(
             "FIX: run gdss inside a local Git repository."
         )
     local_branches = observer.list_local_branches()
-    branches = tuple(
-        sorted(branch for branch in local_branches if branch != reference_branch)
-    )
     if reference_branch not in local_branches:
         raise AnalysisContextError(
             f"WHAT: reference branch '{reference_branch}' is unavailable.\n"
             "WHY: branch trajectories must be measured from an existing attractor.\n"
             "FIX: pass --ref with a local branch name."
         )
+
+    if branches is None and exclude_branches is None:
+        cfg = _load_repo_hierarchy_config(repo_path)
+        inc = cfg.get("include") if isinstance(cfg.get("include"), list) else None
+        exc = cfg.get("exclude") if isinstance(cfg.get("exclude"), list) else None
+        candidates = filter_branches(
+            local_branches,
+            include=inc,
+            exclude=exc,
+            reference_branch=reference_branch,
+        )
+    else:
+        candidates = filter_branches(
+            local_branches,
+            include=branches,
+            exclude=exclude_branches,
+            reference_branch=reference_branch,
+        )
+
+    branches_tuple = tuple(sorted(candidates))
+    branches = branches_tuple
 
     parser = parser or ASTParser()
     extractor = extractor or TransformExtractor()
@@ -130,6 +175,19 @@ def build_analysis_context(
         ).magnitude
         branch_commits[branch] = tuple(observer.get_commits_between(reference_branch, branch))
 
+    effective_intents = dict(branch_intents or {})
+    for branch, commits in branch_commits.items():
+        if branch not in effective_intents and commits:
+            first_commit = commits[0]
+            summary = first_commit.get("summary", "")
+            author = first_commit.get("author", "")
+            if summary:
+                effective_intents[branch] = {
+                    "title": summary,
+                    "author": author,
+                    "description": f"Derived from commit {first_commit.get('sha', '')}",
+                }
+
     tensor = (tensor_engine or TensorEngine()).compute(
         {branch: list(operators) for branch, operators in branch_operators.items()},
         drift_magnitudes,
@@ -146,6 +204,7 @@ def build_analysis_context(
         parser=parser,
         extractor=extractor,
         branch_commits=branch_commits,
+        branch_intents=effective_intents,
     )
 
 

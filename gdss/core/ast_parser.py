@@ -345,6 +345,7 @@ class ASTParser:
         return tokens
 
     def _extract_body_blocks(self, body_node: Node | None, content_bytes: bytes) -> list[BodyBlock]:
+        _ = content_bytes
         if not body_node:
             return []
         blocks: list[BodyBlock] = []

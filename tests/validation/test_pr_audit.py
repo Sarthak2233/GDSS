@@ -112,6 +112,78 @@ def test_fetch_concurrent_prs_filters_current_pr():
         assert concurrent[0]["author"] == "alice"
 
 
+def test_fetch_concurrent_prs_hierarchy_filtering():
+    ctx = PRAuditContext(
+        repo_owner="octocat",
+        repo_name="hello-world",
+        pr_number=10,
+        base_ref="main",
+        head_ref="feature-core",
+        head_sha="sha10",
+        github_token="ghp_test",
+    )
+
+    mock_api_response = [
+        {"number": 10, "head": {"ref": "feature-core"}, "base": {"ref": "main"}},
+        {"number": 11, "head": {"ref": "feature/auth"}, "base": {"ref": "main"}},
+        {"number": 12, "head": {"ref": "spike/proto"}, "base": {"ref": "main"}},
+        {"number": 13, "head": {"ref": "hotfix/v1"}, "base": {"ref": "v1.0-release"}},
+        {"number": 14, "head": {"ref": "bugfix/db"}, "base": {"ref": "main"}},
+    ]
+
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps(mock_api_response).encode("utf-8")
+    mock_resp.__enter__.return_value = mock_resp
+
+    with patch("urllib.request.urlopen", return_value=mock_resp):
+        # Default: same_base_only=True excludes #13 (v1.0-release)
+        res_default = fetch_concurrent_prs(ctx, same_base_only=True)
+        nums = [p["number"] for p in res_default]
+        assert nums == [11, 12, 14]
+
+        # same_base_only=False includes #13
+        res_all_bases = fetch_concurrent_prs(ctx, same_base_only=False)
+        nums_all = [p["number"] for p in res_all_bases]
+        assert nums_all == [11, 12, 13, 14]
+
+        # Exclude pattern: excludes spike/*
+        res_exclude = fetch_concurrent_prs(ctx, same_base_only=True, exclude=["spike/*"])
+        nums_exc = [p["number"] for p in res_exclude]
+        assert nums_exc == [11, 14]
+
+        # Include pattern: only feature/*
+        res_include = fetch_concurrent_prs(ctx, same_base_only=True, include=["feature/*"])
+        nums_inc = [p["number"] for p in res_include]
+        assert nums_inc == [11]
+
+
+def test_load_radar_config_with_hierarchy(tmp_path):
+    config_file = tmp_path / ".gdss.yml"
+    config_file.write_text("""
+radar:
+  fail_on_collision: true
+  risk_threshold: 0.85
+hierarchy:
+  same_base_only: false
+  include:
+    - "feature/*"
+    - "bugfix/*"
+  exclude:
+    - "spike/*"
+  target_bases:
+    - "main"
+    - "develop"
+""", encoding="utf-8")
+
+    cfg = load_radar_config(tmp_path)
+    assert cfg["fail_on_collision"] is True
+    assert cfg["risk_threshold"] == 0.85
+    assert cfg["same_base_only"] is False
+    assert cfg["include"] == ["feature/*", "bugfix/*"]
+    assert cfg["exclude"] == ["spike/*"]
+    assert cfg["target_bases"] == ["main", "develop"]
+
+
 def test_render_radar_markdown_no_collisions():
     ctx = PRAuditContext(
         repo_owner="octocat",
@@ -250,6 +322,8 @@ def test_load_radar_config_defaults(tmp_path: Path):
     assert cfg["fail_on_collision"] is False
     assert cfg["risk_threshold"] == 0.8
     assert cfg["model"] == "gpt-4o-mini"
+    assert cfg["provider"] == "github"
+    assert cfg["base_url"] is None
 
 
 def test_load_radar_config_from_file(tmp_path: Path):
@@ -260,6 +334,8 @@ radar:
   fail_on_collision: true
   risk_threshold: 0.65
   model: "gpt-4o"
+  provider: "openai"
+  base_url: "https://api.deepseek.com/v1"
 """,
         encoding="utf-8",
     )
@@ -267,6 +343,8 @@ radar:
     assert cfg["fail_on_collision"] is True
     assert cfg["risk_threshold"] == 0.65
     assert cfg["model"] == "gpt-4o"
+    assert cfg["provider"] == "openai"
+    assert cfg["base_url"] == "https://api.deepseek.com/v1"
 
 
 def test_run_pr_audit_dry_run_no_collisions(tmp_path: Path):

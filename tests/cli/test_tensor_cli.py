@@ -87,3 +87,45 @@ def test_tensor_single_attractor_honest(single_branch_repo):
         finally:
             shell.do_quit(None)
     assert "no other" in out.lower() or "single" in out.lower()
+
+
+def test_tensor_branch_filtering_cli(divergent_repo):
+    temp_dir, base_name = divergent_repo
+    with patch("rich.prompt.Prompt.ask", return_value="default"):
+        shell = GDSSShell(temp_dir)
+        try:
+            # Exclude feature: should report no candidates matching filters
+            out_exclude = _run_do(shell, "do_tensor", f"{base_name} --exclude feature")
+            assert "No candidate" in out_exclude or "matching filters" in out_exclude
+
+            # Include feature: should run and print tensor table
+            out_include = _run_do(shell, "do_tensor", f"{base_name} --branches feature")
+            assert "feature" in out_include.lower()
+        finally:
+            shell.do_quit(None)
+
+
+def test_shell_config_branches_and_hierarchy(divergent_repo):
+    temp_dir, base_name = divergent_repo
+    with patch("rich.prompt.Prompt.ask", return_value="default"):
+        shell = GDSSShell(temp_dir)
+        try:
+            # Test config branches include
+            out_inc = _run_do(shell, "do_config", "branches include feature/*")
+            assert "include filters set" in out_inc.lower()
+
+            # Test config branches exclude
+            out_exc = _run_do(shell, "do_config", "branches exclude spike/*")
+            assert "exclude filters set" in out_exc.lower()
+
+            # Test config hierarchy
+            out_hier = _run_do(shell, "do_config", "hierarchy develop staging main")
+            assert "priority chain set" in out_hier.lower()
+
+            # Test do_hierarchy command
+            out_h_cmd = _run_do(shell, "do_hierarchy")
+            assert "PRIORITY CHAIN" in out_h_cmd
+            assert "develop" in out_h_cmd
+            assert "Active Branch Selection Filters" in out_h_cmd
+        finally:
+            shell.do_quit(None)

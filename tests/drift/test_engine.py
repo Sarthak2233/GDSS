@@ -220,3 +220,24 @@ def test_affected_symbols_when_both_sides_modify_same_function(dual_modify_repo)
     assert "verify_token" in names
     assert all(a.distance >= 0.0 for a in affected)
 
+
+def test_drift_engine_symbol_and_vector_caching(branched_repo):
+    temp_dir, base_name = branched_repo
+    from gdss.drift.engine import clear_drift_cache
+
+    clear_drift_cache()
+    engine = _engine(temp_dir)
+    commit_sha = engine.observer.repo.commit("feature").hexsha
+
+    syms1 = engine._symbols_at_commit(commit_sha)
+    syms2 = engine._symbols_at_commit(commit_sha)
+    assert syms1 is syms2, "Second call should return cached symbols list"
+
+    vec1 = engine._tip_vector_at(commit_sha, label="feature")
+    vec2 = engine._tip_vector_at(commit_sha, label="feature")
+    assert vec1 is vec2, "Second call should return cached tip vector"
+
+    clear_drift_cache()
+    syms3 = engine._symbols_at_commit(commit_sha)
+    assert syms3 is not syms1, "Cache clear should force fresh parse"
+

@@ -84,5 +84,6 @@ def test_suggest_as_prompt_injects_intent_and_commits():
                 kwargs = mock_prompt_builder.call_args.kwargs
                 assert kwargs["branch_commits"] == mock_ctx.branch_commits
                 assert kwargs["branch_intents"] == mock_ctx.branch_intents
+                assert kwargs.get("collision_context") is not None
 
 

@@ -48,7 +48,7 @@ from gdss.graph.graph_builder import build_code_graph_from_repo
 # GDSS Runtime imports - USED
 from gdss.logger import get_logger
 from gdss.runtime.daemon import GDSSDaemon
-from gdss.runtime.hierarchy import HierarchyManager
+from gdss.runtime.hierarchy import HierarchyManager, filter_branches
 from gdss.runtime.registry import RepositoryRegistry
 from gdss.storage.db import RuntimeDB
 
@@ -215,11 +215,39 @@ class GDSSShell(cmd.Cmd):
     def _resolve_reference_branch(self, arg: str = "") -> str:
         """Resolve reference attractor from CLI arg, then persisted config, then default."""
         parts = arg.split() if arg else []
-        if parts:
-            return parts[0]
+        for p in parts:
+            if not p.startswith("-"):
+                return p
         if hasattr(self, "daemon") and self.daemon:
             return self.daemon.context_engine.get_reference_branch()
         return "main"
+
+    def _resolve_candidate_branches(self, arg_text: str, ref: str) -> list[str]:
+        """Resolve candidate branches applying CLI arguments, DB overrides, and .gdss.yml filters."""
+        local_branches = self.observer.list_local_branches()
+        repo_id = self.daemon.repo_id if hasattr(self, "daemon") and self.daemon else 1
+        db_inc, db_exc = self.hierarchy.get_branch_filters(repo_id)
+
+        tokens = arg_text.split() if arg_text else []
+        cli_inc: list[str] = []
+        cli_exc: list[str] = []
+        idx = 0
+        n_tokens = len(tokens)
+        branch_flags = {"--branches", "-b"}
+        while idx < n_tokens:
+            tok = tokens[idx]
+            if tok in branch_flags and idx + 1 < n_tokens:
+                cli_inc.extend([b.strip() for b in tokens[idx + 1].split(",") if b.strip()])
+                idx += 2
+            elif tok == "--exclude" and idx + 1 < n_tokens:
+                cli_exc.extend([b.strip() for b in tokens[idx + 1].split(",") if b.strip()])
+                idx += 2
+            else:
+                idx += 1
+
+        inc = cli_inc or db_inc or None
+        exc = cli_exc or db_exc or None
+        return filter_branches(local_branches, include=inc, exclude=exc, reference_branch=ref)
 
     def _extract_uncommitted_operators(self) -> list[SemanticOperator]:
         working_changes = self.observer.get_working_tree_changes()
@@ -457,11 +485,9 @@ class GDSSShell(cmd.Cmd):
             )
             return
 
-        branches = [
-            b for b in self.observer.list_local_branches() if b != ref
-        ]
+        branches = self._resolve_candidate_branches(arg, ref)
         if not branches:
-            console.print("[dim]No other local branch trajectories found.[/]")
+            console.print("[dim]No candidate branch trajectories found matching filters.[/]")
             return
 
         engine = DriftEngine(
@@ -521,7 +547,7 @@ class GDSSShell(cmd.Cmd):
     def do_tensor(self, arg):
         """Show sparse conflict tensor Omega_ij vs the attractor.
 
-        Usage: tensor [reference_branch]
+        Usage: tensor [reference_branch] [--branches b1,b2] [--exclude e1,e2]
         """
         ref = self._resolve_reference_branch(arg)
         console.print(f"\n[bold {self.theme['primary']}]━━━ CONFLICT TENSOR Ω vs {ref} ━━━[/]")
@@ -534,9 +560,9 @@ class GDSSShell(cmd.Cmd):
             )
             return
 
-        branches = [b for b in self.observer.list_local_branches() if b != ref]
+        branches = self._resolve_candidate_branches(arg, ref)
         if not branches:
-            console.print("[dim]No other local branch trajectories found.[/]")
+            console.print("[dim]No candidate branch trajectories found matching filters.[/]")
             return
 
         # Include reference as a trajectory column so matrix is complete
@@ -703,7 +729,8 @@ class GDSSShell(cmd.Cmd):
         console.print(f"\n[bold {self.theme['primary']}]━━━ SEMANTIC ANALYSIS ━━━[/]")
 
         def on_progress(done, total, skipped):
-            console.print(f"[dim]  parsed {done}/{total} files...[/]")
+            skip_msg = f" ({skipped} skipped)" if skipped else ""
+            console.print(f"[dim]  parsed {done}/{total} files{skip_msg}...[/]")
 
         with Progress(
             SpinnerColumn(),
@@ -840,9 +867,9 @@ class GDSSShell(cmd.Cmd):
         console.print(table)
 
     def do_hierarchy(self, _):
-        """Show the distributed priority chain."""
-        console.print(f"\n[bold {self.theme['primary']}]━━━ ⛓️ PRIORITY CHAIN ━━━[/]")
-        repo_id = self.daemon.repo_id
+        """Show the distributed priority chain and active branch selection filters."""
+        console.print(f"\n[bold {self.theme['primary']}]━━━ ⛓️ PRIORITY CHAIN & BRANCH HIERARCHY ━━━[/]")
+        repo_id = self.daemon.repo_id if hasattr(self, "daemon") and self.daemon else 1
         chain = self.hierarchy.resolve_priority_chain(repo_id)
 
         tree = Tree(f"[bold {self.theme['secondary']}]Repository Trajectory[/]")
@@ -852,6 +879,11 @@ class GDSSShell(cmd.Cmd):
             curr = curr.add(f"[{style}]{branch}[/]")
 
         console.print(tree)
+
+        inc, exc = self.hierarchy.get_branch_filters(repo_id)
+        console.print(f"\n[bold {self.theme['secondary']}]Active Branch Selection Filters (persisted):[/]")
+        console.print(f"  • Include: {', '.join(inc) if inc else 'All non-attractor branches'}")
+        console.print(f"  • Exclude: {', '.join(exc) if exc else 'None'}")
 
     def do_impact(self, arg):
         """Analyze downstream impact of a specific symbol."""
@@ -895,17 +927,23 @@ class GDSSShell(cmd.Cmd):
             console.print(f"\nTotal impacted nodes: [bold {self.theme['warning']}]{len(all_impacted)}[/]")
 
     def do_config(self, arg):
-        """View or update configuration (e.g. choice of reference branch)."""
+        """View or update configuration (choice of reference branch, branch filters, hierarchy)."""
         args = arg.split()
+        repo_id = self.daemon.repo_id if hasattr(self, "daemon") and self.daemon else 1
         if not args:
             ref = self.daemon.context_engine.get_reference_branch()
-            console.print(
-                f"[{self.theme['info']}]Current Reference Branch (attractor):[/] {ref}"
-            )
+            inc, exc = self.hierarchy.get_branch_filters(repo_id)
+            chain = self.hierarchy.resolve_priority_chain(repo_id)
+            console.print(f"[{self.theme['info']}]Reference Branch (attractor):[/] {ref}")
+            console.print(f"[{self.theme['info']}]Priority Chain:[/] {' -> '.join(chain)}")
+            console.print(f"[{self.theme['info']}]Include Patterns:[/] {', '.join(inc) if inc else 'None (all branches)'}")
+            console.print(f"[{self.theme['info']}]Exclude Patterns:[/] {', '.join(exc) if exc else 'None'}")
             return
 
-        if args[0] == "ref":
-            ref = args[1] if len(args) > 1 else "main"
+        key = args[0].lower()
+        num_args = len(args)
+        if key == "ref":
+            ref = args[1] if num_args > 1 else "main"
             self.daemon.context_engine.set_reference_branch(ref)
             console.print(
                 f"[bold {self.theme['success']}]✓ Reference branch set to {ref}[/] "
@@ -913,7 +951,44 @@ class GDSSShell(cmd.Cmd):
             )
             return
 
-        console.print(f"[bold {self.theme['error']}]Unknown config key. Try: config ref <branch>[/]")
+        if key == "branches":
+            if num_args == 1:
+                inc, exc = self.hierarchy.get_branch_filters(repo_id)  # dsa:ignore
+                console.print(f"[{self.theme['info']}]Include filters:[/] {', '.join(inc) if inc else 'None (all branches)'}")
+                console.print(f"[{self.theme['info']}]Exclude filters:[/] {', '.join(exc) if exc else 'None'}")
+                return
+            subcmd = args[1].lower()
+            if subcmd == "include":
+                patterns = args[2:]
+                self.hierarchy.set_branch_filters(repo_id, include=patterns)
+                console.print(f"[bold {self.theme['success']}]✓ Branch include filters set to: {patterns}[/] [dim](persisted)[/]")
+                return
+            elif subcmd == "exclude":
+                patterns = args[2:]
+                self.hierarchy.set_branch_filters(repo_id, exclude=patterns)
+                console.print(f"[bold {self.theme['success']}]✓ Branch exclude filters set to: {patterns}[/] [dim](persisted)[/]")
+                return
+            elif subcmd == "clear":
+                self.hierarchy.set_branch_filters(repo_id, include=[], exclude=[])
+                console.print(f"[bold {self.theme['success']}]✓ Branch filters cleared[/] [dim](persisted)[/]")
+                return
+            else:
+                console.print(f"[bold {self.theme['error']}]Unknown branches action. Try: config branches [include|exclude|clear] <patterns...>[/]")
+                return
+
+        if key == "hierarchy":
+            chain = args[1:]
+            if not chain:
+                curr = self.hierarchy.resolve_priority_chain(repo_id)  # dsa:ignore
+                console.print(f"[{self.theme['info']}]Current priority chain:[/] {' -> '.join(curr)}")
+                return
+            cfg = self.hierarchy.get_config(repo_id)
+            cfg["priority_chain"] = chain
+            self.hierarchy.set_config(repo_id, cfg)
+            console.print(f"[bold {self.theme['success']}]✓ Priority chain set to: {' -> '.join(chain)}[/] [dim](persisted)[/]")
+            return
+
+        console.print(f"[bold {self.theme['error']}]Unknown config key. Try: config ref <branch> | config branches <include|exclude|clear> | config hierarchy <chain...>[/]")
 
     def do_clear(self, _):
         os.system('clear' if os.name != 'nt' else 'cls')

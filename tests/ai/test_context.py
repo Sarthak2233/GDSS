@@ -47,4 +47,3 @@ def test_analysis_context_composes_two_divergent_branch_trajectories(tmp_path):
     assert "feature-b" in context.branch_commits
     assert len(context.branch_commits["feature-b"]) == 1
     assert context.branch_commits["feature-b"][0]["summary"] == "feature b"
-

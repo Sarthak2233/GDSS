@@ -9,7 +9,9 @@ from gdss.ai.openai_provider import OpenAICompatibleProvider
 from gdss.ai.vllm_provider import VLLMProvider
 
 
-def test_openai_compatible_provider_defaults_to_github_models(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_openai_compatible_provider_defaults_to_github_models(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
@@ -68,7 +70,9 @@ def test_vllm_provider_inherits_openai_compatible(tmp_path: Path) -> None:
     assert provider.model == "qwen2.5-coder-7b"
 
 
-def test_openai_compatible_provider_openrouter(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_openai_compatible_provider_openrouter(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
@@ -81,9 +85,7 @@ def test_openai_compatible_provider_openrouter(monkeypatch: pytest.MonkeyPatch, 
     assert provider.model == "meta-llama/llama-3.3-70b-instruct"
 
     mock_response = MagicMock()
-    mock_response.json.return_value = {
-        "choices": [{"message": {"content": "openrouter response"}}]
-    }
+    mock_response.json.return_value = {"choices": [{"message": {"content": "openrouter response"}}]}
     mock_response.raise_for_status = MagicMock()
 
     with patch("httpx.post", return_value=mock_response) as mock_post:

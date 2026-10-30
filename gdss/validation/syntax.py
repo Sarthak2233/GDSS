@@ -1,4 +1,5 @@
 """Multi-language AST syntax validator for candidate patches in GDSS."""
+
 from __future__ import annotations
 
 import ast
@@ -67,7 +68,11 @@ def validate_source_syntax(code: str, filename_or_path: str) -> SyntaxCheckResul
             root = tree.root_node
             if root.has_error:
                 err_node = _find_first_error_node(root)
-                line_no = (err_node.start_point[0] + 1) if err_node is not None else (root.start_point[0] + 1)
+                line_no = (
+                    (err_node.start_point[0] + 1)
+                    if err_node is not None
+                    else (root.start_point[0] + 1)
+                )
                 msg = f"Syntax error in {lang_name} at line {line_no}"
                 return SyntaxCheckResult(
                     valid=False,

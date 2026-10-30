@@ -1,4 +1,5 @@
 """Validation sandbox facade for verifying candidate merge/convergence patches."""
+
 from __future__ import annotations
 
 import subprocess
@@ -68,7 +69,9 @@ class ValidationSandbox:
                 return ValidationReport(
                     status=ValidationStatus.FAILED_PATCH,
                     patch_applied=False,
-                    syntax=SyntaxCheckResult(valid=False, language="unknown", error_message=err_msg),
+                    syntax=SyntaxCheckResult(
+                        valid=False, language="unknown", error_message=err_msg
+                    ),
                     types=empty_types,
                     tests=empty_tests,
                     worktree_path=wt_str,
@@ -101,7 +104,9 @@ class ValidationSandbox:
                 if target_file.is_file():
                     syntax_res = validate_file_syntax(target_file)
                     if not syntax_res.valid:
-                        logger.warning("Gate 1 Syntax check failed on %s: %s", f, syntax_res.error_message)
+                        logger.warning(
+                            "Gate 1 Syntax check failed on %s: %s", f, syntax_res.error_message
+                        )
                         return ValidationReport(
                             status=ValidationStatus.FAILED_SYNTAX,
                             patch_applied=True,
@@ -121,7 +126,9 @@ class ValidationSandbox:
                     timeout_seconds=timeout_seconds,
                 )
                 if type_res.checked and not type_res.passed:
-                    logger.warning("Gate 2 Typecheck failed (%s): %s", type_res.tool, type_res.output)
+                    logger.warning(
+                        "Gate 2 Typecheck failed (%s): %s", type_res.tool, type_res.output
+                    )
                     return ValidationReport(
                         status=ValidationStatus.FAILED_TYPES,
                         patch_applied=True,
@@ -143,7 +150,9 @@ class ValidationSandbox:
                     timeout_seconds=timeout_seconds,
                 )
                 if test_res.executed and not test_res.passed:
-                    logger.warning("Gate 3 Targeted tests failed (%s): %s", test_res.tool, test_res.output)
+                    logger.warning(
+                        "Gate 3 Targeted tests failed (%s): %s", test_res.tool, test_res.output
+                    )
                     return ValidationReport(
                         status=ValidationStatus.FAILED_TESTS,
                         patch_applied=True,

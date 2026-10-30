@@ -1,4 +1,3 @@
-
 import pytest
 
 from gdss.core.transform_types import CodeSymbol, OperatorType, SemanticOperator, SymbolType
@@ -8,7 +7,9 @@ from gdss.graph.operator_engine import UnsupportedOperatorError, apply_operator,
 
 def _make_graph_with_helper() -> tuple[CodeGraph, CodeSymbol]:
     graph = CodeGraph()
-    helper = CodeSymbol(name="helper", type=SymbolType.FUNCTION, start_line=1, end_line=3, signature="()", calls=[])
+    helper = CodeSymbol(
+        name="helper", type=SymbolType.FUNCTION, start_line=1, end_line=3, signature="()", calls=[]
+    )
     helper.ensure_identity("utils.py")
     graph.add_file_symbols("utils.py", [helper])
     return graph, helper

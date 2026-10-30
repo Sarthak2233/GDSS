@@ -62,7 +62,9 @@ def rebuild_vector_index(
     """Embed symbols and persist VectorStore under .gdss/vectors/."""
     encoder = encoder or get_encoder()
     symbols = list(symbols) if symbols is not None else collect_repo_symbols(repo_path)
-    logger.info("Rebuilding vector index for %d symbols using encoder %s", len(symbols), encoder.name)
+    logger.info(
+        "Rebuilding vector index for %d symbols using encoder %s", len(symbols), encoder.name
+    )
     cache = EmbeddingCache(encoder)
     # embed via cache by batching texts through embed_symbols path
     embeddings = embed_symbols(symbols, encoder)
@@ -73,7 +75,12 @@ def rebuild_vector_index(
     out_dir = default_vectors_dir(repo_path)
     store.save(out_dir)
     num_embeddings = len(embeddings)
-    logger.info("Vector index persisted to %s (%d vectors, backend=%s)", out_dir, num_embeddings, store.backend)
+    logger.info(
+        "Vector index persisted to %s (%d vectors, backend=%s)",
+        out_dir,
+        num_embeddings,
+        store.backend,
+    )
     return store, num_embeddings
 
 
@@ -91,7 +98,9 @@ def load_or_build_index(
                 logger.debug("Loaded existing vector index from %s (%d items)", path, store.size)
                 return store
         except Exception as exc:
-            logger.debug("Existing vector index at %s could not be loaded (%s), rebuilding...", path, exc)
+            logger.debug(
+                "Existing vector index at %s could not be loaded (%s), rebuilding...", path, exc
+            )
     store, _ = rebuild_vector_index(repo_path, encoder=encoder)
     return store
 

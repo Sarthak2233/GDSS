@@ -1,4 +1,5 @@
 """Tests for gdss.validation.discovery (repo layout discovery and .gdss.yml parser)."""
+
 from __future__ import annotations
 
 from gdss.validation.discovery import (

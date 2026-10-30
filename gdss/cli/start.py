@@ -48,7 +48,7 @@ from gdss.graph.graph_builder import build_code_graph_from_repo
 # GDSS Runtime imports - USED
 from gdss.logger import get_logger
 from gdss.runtime.daemon import GDSSDaemon
-from gdss.runtime.hierarchy import HierarchyManager
+from gdss.runtime.hierarchy import HierarchyManager, filter_branches
 from gdss.runtime.registry import RepositoryRegistry
 from gdss.storage.db import RuntimeDB
 
@@ -63,6 +63,7 @@ console = Console()
 
 class ColorTheme:
     """Dynamic Theme Registry for GDSS"""
+
     THEMES = {
         "default": {
             "primary": "cyan",
@@ -71,7 +72,7 @@ class ColorTheme:
             "error": "red",
             "warning": "yellow",
             "info": "blue",
-            "accent": "bright_magenta"
+            "accent": "bright_magenta",
         },
         "monokai": {
             "primary": "#e6db74",
@@ -80,7 +81,7 @@ class ColorTheme:
             "error": "#f92672",
             "warning": "#fd971f",
             "info": "#66d9ef",
-            "accent": "#ae81ff"
+            "accent": "#ae81ff",
         },
         "nord": {
             "primary": "bright_blue",
@@ -89,7 +90,7 @@ class ColorTheme:
             "error": "red",
             "warning": "yellow",
             "info": "bright_cyan",
-            "accent": "cyan"
+            "accent": "cyan",
         },
         "matrix": {
             "primary": "green",
@@ -98,8 +99,8 @@ class ColorTheme:
             "error": "red",
             "warning": "green",
             "info": "green",
-            "accent": "bright_green"
-        }
+            "accent": "bright_green",
+        },
     }
 
     def __init__(self, theme_name: str = "default"):
@@ -132,14 +133,10 @@ class GDSSShell(cmd.Cmd):
 
         # 2. Engine Bootstrap (Phase 0 Wiring)
         with Progress(
-            SpinnerColumn(),
-            TextColumn("{task.description}"),
-            console=console,
-            transient=True
+            SpinnerColumn(), TextColumn("{task.description}"), console=console, transient=True
         ) as progress:
             task = progress.add_task(
-                f"[bold {self.theme['primary']}]Waking Distributed Daemon...[/]",
-                total=None
+                f"[bold {self.theme['primary']}]Waking Distributed Daemon...[/]", total=None
             )
 
             self.db = RuntimeDB()
@@ -148,33 +145,36 @@ class GDSSShell(cmd.Cmd):
             self.daemon = GDSSDaemon(self.repo_path, self.registry, self.db)
             self.daemon.start()
 
-            progress.update(
-                task,
-                description=f"[bold {self.theme['success']}]✓ GDSS Engine Ready!"
-            )
+            progress.update(task, description=f"[bold {self.theme['success']}]✓ GDSS Engine Ready!")
 
-        self.active_branch = (self.observer.get_active_branch() or "DETACHED") if self.observer.is_valid() else "unknown"
+        self.active_branch = (
+            (self.observer.get_active_branch() or "DETACHED")
+            if self.observer.is_valid()
+            else "unknown"
+        )
         self.prompt = self._get_colored_prompt()
         self._show_welcome_banner()
 
     def _select_theme(self):
-        console.print(Panel(
-            Align.center(
-                "[bold cyan]GDSS Geometric Interface[/]\n[dim]Choose your visualization trajectory[/]"
-            ),
-            border_style="cyan"
-        ))
+        console.print(
+            Panel(
+                Align.center(
+                    "[bold cyan]GDSS Geometric Interface[/]\n[dim]Choose your visualization trajectory[/]"
+                ),
+                border_style="cyan",
+            )
+        )
         choice = Prompt.ask(
-            "Theme",
-            choices=["default", "monokai", "nord", "matrix"],
-            default="default"
+            "Theme", choices=["default", "monokai", "nord", "matrix"], default="default"
         )
         self.theme = ColorTheme(choice)
 
     def _get_status_indicator(self) -> str:
         """Prompt indicator for local uncommitted semantic delta (not remote topic)."""
         is_valid = self.observer.is_valid()
-        self.active_branch = (self.observer.get_active_branch() or "DETACHED") if is_valid else "unknown"
+        self.active_branch = (
+            (self.observer.get_active_branch() or "DETACHED") if is_valid else "unknown"
+        )
 
         if not is_valid:
             return f"[bold {self.theme['error']}]![/]"
@@ -193,14 +193,20 @@ class GDSSShell(cmd.Cmd):
             if not f.endswith(SOURCE_EXTENSIONS):
                 continue
             try:
-                head_content = self.observer.get_file_content_at_commit("HEAD", f) or ""  # dsa:ignore
+                head_content = (
+                    self.observer.get_file_content_at_commit("HEAD", f) or ""
+                )  # dsa:ignore
                 current_path = os.path.join(self.repo_path, f)
                 current_content = ""
                 if os.path.exists(current_path):
                     with open(current_path, encoding="utf-8", errors="ignore") as current_f:
                         current_content = current_f.read()  # dsa:ignore
-                old_syms = self.parser.parse_file(f, head_content) if head_content else []  # dsa:ignore
-                new_syms = self.parser.parse_file(f, current_content) if current_content else []  # dsa:ignore
+                old_syms = (
+                    self.parser.parse_file(f, head_content) if head_content else []
+                )  # dsa:ignore
+                new_syms = (
+                    self.parser.parse_file(f, current_content) if current_content else []
+                )  # dsa:ignore
                 ops = self.extractor.extract_operators(f, old_syms, new_syms)
                 if ops:
                     has_semantic_delta = True
@@ -215,11 +221,39 @@ class GDSSShell(cmd.Cmd):
     def _resolve_reference_branch(self, arg: str = "") -> str:
         """Resolve reference attractor from CLI arg, then persisted config, then default."""
         parts = arg.split() if arg else []
-        if parts:
-            return parts[0]
+        for p in parts:
+            if not p.startswith("-"):
+                return p
         if hasattr(self, "daemon") and self.daemon:
             return self.daemon.context_engine.get_reference_branch()
         return "main"
+
+    def _resolve_candidate_branches(self, arg_text: str, ref: str) -> list[str]:
+        """Resolve candidate branches applying CLI arguments, DB overrides, and .gdss.yml filters."""
+        local_branches = self.observer.list_local_branches()
+        repo_id = self.daemon.repo_id if hasattr(self, "daemon") and self.daemon else 1
+        db_inc, db_exc = self.hierarchy.get_branch_filters(repo_id)
+
+        tokens = arg_text.split() if arg_text else []
+        cli_inc: list[str] = []
+        cli_exc: list[str] = []
+        idx = 0
+        n_tokens = len(tokens)
+        branch_flags = {"--branches", "-b"}
+        while idx < n_tokens:
+            tok = tokens[idx]
+            if tok in branch_flags and idx + 1 < n_tokens:
+                cli_inc.extend([b.strip() for b in tokens[idx + 1].split(",") if b.strip()])
+                idx += 2
+            elif tok == "--exclude" and idx + 1 < n_tokens:
+                cli_exc.extend([b.strip() for b in tokens[idx + 1].split(",") if b.strip()])
+                idx += 2
+            else:
+                idx += 1
+
+        inc = cli_inc or db_inc or None
+        exc = cli_exc or db_exc or None
+        return filter_branches(local_branches, include=inc, exclude=exc, reference_branch=ref)
 
     def _extract_uncommitted_operators(self) -> list[SemanticOperator]:
         working_changes = self.observer.get_working_tree_changes()
@@ -229,7 +263,9 @@ class GDSSShell(cmd.Cmd):
                 continue
             head_content = self.observer.get_file_content_at_commit("HEAD", f)  # dsa:ignore
             try:
-                with open(os.path.join(self.repo_path, f), encoding="utf-8", errors="ignore") as current_f:
+                with open(
+                    os.path.join(self.repo_path, f), encoding="utf-8", errors="ignore"
+                ) as current_f:
                     current_content = current_f.read()  # dsa:ignore
             except OSError:
                 continue
@@ -242,7 +278,9 @@ class GDSSShell(cmd.Cmd):
             if not f.endswith(SOURCE_EXTENSIONS):
                 continue
             try:
-                with open(os.path.join(self.repo_path, f), encoding="utf-8", errors="ignore") as current_f:
+                with open(
+                    os.path.join(self.repo_path, f), encoding="utf-8", errors="ignore"
+                ) as current_f:
                     current_content = current_f.read()  # dsa:ignore
             except OSError:
                 continue
@@ -258,7 +296,9 @@ class GDSSShell(cmd.Cmd):
             operators.extend(self.extractor.extract_operators(f, old_syms, []))
         return operators
 
-    def _print_operator_table(self, title: str, operators: list[SemanticOperator], border_key: str) -> None:
+    def _print_operator_table(
+        self, title: str, operators: list[SemanticOperator], border_key: str
+    ) -> None:
         console.print(f"\n[bold {self.theme[border_key]}]{title}[/]")
         if not operators:
             console.print("[dim]  (none)[/]")
@@ -274,9 +314,14 @@ class GDSSShell(cmd.Cmd):
                 op.file,
             )
         console.print(table)
+
     def _get_colored_prompt(self) -> str:
         status = self._get_status_indicator()
-        branch_part = f"([bold {self.theme['secondary']}]{self.active_branch}[/])" if self.active_branch else ""
+        branch_part = (
+            f"([bold {self.theme['secondary']}]{self.active_branch}[/])"
+            if self.active_branch
+            else ""
+        )
         return f"[bold {self.theme['primary']}]gdss[/]{branch_part} {status} [bold {self.theme['accent']}]▶[/] "
 
     def cmdloop(self, intro=None):
@@ -294,10 +339,10 @@ class GDSSShell(cmd.Cmd):
                 self.prompt = self._get_colored_prompt()
                 line = console.input(self.prompt)
             except EOFError:
-                line = 'EOF'
+                line = "EOF"
             except KeyboardInterrupt:
                 console.print()  # print a newline
-                line = ''
+                line = ""
                 continue
             line = self.precmd(line)
             stop = self.onecmd(line)
@@ -320,22 +365,23 @@ class GDSSShell(cmd.Cmd):
 ║  [dim]Semantic Intelligence Layer Above Git[/]                    ║
 ║                                                                    ║
 ╠════════════════════════════════════════════════════════════════════╣
-║  📁 Repo: [bold {self.theme['info']}]{self.repo_path}[/]          ║
-║  🌿 Branch: [bold {self.theme['success']}]{self.active_branch}[/] ║
+║  📁 Repo: [bold {self.theme["info"]}]{self.repo_path}[/]          ║
+║  🌿 Branch: [bold {self.theme["success"]}]{self.active_branch}[/] ║
 ╚════════════════════════════════════════════════════════════════════╝
         """
-        console.print(Panel(
-            Align.center(banner),
-            border_style=self.theme['primary'],
-            padding=(0, 1)
-        ))
+        console.print(
+            Panel(Align.center(banner), border_style=self.theme["primary"], padding=(0, 1))
+        )
 
-        tips = Columns([
-            f"[{self.theme['info']}]❓[/] [bold]help[/] for commands",
-            f"[{self.theme['success']}]📈[/] [bold]status[/] for trajectory",
-            f"[{self.theme['warning']}]🕸[/] [bold]analyze[/] for graph",
-            f"[{self.theme['error']}]🚪[/] [bold]quit[/] to exit"
-        ], equal=True)
+        tips = Columns(
+            [
+                f"[{self.theme['info']}]❓[/] [bold]help[/] for commands",
+                f"[{self.theme['success']}]📈[/] [bold]status[/] for trajectory",
+                f"[{self.theme['warning']}]🕸[/] [bold]analyze[/] for graph",
+                f"[{self.theme['error']}]🚪[/] [bold]quit[/] to exit",
+            ],
+            equal=True,
+        )
         console.print(tips)
 
     def do_status(self, arg):
@@ -457,11 +503,9 @@ class GDSSShell(cmd.Cmd):
             )
             return
 
-        branches = [
-            b for b in self.observer.list_local_branches() if b != ref
-        ]
+        branches = self._resolve_candidate_branches(arg, ref)
         if not branches:
-            console.print("[dim]No other local branch trajectories found.[/]")
+            console.print("[dim]No candidate branch trajectories found matching filters.[/]")
             return
 
         engine = DriftEngine(
@@ -491,12 +535,8 @@ class GDSSShell(cmd.Cmd):
             ref_ops = extract_trajectory_operators(
                 self.observer, self.parser, self.extractor, ref_branch=branch, head=ref
             )
-            shared = sorted(
-                {op.file for op in branch_ops} & {op.file for op in ref_ops}
-            )
-            conflict = conflict_est.estimate(
-                branch_ops, ref_ops, shared, snap.magnitude.magnitude
-            )
+            shared = sorted({op.file for op in branch_ops} & {op.file for op in ref_ops})
+            conflict = conflict_est.estimate(branch_ops, ref_ops, shared, snap.magnitude.magnitude)
             top = snap.affected[0].name if snap.affected else "—"
             table.add_row(
                 branch,
@@ -521,7 +561,7 @@ class GDSSShell(cmd.Cmd):
     def do_tensor(self, arg):
         """Show sparse conflict tensor Omega_ij vs the attractor.
 
-        Usage: tensor [reference_branch]
+        Usage: tensor [reference_branch] [--branches b1,b2] [--exclude e1,e2]
         """
         ref = self._resolve_reference_branch(arg)
         console.print(f"\n[bold {self.theme['primary']}]━━━ CONFLICT TENSOR Ω vs {ref} ━━━[/]")
@@ -534,9 +574,9 @@ class GDSSShell(cmd.Cmd):
             )
             return
 
-        branches = [b for b in self.observer.list_local_branches() if b != ref]
+        branches = self._resolve_candidate_branches(arg, ref)
         if not branches:
-            console.print("[dim]No other local branch trajectories found.[/]")
+            console.print("[dim]No candidate branch trajectories found matching filters.[/]")
             return
 
         # Include reference as a trajectory column so matrix is complete
@@ -608,9 +648,7 @@ class GDSSShell(cmd.Cmd):
 
         single, only_branch = is_single_attractor_trajectory(self.observer, ref)
         if single:
-            console.print(
-                f"[dim]Single attractor ({only_branch or ref}) — no drift alerts.[/]"
-            )
+            console.print(f"[dim]Single attractor ({only_branch or ref}) — no drift alerts.[/]")
             return
 
         engine = DriftEngine(
@@ -671,7 +709,12 @@ class GDSSShell(cmd.Cmd):
                         old_content = self.observer.get_file_content_at_commit(parent_sha, f)
                         new_content = self.observer.get_file_content_at_commit(sha, f)
                         if old_content and new_content:
-                            ops = self.extractor.extract_operators(f, self.parser.parse_file(f, old_content), self.parser.parse_file(f, new_content), sha)
+                            ops = self.extractor.extract_operators(
+                                f,
+                                self.parser.parse_file(f, old_content),
+                                self.parser.parse_file(f, new_content),
+                                sha,
+                            )
                             all_ops.extend(ops)
 
             # Filter by type
@@ -680,11 +723,11 @@ class GDSSShell(cmd.Cmd):
                 if not all_ops:
                     continue
 
-            color = self.theme['success']
+            color = self.theme["success"]
             if "fix" in msg.lower():
-                color = self.theme['error']
+                color = self.theme["error"]
             elif "feat" in msg.lower():
-                color = self.theme['info']
+                color = self.theme["info"]
 
             console.print(f"\n[bold {color}]● {sha[:8]}[/] [bold]{msg}[/]")
 
@@ -693,7 +736,9 @@ class GDSSShell(cmd.Cmd):
                 icon = op.get_icon()
                 op_color = op.get_color()
                 name = op.name or f"{op.from_name} -> {op.to_name}"
-                console.print(f"  [{op_color}]{icon}[/] [dim]{op.get_display_name()}:[/] [bold]{name}[/]")
+                console.print(
+                    f"  [{op_color}]{icon}[/] [dim]{op.get_display_name()}:[/] [bold]{name}[/]"
+                )
 
             if num_ops > 8:
                 console.print(f"  [dim]... and {num_ops - 8} more transformations[/]")
@@ -703,7 +748,8 @@ class GDSSShell(cmd.Cmd):
         console.print(f"\n[bold {self.theme['primary']}]━━━ SEMANTIC ANALYSIS ━━━[/]")
 
         def on_progress(done, total, skipped):
-            console.print(f"[dim]  parsed {done}/{total} files...[/]")
+            skip_msg = f" ({skipped} skipped)" if skipped else ""
+            console.print(f"[dim]  parsed {done}/{total} files{skip_msg}...[/]")
 
         with Progress(
             SpinnerColumn(),
@@ -717,7 +763,9 @@ class GDSSShell(cmd.Cmd):
             )
             progress.update(task, description="[green]Analysis complete!")
         summary = self.graph.get_summary()
-        console.print(f"Nodes: [bold]{summary['total_nodes']}[/] | Edges: [bold]{summary['total_edges']}[/]")
+        console.print(
+            f"Nodes: [bold]{summary['total_nodes']}[/] | Edges: [bold]{summary['total_edges']}[/]"
+        )
 
         skipped = getattr(self.graph, "skipped_unsupported", {}) or {}
         if skipped:
@@ -725,7 +773,9 @@ class GDSSShell(cmd.Cmd):
             console.print(f"[dim]Skipped unsupported: {', '.join(parts)}[/]")
 
         for stype in SymbolType:
-            count = sum(1 for _, data in self.graph.g.nodes(data=True) if data.get("type") == stype.value)
+            count = sum(
+                1 for _, data in self.graph.g.nodes(data=True) if data.get("type") == stype.value
+            )
             if count > 0:
                 console.print(f"  • {stype.value.capitalize()}: {count}")
 
@@ -741,22 +791,19 @@ class GDSSShell(cmd.Cmd):
                         Layout(
                             Panel(
                                 f"[bold cyan]GDSS Live Monitor[/] | Branch: [green]{self.active_branch}[/]",
-                                border_style="cyan"
+                                border_style="cyan",
                             ),
-                            size=3
+                            size=3,
                         ),
                         Layout(
                             Panel(
                                 f"Last Event: [yellow]{ctx.get('event', 'Watching...')}[/]\n"
                                 f"Remote Peer State: [magenta]{'ACTIVE' if ctx.get('remote_aware') else 'IDLE'}[/] "
                                 f"[dim](event bus; not semantic drift)[/]",
-                                border_style="green"
+                                border_style="green",
                             )
                         ),
-                        Layout(
-                            Text("Press Ctrl+C to stop", justify="center", style="dim"),
-                            size=1
-                        )
+                        Layout(Text("Press Ctrl+C to stop", justify="center", style="dim"), size=1),
                     )
                     live.update(layout)
                     time.sleep(1)
@@ -776,7 +823,9 @@ class GDSSShell(cmd.Cmd):
 
         base_sha = self.observer.get_merge_base(self.active_branch, target)
         if not base_sha:
-            console.print(f"[bold {self.theme['error']}]✗ No common ancestor found with {target}[/]")
+            console.print(
+                f"[bold {self.theme['error']}]✗ No common ancestor found with {target}[/]"
+            )
             return
 
         # Get diff between base_sha and working directory (including staged/unstaged changes)
@@ -809,7 +858,7 @@ class GDSSShell(cmd.Cmd):
             diffs["deleted"] = fallback_diffs["deleted"]
             diffs["modified"] = [(f, f) for f in fallback_diffs["modified"]]
 
-        table = Table(box=box.MINIMAL, border_style=self.theme['info'])
+        table = Table(box=box.MINIMAL, border_style=self.theme["info"])
         table.add_column("State", style=f"bold {self.theme['secondary']}")
         table.add_column("File / Transformation")
 
@@ -826,11 +875,15 @@ class GDSSShell(cmd.Cmd):
                 if old_content and new_content:
                     old_syms: list[CodeSymbol] = self.parser.parse_file(old_f, old_content)
                     new_syms: list[CodeSymbol] = self.parser.parse_file(f, new_content)
-                    ops: list[SemanticOperator] = self.extractor.extract_operators(f, old_syms, new_syms)
+                    ops: list[SemanticOperator] = self.extractor.extract_operators(
+                        f, old_syms, new_syms
+                    )
                     for op in ops:
                         icon = op.get_icon()
                         name = op.name or f"{op.from_name} -> {op.to_name}"
-                        table.add_row("", f"  {icon} [dim]{op.get_display_name()}:[/] [bold]{name}[/]")
+                        table.add_row(
+                            "", f"  {icon} [dim]{op.get_display_name()}:[/] [bold]{name}[/]"
+                        )
 
         for f in diffs["added"]:
             table.add_row("ADDED", f"[{self.theme['success']}]{f}[/]")
@@ -840,9 +893,11 @@ class GDSSShell(cmd.Cmd):
         console.print(table)
 
     def do_hierarchy(self, _):
-        """Show the distributed priority chain."""
-        console.print(f"\n[bold {self.theme['primary']}]━━━ ⛓️ PRIORITY CHAIN ━━━[/]")
-        repo_id = self.daemon.repo_id
+        """Show the distributed priority chain and active branch selection filters."""
+        console.print(
+            f"\n[bold {self.theme['primary']}]━━━ ⛓️ PRIORITY CHAIN & BRANCH HIERARCHY ━━━[/]"
+        )
+        repo_id = self.daemon.repo_id if hasattr(self, "daemon") and self.daemon else 1
         chain = self.hierarchy.resolve_priority_chain(repo_id)
 
         tree = Tree(f"[bold {self.theme['secondary']}]Repository Trajectory[/]")
@@ -853,16 +908,27 @@ class GDSSShell(cmd.Cmd):
 
         console.print(tree)
 
+        inc, exc = self.hierarchy.get_branch_filters(repo_id)
+        console.print(
+            f"\n[bold {self.theme['secondary']}]Active Branch Selection Filters (persisted):[/]"
+        )
+        console.print(f"  • Include: {', '.join(inc) if inc else 'All non-attractor branches'}")
+        console.print(f"  • Exclude: {', '.join(exc) if exc else 'None'}")
+
     def do_impact(self, arg):
         """Analyze downstream impact of a specific symbol."""
         symbol = arg.strip()
         if not symbol:
-            console.print(f"[bold {self.theme['error']}]✗ Please provide a symbol name (e.g. 'process_payment')[/]")
+            console.print(
+                f"[bold {self.theme['error']}]✗ Please provide a symbol name (e.g. 'process_payment')[/]"
+            )
             return
 
         console.print(f"\n[bold {self.theme['primary']}]━━━ 🎯 IMPACT ANALYSIS: {symbol} ━━━[/]")
 
-        with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console, transient=True) as progress:
+        with Progress(
+            SpinnerColumn(), TextColumn("{task.description}"), console=console, transient=True
+        ) as progress:
             progress.add_task("[cyan]Scanning graph...", total=None)
 
             # Rebuild graph if empty
@@ -871,19 +937,20 @@ class GDSSShell(cmd.Cmd):
 
             # Find nodes that match the symbol name
             target_nodes = [
-                node for node, data in self.graph.g.nodes(data=True)
-                if data.get("name") == symbol
+                node for node, data in self.graph.g.nodes(data=True) if data.get("name") == symbol
             ]
 
             if not target_nodes:
-                console.print(f"[bold {self.theme['warning']}]⚠ Symbol not found in current graph.[/]")
+                console.print(
+                    f"[bold {self.theme['warning']}]⚠ Symbol not found in current graph.[/]"
+                )
                 return
 
             all_impacted = set()
             for node in target_nodes:
                 all_impacted.update(self.graph.get_downstream_impact(node))
 
-            table = Table(box=box.MINIMAL, border_style=self.theme['info'])
+            table = Table(box=box.MINIMAL, border_style=self.theme["info"])
             table.add_column("Impacted Level", style=f"bold {self.theme['secondary']}")
             table.add_column("Symbol / File")
 
@@ -892,20 +959,32 @@ class GDSSShell(cmd.Cmd):
                 table.add_row(data.get("type", "unknown").upper(), impacted)
 
             console.print(table)
-            console.print(f"\nTotal impacted nodes: [bold {self.theme['warning']}]{len(all_impacted)}[/]")
+            console.print(
+                f"\nTotal impacted nodes: [bold {self.theme['warning']}]{len(all_impacted)}[/]"
+            )
 
     def do_config(self, arg):
-        """View or update configuration (e.g. choice of reference branch)."""
+        """View or update configuration (choice of reference branch, branch filters, hierarchy)."""
         args = arg.split()
+        repo_id = self.daemon.repo_id if hasattr(self, "daemon") and self.daemon else 1
         if not args:
             ref = self.daemon.context_engine.get_reference_branch()
+            inc, exc = self.hierarchy.get_branch_filters(repo_id)
+            chain = self.hierarchy.resolve_priority_chain(repo_id)
+            console.print(f"[{self.theme['info']}]Reference Branch (attractor):[/] {ref}")
+            console.print(f"[{self.theme['info']}]Priority Chain:[/] {' -> '.join(chain)}")
             console.print(
-                f"[{self.theme['info']}]Current Reference Branch (attractor):[/] {ref}"
+                f"[{self.theme['info']}]Include Patterns:[/] {', '.join(inc) if inc else 'None (all branches)'}"
+            )
+            console.print(
+                f"[{self.theme['info']}]Exclude Patterns:[/] {', '.join(exc) if exc else 'None'}"
             )
             return
 
-        if args[0] == "ref":
-            ref = args[1] if len(args) > 1 else "main"
+        key = args[0].lower()
+        num_args = len(args)
+        if key == "ref":
+            ref = args[1] if num_args > 1 else "main"
             self.daemon.context_engine.set_reference_branch(ref)
             console.print(
                 f"[bold {self.theme['success']}]✓ Reference branch set to {ref}[/] "
@@ -913,14 +992,72 @@ class GDSSShell(cmd.Cmd):
             )
             return
 
-        console.print(f"[bold {self.theme['error']}]Unknown config key. Try: config ref <branch>[/]")
+        if key == "branches":
+            if num_args == 1:
+                inc, exc = self.hierarchy.get_branch_filters(repo_id)  # dsa:ignore
+                console.print(
+                    f"[{self.theme['info']}]Include filters:[/] {', '.join(inc) if inc else 'None (all branches)'}"
+                )
+                console.print(
+                    f"[{self.theme['info']}]Exclude filters:[/] {', '.join(exc) if exc else 'None'}"
+                )
+                return
+            subcmd = args[1].lower()
+            if subcmd == "include":
+                patterns = args[2:]
+                self.hierarchy.set_branch_filters(repo_id, include=patterns)
+                console.print(
+                    f"[bold {self.theme['success']}]✓ Branch include filters set to: {patterns}[/] [dim](persisted)[/]"
+                )
+                return
+            elif subcmd == "exclude":
+                patterns = args[2:]
+                self.hierarchy.set_branch_filters(repo_id, exclude=patterns)
+                console.print(
+                    f"[bold {self.theme['success']}]✓ Branch exclude filters set to: {patterns}[/] [dim](persisted)[/]"
+                )
+                return
+            elif subcmd == "clear":
+                self.hierarchy.set_branch_filters(repo_id, include=[], exclude=[])
+                console.print(
+                    f"[bold {self.theme['success']}]✓ Branch filters cleared[/] [dim](persisted)[/]"
+                )
+                return
+            else:
+                console.print(
+                    f"[bold {self.theme['error']}]Unknown branches action. Try: config branches [include|exclude|clear] <patterns...>[/]"
+                )
+                return
+
+        if key == "hierarchy":
+            chain = args[1:]
+            if not chain:
+                curr = self.hierarchy.resolve_priority_chain(repo_id)  # dsa:ignore
+                console.print(
+                    f"[{self.theme['info']}]Current priority chain:[/] {' -> '.join(curr)}"
+                )
+                return
+            cfg = self.hierarchy.get_config(repo_id)
+            cfg["priority_chain"] = chain
+            self.hierarchy.set_config(repo_id, cfg)
+            console.print(
+                f"[bold {self.theme['success']}]✓ Priority chain set to: {' -> '.join(chain)}[/] [dim](persisted)[/]"
+            )
+            return
+
+        console.print(
+            f"[bold {self.theme['error']}]Unknown config key. Try: config ref <branch> | config branches <include|exclude|clear> | config hierarchy <chain...>[/]"
+        )
 
     def do_clear(self, _):
-        os.system('clear' if os.name != 'nt' else 'cls')
+        # pyrefly: ignore[deprecated]
+        os.system("clear" if os.name != "nt" else "cls")
         self._show_welcome_banner()
 
     def do_quit(self, _):
-        console.print(f"\n[bold {self.theme['primary']}]👋 Closing interface. Daemon remains silent.[/]")
+        console.print(
+            f"\n[bold {self.theme['primary']}]👋 Closing interface. Daemon remains silent.[/]"
+        )
         if self.daemon:
             self.daemon.stop()
         return True

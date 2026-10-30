@@ -60,9 +60,7 @@ def test_suggest_attaches_only_validation_gated_local_drafts(tmp_path):
     mock_provider = Mock()
     mock_provider.complete.return_value = draft
 
-    suggestions = suggest(
-        str(tmp_path), reference, llm=True, provider=mock_provider
-    )
+    suggestions = suggest(str(tmp_path), reference, llm=True, provider=mock_provider)
 
     assert suggestions
     assert all(item.validated for item in suggestions[0].patch_combinations)

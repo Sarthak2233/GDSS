@@ -89,7 +89,12 @@ class OpenAICompatibleProvider:
         if max_tokens > 0:
             payload["max_tokens"] = max_tokens
 
-        logger.info("Dispatching LLM completion to %s (model: %s, prompt_len: %d)", api_url, self.model, len(prompt))
+        logger.info(
+            "Dispatching LLM completion to %s (model: %s, prompt_len: %d)",
+            api_url,
+            self.model,
+            len(prompt),
+        )
         try:
             response = httpx.post(
                 api_url,

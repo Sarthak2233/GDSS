@@ -33,6 +33,15 @@ _MODIFY_OPS = {
     OperatorType.RENAME_CLASS,
 }
 
+_COMMIT_SYMBOLS_CACHE: dict[str, list[CodeSymbol]] = {}
+_TIP_VECTOR_CACHE: dict[tuple[str, str, str], np.ndarray] = {}
+
+
+def clear_drift_cache() -> None:
+    """Clear in-memory commit symbol and tip vector memoization."""
+    _COMMIT_SYMBOLS_CACHE.clear()
+    _TIP_VECTOR_CACHE.clear()
+
 
 class DriftEngine:
     """Compute divergence magnitude between a branch and its attractor."""
@@ -112,7 +121,12 @@ class DriftEngine:
         self.history.record(snap)
         logger.info(
             "Drift snapshot: branch=%s ref=%s magnitude=%.3f velocity=%.3f convergence=%.3f affected_symbols=%d",
-            branch, reference_branch, magnitude.magnitude, velocity, convergence, len(affected),
+            branch,
+            reference_branch,
+            magnitude.magnitude,
+            velocity,
+            convergence,
+            len(affected),
         )
         return snap
 
@@ -178,9 +192,7 @@ class DriftEngine:
         # Prefer intersection of modified names; if empty, use shared names present on both tips
         # from branch_ops that also appear in ref tip embeddings
         if not shared:
-            shared = {
-                n for n in branch_names if n in ref_by_name and n in branch_by_name
-            }
+            shared = {n for n in branch_names if n in ref_by_name and n in branch_by_name}
 
         # For dual-modify fixture: both sides modify verify_token relative to merge base.
         # branch_ops has modifications on feature; ref_ops has modifications on attractor.
@@ -227,9 +239,7 @@ class DriftEngine:
             return 0.0 if tip_b.dim == tip_r.dim else 1.0
         return embedding_distance_to_attractor(tip_b.vector, tip_r.vector)
 
-    def _trajectory_integral(
-        self, branch: str, reference_branch: str, branch_sha: str
-    ) -> float:
+    def _trajectory_integral(self, branch: str, reference_branch: str, branch_sha: str) -> float:
         """Discrete path length Σ ||phi(C_{c+1}) - phi(C_c)|| along merge_base..tip."""
         if self.observer.repo is None:
             return 0.0
@@ -263,14 +273,27 @@ class DriftEngine:
         return total
 
     def _tip_vector_at(self, commit_sha: str, label: str) -> np.ndarray | None:
+        encoder_name = getattr(self.encoder, "name", "encoder")
+        cache_key = (commit_sha, label, encoder_name)
+        if cache_key in _TIP_VECTOR_CACHE:
+            return _TIP_VECTOR_CACHE[cache_key]
+
         syms = self._symbols_at_commit(commit_sha)
         if not syms:
-            return np.zeros(0, dtype=np.float32)
+            vec = np.zeros(0, dtype=np.float32)
+            _TIP_VECTOR_CACHE[cache_key] = vec
+            return vec
         emb = embed_symbols(syms, self.encoder)
         tip = aggregate_branch_tip(emb.values(), branch=label)
+        _TIP_VECTOR_CACHE[cache_key] = tip.vector
         return tip.vector
 
     def _symbols_at_commit(self, commit_sha: str) -> list[CodeSymbol]:
+        if not commit_sha:
+            return []
+        if commit_sha in _COMMIT_SYMBOLS_CACHE:
+            return _COMMIT_SYMBOLS_CACHE[commit_sha]
+
         if self.observer.repo is None:
             return []
         try:
@@ -296,6 +319,7 @@ class DriftEngine:
             for sym in file_syms:
                 sym.ensure_identity(path)
                 symbols.append(sym)
+        _COMMIT_SYMBOLS_CACHE[commit_sha] = symbols
         return symbols
 
     @staticmethod

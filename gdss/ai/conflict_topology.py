@@ -46,9 +46,7 @@ def derive_symbol_overlap(
     operator_i: SemanticOperator, operator_j: SemanticOperator
 ) -> SymbolOverlap:
     """Infer overlap from operator identities and extractor-produced block evidence."""
-    if operator_i.details.get("order_sensitive") or operator_j.details.get(
-        "order_sensitive"
-    ):
+    if operator_i.details.get("order_sensitive") or operator_j.details.get("order_sensitive"):
         return "order_sensitive"
 
     same_symbol = bool(

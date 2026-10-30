@@ -1,4 +1,5 @@
 """Targeted test execution runner for the GDSS validation sandbox."""
+
 from __future__ import annotations
 
 import os
@@ -52,6 +53,7 @@ def detect_test_command(
     changed_files: list[str] | None = None,
 ) -> tuple[str | None, str]:
     """Detect appropriate test command and tool name for the worktree."""
+    _ = changed_files
     root = Path(worktree_path)
     config = load_validation_config(root)
 
@@ -60,7 +62,11 @@ def detect_test_command(
         return config.test_command, "config"
 
     # 2. Heuristic detection by project manifests
-    if (root / "pyproject.toml").is_file() or (root / "setup.py").is_file() or (root / "pytest.ini").is_file():
+    if (
+        (root / "pyproject.toml").is_file()
+        or (root / "setup.py").is_file()
+        or (root / "pytest.ini").is_file()
+    ):
         return "pytest", "pytest"
 
     if (root / "package.json").is_file():
@@ -75,6 +81,68 @@ def detect_test_command(
     return None, "none"
 
 
+def _run_lockfile_sync(cmd: str, root_str: str, env: dict[str, str]) -> bool:
+    try:
+        logger.info("Synchronizing lockfile in sandbox: %s", cmd)
+        subprocess.run(
+            cmd,
+            shell=True,
+            cwd=root_str,
+            env=env,
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+        return True
+    except Exception as e:
+        logger.debug("Sandbox lockfile synchronization failed (%s): %s", cmd, e)
+        return False
+
+
+def synchronize_sandbox_lockfiles(
+    worktree_path: str | Path,
+    changed_files: list[str] | None = None,
+) -> bool:
+    """Synchronize lockfiles natively in sandbox when package manifests are changed."""
+    if not changed_files:
+        return False
+
+    root = Path(worktree_path)
+    root_str = str(root)
+    env = dict(os.environ)
+    env["CI"] = "true"
+    env["GDSS_SANDBOX"] = "true"
+
+    changed_names = {Path(f).name for f in changed_files}
+    synced = False
+
+    # JavaScript / Node.js
+    if "package.json" in changed_names:
+        cmd: str | None = None
+        if (root / "pnpm-lock.yaml").is_file():
+            cmd = "pnpm install --lockfile-only"
+        elif (root / "yarn.lock").is_file():
+            cmd = "yarn install --mode update-lockfile"
+        elif (root / "package-lock.json").is_file() or (root / "package.json").is_file():
+            cmd = "npm install --package-lock-only"
+
+        if cmd and _run_lockfile_sync(cmd, root_str, env):
+            synced = True
+
+    # Rust
+    if "Cargo.toml" in changed_names:
+        if (root / "Cargo.lock").is_file() or (root / "Cargo.toml").is_file():
+            if _run_lockfile_sync("cargo generate-lockfile", root_str, env):
+                synced = True
+
+    # Python Poetry
+    if "pyproject.toml" in changed_names and (root / "poetry.lock").is_file():
+        if _run_lockfile_sync("poetry lock --no-update", root_str, env):
+            synced = True
+
+    return synced
+
+
 def run_targeted_tests(
     worktree_path: str | Path,
     changed_files: list[str] | None = None,
@@ -83,6 +151,9 @@ def run_targeted_tests(
 ) -> TestExecutionResult:
     """Execute targeted or repository tests within the given worktree sandbox."""
     root = Path(worktree_path)
+
+    if changed_files:
+        synchronize_sandbox_lockfiles(root, changed_files)
 
     config = load_validation_config(root)
 
@@ -123,7 +194,12 @@ def run_targeted_tests(
     env["CI"] = "true"
     env["GDSS_SANDBOX"] = "true"
 
-    logger.debug("Running targeted tests with '%s' (cmd: %s, timeout=%.1fs)", tool_name, cmd, resolved_timeout)
+    logger.debug(
+        "Running targeted tests with '%s' (cmd: %s, timeout=%.1fs)",
+        tool_name,
+        cmd,
+        resolved_timeout,
+    )
     try:
         proc = subprocess.run(
             cmd,
@@ -152,7 +228,9 @@ def run_targeted_tests(
         if passed:
             logger.info("Targeted tests PASSED with %s (%d passed)", tool_name, tests_passed)
         else:
-            logger.warning("Targeted tests FAILED with %s (exit code %d)", tool_name, proc.returncode)
+            logger.warning(
+                "Targeted tests FAILED with %s (exit code %d)", tool_name, proc.returncode
+            )
 
         return TestExecutionResult(
             executed=True,
@@ -164,7 +242,9 @@ def run_targeted_tests(
             output=output.strip(),
         )
     except subprocess.TimeoutExpired:
-        logger.warning("Targeted tests timed out after %.1fs (tool=%s)", resolved_timeout, tool_name)
+        logger.warning(
+            "Targeted tests timed out after %.1fs (tool=%s)", resolved_timeout, tool_name
+        )
         return TestExecutionResult(
             executed=True,
             passed=False,

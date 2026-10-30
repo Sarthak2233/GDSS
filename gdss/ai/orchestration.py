@@ -9,6 +9,7 @@ Coordinates the convergence lifecycle:
 
 Pure-Python state machine by default; optionally exports to LangGraph if installed.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -55,6 +56,8 @@ class ConvergenceState:
     checkpoint: CheckpointStatus = "init"
     errors: list[str] = field(default_factory=list)
     analysis_context: AnalysisContext | None = None
+    branches: list[str] | None = None
+    exclude_branches: list[str] | None = None
     max_refinements: int = 2
     refinement_count: int = 0
     refinement_history: list[dict[str, Any]] = field(default_factory=list)
@@ -83,7 +86,10 @@ def analyze_step(state: ConvergenceState) -> ConvergenceState:
             st.target_commit = "HEAD"
 
     if st.suggestions:
-        logger.debug("Existing %d suggestion(s) provided, skipping suggestion generation", len(st.suggestions))
+        logger.debug(
+            "Existing %d suggestion(s) provided, skipping suggestion generation",
+            len(st.suggestions),
+        )
         st.checkpoint = "analyzed"
         return st
 
@@ -91,13 +97,18 @@ def analyze_step(state: ConvergenceState) -> ConvergenceState:
         suggestions = suggest(
             st.repo_path,
             st.reference_branch,
+            branches=st.branches,
+            exclude_branches=st.exclude_branches,
             llm=False,
             combos=st.combos,
             max_candidates=st.max_candidates,
             context=st.analysis_context,
         )
         st.suggestions = list(suggestions)
-        logger.info("Orchestration [Node: analyze]: identified %d candidate suggestions", len(st.suggestions))  # dsa:ignore
+        logger.info(
+            "Orchestration [Node: analyze]: identified %d candidate suggestions",
+            len(st.suggestions),
+        )  # dsa:ignore
         st.checkpoint = "analyzed"
     except Exception as exc:
         logger.error("Analysis step failed: %s", exc, exc_info=True)
@@ -115,20 +126,30 @@ def draft_step(state: ConvergenceState) -> ConvergenceState:
 
     sug_count = len(st.suggestions)
     if not st.llm or not st.suggestions:
-        logger.debug("Orchestration [Node: draft]: skipping LLM drafting (llm=%s, count=%d)", st.llm, sug_count)
+        logger.debug(
+            "Orchestration [Node: draft]: skipping LLM drafting (llm=%s, count=%d)",
+            st.llm,
+            sug_count,
+        )
         st.checkpoint = "drafted"
         return st
 
-    logger.info("Orchestration [Node: draft]: drafting patches for %d suggestions via LLM", sug_count)
+    logger.info(
+        "Orchestration [Node: draft]: drafting patches for %d suggestions via LLM", sug_count
+    )
     try:
         active_provider = _pick_provider(True, st.provider)
         if active_provider is not None:
-            context = st.analysis_context or build_analysis_context(st.repo_path, st.reference_branch)
+            context = st.analysis_context or build_analysis_context(
+                st.repo_path, st.reference_branch
+            )
             drafted: list[Suggestion] = []
             for item in st.suggestions:
                 drafted.append(_draft_combinations(context, item, active_provider))
             st.suggestions = drafted
-            logger.info("Orchestration [Node: draft]: completed drafting for %d suggestions", len(drafted))
+            logger.info(
+                "Orchestration [Node: draft]: completed drafting for %d suggestions", len(drafted)
+            )
         st.checkpoint = "drafted"
     except Exception as exc:
         logger.error("Drafting step failed: %s", exc, exc_info=True)
@@ -146,7 +167,11 @@ def validate_step(state: ConvergenceState) -> ConvergenceState:
 
     sug_count = len(st.suggestions)
     if not st.validate or not st.suggestions:
-        logger.debug("Orchestration [Node: validate]: skipping validation (validate=%s, count=%d)", st.validate, sug_count)
+        logger.debug(
+            "Orchestration [Node: validate]: skipping validation (validate=%s, count=%d)",
+            st.validate,
+            sug_count,
+        )
         st.checkpoint = "validated"
         return st
 
@@ -155,11 +180,14 @@ def validate_step(state: ConvergenceState) -> ConvergenceState:
         validator = st.validator
         if validator is None:
             import importlib
+
             mod = importlib.import_module("gdss.validation.sandbox")
             sandbox_cls = mod.ValidationSandbox
             sandbox = sandbox_cls(st.repo_path)
 
-            def _sandbox_run(patch: str, target: str, timeout: float | None) -> tuple[bool, str | None]:
+            def _sandbox_run(
+                patch: str, target: str, timeout: float | None
+            ) -> tuple[bool, str | None]:
                 rep = sandbox.validate_patch(patch, target_branch=target, timeout_seconds=timeout)
                 return bool(rep.is_clean), rep.error_summary
 
@@ -204,7 +232,11 @@ def validate_step(state: ConvergenceState) -> ConvergenceState:
 
         st.suggestions = validated_list
         valid_count = sum(1 for s in st.suggestions if s.validated)
-        logger.info("Orchestration [Node: validate]: %d/%d suggestions passed validation", valid_count, len(validated_list))
+        logger.info(
+            "Orchestration [Node: validate]: %d/%d suggestions passed validation",
+            valid_count,
+            len(validated_list),
+        )
         st.checkpoint = "validated"
     except Exception as exc:
         logger.error("Validation step failed: %s", exc, exc_info=True)
@@ -222,7 +254,9 @@ def should_refine(state: ConvergenceState) -> str:
     if not st.llm or not st.validate or not st.provider:
         return "checkpoint"
     if st.refinement_count >= st.max_refinements:
-        logger.debug("Reached max refinements (%d), transitioning to checkpoint", st.max_refinements)
+        logger.debug(
+            "Reached max refinements (%d), transitioning to checkpoint", st.max_refinements
+        )
         return "checkpoint"
 
     needs_refinement = any(
@@ -246,7 +280,10 @@ def refine_step(state: ConvergenceState) -> ConvergenceState:
     if st.checkpoint == "failed" or not st.provider:
         return st
 
-    logger.info("Orchestration [Node: refine]: executing self-correction attempt %d", st.refinement_count + 1)
+    logger.info(
+        "Orchestration [Node: refine]: executing self-correction attempt %d",
+        st.refinement_count + 1,
+    )
     from gdss.ai.prompt_builder import build_refinement_prompt
     from gdss.ai.suggester import _anchored_block
     from gdss.ai.validation import validate_patch
@@ -267,10 +304,21 @@ def refine_step(state: ConvergenceState) -> ConvergenceState:
         updated_combos: list[PatchCombination] = []
         for combo in sug.patch_combinations:
             if not combo.validated and combo.patch_text and combo.validation_error:
-                block = _anchored_block(context, sug) if context else ""
+                from gdss.ai.context_builder import extract_3way_symbol_context
+                from gdss.ai.patch_parser import extract_patch_or_replacement
+
+                other_branch = getattr(sug.context, "other_branch", None) if sug.context else None
+                collision_ctx = (
+                    extract_3way_symbol_context(context, sug, other_branch=other_branch)
+                    if context
+                    else None
+                )
+                block = (collision_ctx.branch_a_code if collision_ctx else None) or (
+                    _anchored_block(context, sug) if context else ""
+                )
                 branch_commits = context.branch_commits if context else None
                 branch_intents = context.branch_intents if context else None
-                other_branch = getattr(sug.context, "other_branch", None) if sug.context else None
+
                 prompt = build_refinement_prompt(
                     suggestion=sug,
                     strategy_label=combo.label,
@@ -279,21 +327,19 @@ def refine_step(state: ConvergenceState) -> ConvergenceState:
                     repo=st.repo_path,
                     ref=st.reference_branch,
                     anchored_symbol_block=block,
+                    collision_context=collision_ctx,
                     branch_commits=branch_commits,
                     branch_intents=branch_intents,
                     other_branch=other_branch,
                 )
                 try:
-                    refined_text = active_provider.complete(prompt).strip()
-                    if refined_text.startswith("```"):
-                        lines = refined_text.splitlines()
-                        if lines and lines[0].startswith("```"):
-                            lines = lines[1:]
-                        if lines and lines[-1].strip() == "```":
-                            lines = lines[:-1]
-                        refined_text = "\n".join(lines).strip()
+                    raw_resp = active_provider.complete(prompt).strip()
+                    refined_text, _ = extract_patch_or_replacement(
+                        raw_resp, expected_file=sug.file_path
+                    )
 
-                    validation = validate_patch(sug, refined_text)
+                    validation = validate_patch(sug, refined_text, original_code=block)
+                    effective_patch = validation.synthesized_diff or refined_text
                     st.refinement_history.append(
                         {
                             "suggestion_id": sug.suggestion_id,
@@ -305,14 +351,16 @@ def refine_step(state: ConvergenceState) -> ConvergenceState:
                     updated_combos.append(
                         replace(
                             combo,
-                            patch_text=refined_text if validation.valid else combo.patch_text,
+                            patch_text=effective_patch if validation.valid else combo.patch_text,
                             validated=False,
                             validation_status="draft",
                             validation_error=validation.reason if not validation.valid else None,
                         )
                     )
                 except Exception as exc:
-                    st.errors.append(f"Refinement error for {sug.suggestion_id} ({combo.label}): {exc}")
+                    st.errors.append(
+                        f"Refinement error for {sug.suggestion_id} ({combo.label}): {exc}"
+                    )
                     updated_combos.append(combo)
             else:
                 updated_combos.append(combo)
@@ -331,7 +379,10 @@ def checkpoint_step(state: ConvergenceState) -> ConvergenceState:
     if st.checkpoint == "failed":
         return st
 
-    logger.info("Orchestration [Node: audit]: caching %d suggestion(s) to suggestion store", len(st.suggestions))
+    logger.info(
+        "Orchestration [Node: audit]: caching %d suggestion(s) to suggestion store",
+        len(st.suggestions),
+    )
     try:
         for sug in st.suggestions:
             save_suggestion(
@@ -468,4 +519,3 @@ def run_convergence_pipeline(
     )
     pipeline.state = state
     return pipeline.run()
-

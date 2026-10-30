@@ -140,9 +140,7 @@ class ConflictProbabilityEstimator:
                         break
         if checked == 0 and hits == 0:
             branch_from = {
-                op.from_name
-                for op in branch_ops
-                if op.operator in _RENAME_OPS and op.from_name
+                op.from_name for op in branch_ops if op.operator in _RENAME_OPS and op.from_name
             }
             ref_targets: set[str] = set()
             for op in reference_ops:

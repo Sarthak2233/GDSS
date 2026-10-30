@@ -1,4 +1,5 @@
 """Tests for gdss suggest CLI validation options."""
+
 from __future__ import annotations
 
 from typer.testing import CliRunner
@@ -37,7 +38,9 @@ def test_suggest_validate_routes_through_convergence_pipeline():
         repo_path=".",
         suggestions=[],
     )
-    with patch("gdss.ai.orchestration.run_convergence_pipeline", return_value=mock_state) as mock_pipe:
+    with patch(
+        "gdss.ai.orchestration.run_convergence_pipeline", return_value=mock_state
+    ) as mock_pipe:
         res = runner.invoke(app, ["suggest", "--validate", "--max-refinements", "4"])
         assert res.exit_code == 0
         assert mock_pipe.called
@@ -76,7 +79,9 @@ def test_suggest_as_prompt_injects_intent_and_commits():
 
     with patch("gdss.ai.suggester.suggest", return_value=[mock_sug]):
         with patch("gdss.ai.context.build_analysis_context", return_value=mock_ctx):
-            with patch("gdss.ai.prompt_builder.build_conflict_prompt", return_value="PROMPT_WITH_INTENT") as mock_prompt_builder:
+            with patch(
+                "gdss.ai.prompt_builder.build_conflict_prompt", return_value="PROMPT_WITH_INTENT"
+            ) as mock_prompt_builder:
                 res = runner.invoke(app, ["suggest", "--as-prompt"])
                 assert res.exit_code == 0
                 assert "PROMPT_WITH_INTENT" in res.output
@@ -84,5 +89,4 @@ def test_suggest_as_prompt_injects_intent_and_commits():
                 kwargs = mock_prompt_builder.call_args.kwargs
                 assert kwargs["branch_commits"] == mock_ctx.branch_commits
                 assert kwargs["branch_intents"] == mock_ctx.branch_intents
-
-
+                assert kwargs.get("collision_context") is not None

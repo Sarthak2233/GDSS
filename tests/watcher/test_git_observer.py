@@ -26,6 +26,7 @@ def temp_git_repo():
     # Cleanup
     shutil.rmtree(temp_dir, ignore_errors=True)
 
+
 def test_git_observer_features(temp_git_repo):
     repo_path = temp_git_repo
     repo = git.Repo(repo_path)
@@ -123,7 +124,9 @@ def test_get_commits_between(temp_git_repo):
     c2 = repo.index.commit("Add sub function")
 
     with open(path, "w") as f:
-        f.write("def add(a, b): return a + b\ndef sub(a, b): return a - b\ndef mul(a, b): return a * b\n")
+        f.write(
+            "def add(a, b): return a + b\ndef sub(a, b): return a - b\ndef mul(a, b): return a * b\n"
+        )
     repo.index.add(["calc.py"])
     c3 = repo.index.commit("Add mul function")
 
@@ -146,3 +149,20 @@ def test_get_commits_between(temp_git_repo):
     assert observer.get_commits_between(c3.hexsha, "feature-branch") == []
     assert observer.get_commits_between("non-existent-base", "feature-branch") == []
 
+
+def test_list_all_available_branches(temp_git_repo):
+    repo = git.Repo(temp_git_repo)
+    path = os.path.join(temp_git_repo, "a.py")
+    with open(path, "w") as f:
+        f.write("x = 1\n")
+    repo.index.add(["a.py"])
+    repo.index.commit("init")
+    repo.create_head("feat-alpha")
+
+    observer = GitObserver(temp_git_repo)
+    branches = observer.list_all_available_branches(include_remotes=False)
+    assert "feat-alpha" in branches
+
+    # With remotes included on local-only repo it behaves gracefully
+    branches_all = observer.list_all_available_branches(include_remotes=True)
+    assert "feat-alpha" in branches_all

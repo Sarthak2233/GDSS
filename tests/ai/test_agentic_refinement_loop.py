@@ -89,7 +89,9 @@ def test_should_refine_decision_logic():
 
     # If validation is clean -> checkpoint
     state.refinement_count = 0
-    clean_combo = PatchCombination(label="reconcile", strategy="compose", patch_text="clean", validated=True)
+    clean_combo = PatchCombination(
+        label="reconcile", strategy="compose", patch_text="clean", validated=True
+    )
     state.suggestions[0] = Suggestion(
         kind="modify_function",
         file_path="src/calc.py",
@@ -165,7 +167,9 @@ def test_refinement_loop_exhausts_retries_gracefully(tmp_path: Path):
     mock_provider = MagicMock()
     mock_provider.complete.return_value = "--- a/src/calc.py\n+++ b/src/calc.py\nstill broken"
 
-    def always_fail_validator(patch: str, target: str, timeout: float | None) -> tuple[bool, str | None]:
+    def always_fail_validator(
+        patch: str, target: str, timeout: float | None
+    ) -> tuple[bool, str | None]:
         return False, "Compiler error: broken syntax"
 
     state = ConvergenceState(
@@ -202,9 +206,7 @@ def test_run_convergence_pipeline_with_refinement(tmp_path: Path):
     sug = _dummy_suggestion()
 
     mock_provider = MagicMock()
-    mock_provider.complete.return_value = (
-        "--- a/src/calc.py\n+++ b/src/calc.py\n@@ -1,3 +1,3 @@\n-def add(a, b):\n+def add(a, b):\n-    return SYNTAX_BROKEN\n+    return a + b\n"
-    )
+    mock_provider.complete.return_value = "--- a/src/calc.py\n+++ b/src/calc.py\n@@ -1,3 +1,3 @@\n-def add(a, b):\n+def add(a, b):\n-    return SYNTAX_BROKEN\n+    return a + b\n"
 
     def validator(patch: str, target: str, timeout: float | None) -> tuple[bool, str | None]:
         for line in patch.splitlines():
@@ -252,9 +254,7 @@ def test_langgraph_refinement_parity(tmp_path: Path):
     sug = _dummy_suggestion()
 
     mock_provider = MagicMock()
-    mock_provider.complete.return_value = (
-        "--- a/src/calc.py\n+++ b/src/calc.py\n@@ -1,3 +1,3 @@\n-def add(a, b):\n+def add(a, b):\n-    return SYNTAX_BROKEN\n+    return a + b\n"
-    )
+    mock_provider.complete.return_value = "--- a/src/calc.py\n+++ b/src/calc.py\n@@ -1,3 +1,3 @@\n-def add(a, b):\n+def add(a, b):\n-    return SYNTAX_BROKEN\n+    return a + b\n"
 
     def validator(patch: str, target: str, timeout: float | None) -> tuple[bool, str | None]:
         for line in patch.splitlines():
@@ -279,5 +279,3 @@ def test_langgraph_refinement_parity(tmp_path: Path):
     assert res.checkpoint == "awaiting_human_review"
     assert res.refinement_count == 1
     assert res.suggestions[0].patch_combinations[0].validated is True
-
-

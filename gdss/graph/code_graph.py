@@ -240,7 +240,8 @@ class CodeGraph:
 
                 if not resolved and file_path:
                     import_edges = [
-                        (v, d) for u, v, d in self.g.out_edges(file_path, data=True)
+                        (v, d)
+                        for u, v, d in self.g.out_edges(file_path, data=True)
                         if d.get("relation") == "imports"
                     ]
                     for imported_module, import_data in import_edges:
@@ -250,8 +251,13 @@ class CodeGraph:
                             for target_node in candidates:
                                 target_data = self.g.nodes[target_node]
                                 if target_data.get("type") == "function":
-                                    target_file = target_data.get("chart_location") or target_data.get("file", "")
-                                    if target_file.startswith(imported_module) or imported_module in target_file:
+                                    target_file = target_data.get(
+                                        "chart_location"
+                                    ) or target_data.get("file", "")
+                                    if (
+                                        target_file.startswith(imported_module)
+                                        or imported_module in target_file
+                                    ):
                                         self.g.add_edge(func_id, target_node, relation="calls")
                                         resolved = True
                                         break
@@ -261,7 +267,10 @@ class CodeGraph:
                 if not resolved:
                     candidates = self._symbol_index.get(callee, empty_set)
                     for target_node in candidates:
-                        if target_node != func_id and self.g.nodes[target_node].get("type") == "function":
+                        if (
+                            target_node != func_id
+                            and self.g.nodes[target_node].get("type") == "function"
+                        ):
                             self.g.add_edge(func_id, target_node, relation="calls")
                             break
 

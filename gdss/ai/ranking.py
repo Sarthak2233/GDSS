@@ -38,13 +38,10 @@ def rank_tensor_entries(
     for entry in entries:
         omega = entry.omega / omega_scale if omega_scale else 0.0
         branch_drift = (
-            float(drift_magnitudes.get(entry.i, 0.0))
-            + float(drift_magnitudes.get(entry.j, 0.0))
+            float(drift_magnitudes.get(entry.i, 0.0)) + float(drift_magnitudes.get(entry.j, 0.0))
         ) / 2.0
         drift = _bounded(branch_drift / drift_scale) if drift_scale else 0.0
-        interference = float(
-            any(reason.startswith("interference=") for reason in entry.reasons)
-        )
+        interference = float(any(reason.startswith("interference=") for reason in entry.reasons))
         dependency = float("dependency_overlap" in entry.reasons)
         anchor = _bounded(
             float(
@@ -62,11 +59,7 @@ def rank_tensor_entries(
             "anchor": anchor,
         }
         confidence = _bounded(
-            0.55 * omega
-            + 0.20 * drift
-            + 0.15 * interference
-            + 0.05 * dependency
-            + 0.05 * anchor
+            0.55 * omega + 0.20 * drift + 0.15 * interference + 0.05 * dependency + 0.05 * anchor
         )
         ranked.append(RankedConflict(entry=entry, confidence=confidence, factors=factors))
 

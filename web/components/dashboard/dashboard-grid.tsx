@@ -29,7 +29,7 @@ export function DashboardGrid() {
       fetcher<ApiOkEnvelope<StatusData>>(
         `/v1/status?ref=${encodeURIComponent(refName)}`
       ),
-    refetchInterval: 10000,
+    refetchInterval: 30000,
   });
 
   const driftQuery = useQuery({
@@ -38,7 +38,7 @@ export function DashboardGrid() {
       fetcher<ApiOkEnvelope<DriftData>>(
         `/v1/drift?ref=${encodeURIComponent(refName)}`
       ),
-    refetchInterval: 10000,
+    refetchInterval: 30000,
   });
 
   const isLoading = statusQuery.isLoading || driftQuery.isLoading;

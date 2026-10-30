@@ -1,4 +1,5 @@
 """Tests for the unified GDSS logging subsystem."""
+
 from __future__ import annotations
 
 import io

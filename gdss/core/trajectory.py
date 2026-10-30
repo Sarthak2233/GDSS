@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from gdss.core.ast_parser import SOURCE_EXTENSIONS, ASTParser
 from gdss.core.transform_extractor import TransformExtractor
 from gdss.core.transform_types import SemanticOperator
+from gdss.reducers.registry import DomainReducerRegistry
 from gdss.watcher.git_observer import GitObserver
 
 
@@ -17,12 +18,14 @@ def extract_trajectory_operators(
     ref_branch: str,
     head: str = "HEAD",
     extensions: Sequence[str] = SOURCE_EXTENSIONS,
+    reducer_registry: DomainReducerRegistry | None = None,
 ) -> list[SemanticOperator]:
     """
     Aggregate symbol-level SemanticOperators across committed divergence
     from the reference attractor to the tip of ``head``.
 
-    Empty when tip equals reference (or merge-base is the tip).
+    Evaluates both Code AST symbols and Domain Reducers (manifests, migrations, SQL,
+    markdown, lexical chunks). Empty when tip equals reference (or merge-base is the tip).
     """
     if not observer.is_valid() or observer.repo is None:
         return []
@@ -43,41 +46,60 @@ def extract_trajectory_operators(
     changes = observer.get_file_diffs_between_commits(merge_base, head_commit.hexsha)
     operators: list[SemanticOperator] = []
     ext_tuple = tuple(extensions)
+    registry = reducer_registry or DomainReducerRegistry()
 
     for path in changes.get("modified", []):
-        if not path.endswith(ext_tuple):
-            continue
         old_content = observer.get_file_content_at_commit(merge_base, path)  # dsa:ignore
         new_content = observer.get_file_content_at_commit(head_commit.hexsha, path)  # dsa:ignore
-        if old_content is None or new_content is None:
+        if old_content is None and new_content is None:
             continue
-        old_syms = parser.parse_file(path, old_content)  # dsa:ignore
-        new_syms = parser.parse_file(path, new_content)  # dsa:ignore
-        operators.extend(
-            extractor.extract_operators(path, old_syms, new_syms, commit_sha=head_commit.hexsha)
-        )
+        domain_reducer = registry.get_reducer(path, content=new_content or old_content)
+        if domain_reducer is not None:
+            operators.extend(
+                domain_reducer.extract_operators(
+                    path, old_content, new_content, commit_sha=head_commit.hexsha
+                )
+            )
+        elif path.endswith(ext_tuple):
+            old_syms = parser.parse_file(path, old_content) if old_content else []  # dsa:ignore
+            new_syms = parser.parse_file(path, new_content) if new_content else []  # dsa:ignore
+            operators.extend(
+                extractor.extract_operators(path, old_syms, new_syms, commit_sha=head_commit.hexsha)
+            )
 
     for path in changes.get("added", []):
-        if not path.endswith(ext_tuple):
-            continue
         new_content = observer.get_file_content_at_commit(head_commit.hexsha, path)  # dsa:ignore
         if new_content is None:
             continue
-        new_syms = parser.parse_file(path, new_content)  # dsa:ignore
-        operators.extend(
-            extractor.extract_operators(path, [], new_syms, commit_sha=head_commit.hexsha)
-        )
+        domain_reducer = registry.get_reducer(path, content=new_content)
+        if domain_reducer is not None:
+            operators.extend(
+                domain_reducer.extract_operators(
+                    path, None, new_content, commit_sha=head_commit.hexsha
+                )
+            )
+        elif path.endswith(ext_tuple):
+            new_syms = parser.parse_file(path, new_content)  # dsa:ignore
+            operators.extend(
+                extractor.extract_operators(path, [], new_syms, commit_sha=head_commit.hexsha)
+            )
 
     for path in changes.get("deleted", []):
-        if not path.endswith(ext_tuple):
-            continue
         old_content = observer.get_file_content_at_commit(merge_base, path)  # dsa:ignore
         if old_content is None:
             continue
-        old_syms = parser.parse_file(path, old_content)  # dsa:ignore
-        operators.extend(
-            extractor.extract_operators(path, old_syms, [], commit_sha=head_commit.hexsha)
-        )
+        domain_reducer = registry.get_reducer(path, content=old_content)
+        if domain_reducer is not None:
+            operators.extend(
+                domain_reducer.extract_operators(
+                    path, old_content, None, commit_sha=head_commit.hexsha
+                )
+            )
+        elif path.endswith(ext_tuple):
+            old_syms = parser.parse_file(path, old_content)  # dsa:ignore
+            operators.extend(
+                extractor.extract_operators(path, old_syms, [], commit_sha=head_commit.hexsha)
+            )
 
     return operators
 

@@ -34,10 +34,7 @@ def branched_repo():
     repo.head.reference = feature
     repo.head.reset(index=True, working_tree=True)
     with open(path, "w") as f:
-        f.write(
-            "def add(a, b):\n    return a + b + 1\n\n"
-            "def mul(a, b):\n    return a * b\n"
-        )
+        f.write("def add(a, b):\n    return a + b + 1\n\ndef mul(a, b):\n    return a * b\n")
     repo.index.add(["calc.py"])
     repo.index.commit("diverge add and mul")
 
@@ -95,11 +92,7 @@ def dual_modify_repo():
     repo.head.reference = feature
     repo.head.reset(index=True, working_tree=True)
     with open(path, "w") as f:
-        f.write(
-            "def verify_token(t):\n"
-            "    validate_card()\n"
-            "    return charge(t)\n"
-        )
+        f.write("def verify_token(t):\n    validate_card()\n    return charge(t)\n")
     repo.index.add(["auth.py"])
     repo.index.commit("feature changes verify")
 
@@ -107,11 +100,7 @@ def dual_modify_repo():
     repo.head.reference = repo.heads[base_name]
     repo.head.reset(index=True, working_tree=True)
     with open(path, "w") as f:
-        f.write(
-            "def verify_token(t):\n"
-            "    check_redis()\n"
-            "    return t.startswith('tok')\n"
-        )
+        f.write("def verify_token(t):\n    check_redis()\n    return t.startswith('tok')\n")
     repo.index.add(["auth.py"])
     repo.index.commit("attractor changes verify")
 
@@ -220,3 +209,23 @@ def test_affected_symbols_when_both_sides_modify_same_function(dual_modify_repo)
     assert "verify_token" in names
     assert all(a.distance >= 0.0 for a in affected)
 
+
+def test_drift_engine_symbol_and_vector_caching(branched_repo):
+    temp_dir, base_name = branched_repo
+    from gdss.drift.engine import clear_drift_cache
+
+    clear_drift_cache()
+    engine = _engine(temp_dir)
+    commit_sha = engine.observer.repo.commit("feature").hexsha
+
+    syms1 = engine._symbols_at_commit(commit_sha)
+    syms2 = engine._symbols_at_commit(commit_sha)
+    assert syms1 is syms2, "Second call should return cached symbols list"
+
+    vec1 = engine._tip_vector_at(commit_sha, label="feature")
+    vec2 = engine._tip_vector_at(commit_sha, label="feature")
+    assert vec1 is vec2, "Second call should return cached tip vector"
+
+    clear_drift_cache()
+    syms3 = engine._symbols_at_commit(commit_sha)
+    assert syms3 is not syms1, "Cache clear should force fresh parse"

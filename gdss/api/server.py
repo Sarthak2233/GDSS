@@ -1,4 +1,5 @@
 """FastAPI Server for GDSS Local API."""
+
 import datetime
 from pathlib import Path
 
@@ -47,8 +48,13 @@ def create_app(repo_path: Path) -> FastAPI:
         return format_resp(service.get_graph(repo_path_str, ref))
 
     @app.get("/v1/drift")
-    def drift(ref: str | None = None, branch: str | None = None):
-        return format_resp(service.get_drift(repo_path_str, ref, branch))
+    def drift(
+        ref: str | None = None,
+        branch: str | None = None,
+        branches: str | None = None,
+        exclude: str | None = None,
+    ):
+        return format_resp(service.get_drift(repo_path_str, ref, branch, branches, exclude))
 
     @app.get("/v1/drift/history")
     def drift_history(branch: str, n: int = 20):
@@ -68,13 +74,18 @@ def create_app(repo_path: Path) -> FastAPI:
 
     @app.get("/v1/embeddings/projection")
     def embeddings_projection(dims: int = 2, limit: int = 500):
-        return format_resp(
-            service.get_embeddings_projection(repo_path_str, dims=dims, limit=limit)
-        )
+        return format_resp(service.get_embeddings_projection(repo_path_str, dims=dims, limit=limit))
 
     @app.get("/v1/tensor")
-    def tensor(ref: str | None = None):
-        return format_resp(service.get_tensor(repo_path_str, ref))
+    def tensor(
+        ref: str | None = None,
+        branches: str | None = None,
+        exclude: str | None = None,
+        include_remotes: bool = False,
+    ):
+        return format_resp(
+            service.get_tensor(repo_path_str, ref, branches, exclude, include_remotes)
+        )
 
     @app.get("/v1/symbols")
     def symbols(ref: str | None = None):
@@ -83,6 +94,18 @@ def create_app(repo_path: Path) -> FastAPI:
     @app.get("/v1/branches")
     def branches():
         return format_resp(service.get_branches(repo_path_str))
+
+    @app.get("/v1/hierarchy")
+    def get_hierarchy():
+        return format_resp(service.get_hierarchy(repo_path_str))
+
+    @app.post("/v1/hierarchy")
+    async def post_hierarchy(request: Request):
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        return format_resp(service.update_hierarchy(repo_path_str, body))
 
     @app.get("/v1/model/status")
     def model_status():
@@ -99,8 +122,17 @@ def create_app(repo_path: Path) -> FastAPI:
     ):
         if format in {"prompt", "source"}:
             token = request.headers.get("X-GDSS-Local-Token")
-            if not getattr(app.state, "allow_local_source", False) and token != getattr(app.state, "local_token", ""):
-                return JSONResponse(status_code=403, content={"error": "Source-bearing requests require --allow-local-source or valid X-GDSS-Local-Token"})
-        return format_resp(service.get_suggestions(repo_path_str, ref, format, llm, combos, max_candidates))
+            if not getattr(app.state, "allow_local_source", False) and token != getattr(
+                app.state, "local_token", ""
+            ):
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "error": "Source-bearing requests require --allow-local-source or valid X-GDSS-Local-Token"
+                    },
+                )
+        return format_resp(
+            service.get_suggestions(repo_path_str, ref, format, llm, combos, max_candidates)
+        )
 
     return app

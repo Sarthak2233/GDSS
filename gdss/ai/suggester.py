@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+from collections.abc import Sequence
 from dataclasses import replace
 
 import httpx
@@ -70,9 +71,7 @@ def _anchored_block(context: AnalysisContext, suggestion: Suggestion) -> str:
     anchor = suggestion.anchor
     if anchor is None:
         return ""
-    content = context.observer.get_file_content_at_commit(
-        anchor.target_branch, anchor.file_path
-    )
+    content = context.observer.get_file_content_at_commit(anchor.target_branch, anchor.file_path)
     if content is None:
         return ""
     return "".join(content.splitlines(keepends=True)[anchor.line_start - 1 : anchor.line_end])
@@ -84,27 +83,32 @@ def _draft_combinations(
     provider: AnyProvider | LLMProvider,
 ) -> Suggestion:
     """Draft one patch per strategy and retain only deterministic validation passes."""
-    block = _anchored_block(context, suggestion)
+    from gdss.ai.context_builder import extract_3way_symbol_context
 
-    from gdss.ai.condensation import condense_block, get_model_code_budget
     model_name = getattr(provider, "model", None)
-    budget = get_model_code_budget(model_name, provider=provider)
-    if len(block) > budget:
-        block = condense_block(context, suggestion, block, max_chars=budget)
+    other_branch = getattr(suggestion.context, "other_branch", None) if suggestion.context else None
+
+    collision_ctx = extract_3way_symbol_context(
+        context,
+        suggestion,
+        other_branch=other_branch,
+        model_name=model_name,
+        provider=provider,
+    )
+    block = collision_ctx.branch_a_code or _anchored_block(context, suggestion)
 
     num_combos = len(suggestion.patch_combinations)
-    other_branch = getattr(suggestion.context, "other_branch", None) if suggestion.context else None
     base_prompt = build_conflict_prompt(
         suggestion,
         block,
         context.repo_path,
         context.reference_branch,
+        collision_context=collision_ctx,
         branch_commits=context.branch_commits,
         branch_intents=context.branch_intents,
         other_branch=other_branch,
     )
     drafted: list[PatchCombination] = []
-
 
     # Multi-strategy fast path: attempt single-roundtrip batch extraction if multiple strategies requested
     if num_combos > 1:
@@ -117,16 +121,18 @@ def _draft_combinations(
         )
         try:
             from gdss.ai.patch_parser import parse_strategy_patches
+
             batch_text = provider.complete(batch_prompt)
             parsed = parse_strategy_patches(batch_text, expected_strategies=labels)
             for combination in suggestion.patch_combinations:
                 patch_content = parsed.get(combination.label)
                 if patch_content:
-                    validation = validate_patch(suggestion, patch_content)
+                    validation = validate_patch(suggestion, patch_content, original_code=block)
+                    effective_patch = validation.synthesized_diff or patch_content
                     drafted.append(
                         replace(
                             combination,
-                            patch_text=patch_content if validation.valid else None,
+                            patch_text=effective_patch if validation.valid else None,
                             source="llm",
                             validated=validation.valid,
                             validation_error=validation.reason,
@@ -142,11 +148,12 @@ def _draft_combinations(
         for combination in suggestion.patch_combinations:
             prompt = base_prompt + f"\nProduce only the `{combination.label}` strategy."
             patch_text = provider.complete(prompt)
-            validation = validate_patch(suggestion, patch_text)
+            validation = validate_patch(suggestion, patch_text, original_code=block)
+            effective_patch = validation.synthesized_diff or patch_text
             drafted.append(
                 replace(
                     combination,
-                    patch_text=patch_text if validation.valid else None,
+                    patch_text=effective_patch if validation.valid else None,
                     source="llm",
                     validated=validation.valid,
                     validation_error=validation.reason,
@@ -171,7 +178,12 @@ def _pick_provider(
         return provider
     if not llm:
         return None
-    if os.getenv("OPENROUTER_API_KEY") or os.getenv("GITHUB_TOKEN") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_BASE_URL"):
+    if (
+        os.getenv("OPENROUTER_API_KEY")
+        or os.getenv("GITHUB_TOKEN")
+        or os.getenv("OPENAI_API_KEY")
+        or os.getenv("OPENAI_BASE_URL")
+    ):
         return OpenAICompatibleProvider()
     if _server_reachable("http://localhost:8000"):
         return VLLMProvider()
@@ -192,6 +204,8 @@ def suggest(
     repo_path: str,
     reference_branch: str,
     *,
+    branches: Sequence[str] | None = None,
+    exclude_branches: Sequence[str] | None = None,
     llm: bool = False,
     combos: int = 3,
     provider: AnyProvider | LLMProvider | None = None,
@@ -201,10 +215,13 @@ def suggest(
     """Return ranked suggestions without applying patches or changing Git state."""
     if combos < 1 or max_candidates < 1:
         raise ValueError("combos and max_candidates must both be positive")
-    ctx = context or build_analysis_context(repo_path, reference_branch)
-    ranked = rank_tensor_entries(
-        ctx.tensor, drift_magnitudes=ctx.drift_magnitudes
+    ctx = context or build_analysis_context(
+        repo_path,
+        reference_branch,
+        branches=branches,
+        exclude_branches=exclude_branches,
     )
+    ranked = rank_tensor_entries(ctx.tensor, drift_magnitudes=ctx.drift_magnitudes)
     suggestions: list[Suggestion] = []
     seen: set[tuple[str, str, str, str]] = set()
     draft_provider = _pick_provider(llm, provider)
@@ -220,9 +237,7 @@ def suggest(
             if key in seen:
                 continue
             seen.add(key)
-            anchor = resolve_anchor(
-                ctx.observer, ctx.parser, left, entry.i
-            )
+            anchor = resolve_anchor(ctx.observer, ctx.parser, left, entry.i)
             if anchor is None:
                 continue
             topology = classify_conflict(

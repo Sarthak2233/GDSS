@@ -3,6 +3,7 @@
 Provides zero-dependency logging infrastructure adhering to Two-Brain purity
 and layer direction invariants across all GDSS modules and CI workflows.
 """
+
 from __future__ import annotations
 
 import logging
@@ -33,7 +34,6 @@ def configure_logging(
     level: str | int | None = None,
     log_file: Path | str | None = None,
     json_format: bool = False,
-    ci_grouping: bool = False,
 ) -> None:
     """Configure GDSS logging handlers, formatters, and root level.
 
@@ -69,7 +69,13 @@ def configure_logging(
     # Console / Stderr handler
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(level_val)
-    console_formatter = logging.Formatter(_LOG_FORMAT, datefmt=_DATE_FORMAT)
+    if json_format:
+        console_formatter = logging.Formatter(
+            '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s"}',
+            datefmt="%Y-%m-%dT%H:%M:%SZ",
+        )
+    else:
+        console_formatter = logging.Formatter(_LOG_FORMAT, datefmt=_DATE_FORMAT)
     console_handler.setFormatter(console_formatter)
     root_logger.addHandler(console_handler)
 

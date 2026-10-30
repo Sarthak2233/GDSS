@@ -25,46 +25,55 @@ class LocationKwargs(TypedDict):
 # Pluggable Tree-sitter grammar registry: ext -> (language_name, import_loader)
 def _load_python():
     import tree_sitter_python
+
     return Language(tree_sitter_python.language())
 
 
 def _load_javascript():
     import tree_sitter_javascript
+
     return Language(tree_sitter_javascript.language())
 
 
 def _load_typescript():
     import tree_sitter_typescript
+
     return Language(tree_sitter_typescript.language_typescript())
 
 
 def _load_tsx():
     import tree_sitter_typescript
+
     return Language(tree_sitter_typescript.language_tsx())
 
 
 def _load_go():
     import tree_sitter_go
+
     return Language(tree_sitter_go.language())
 
 
 def _load_rust():
     import tree_sitter_rust
+
     return Language(tree_sitter_rust.language())
 
 
 def _load_java():
     import tree_sitter_java
+
     return Language(tree_sitter_java.language())
 
 
 def _load_c():
     import tree_sitter_c
+
     return Language(tree_sitter_c.language())
 
 
 def _load_cpp():
     import tree_sitter_cpp
+
     return Language(tree_sitter_cpp.language())
 
 
@@ -89,20 +98,33 @@ LANGUAGE_REGISTRY: dict[str, tuple[str, Callable[[], Language | None]]] = {
 }
 
 DEFAULT_SOURCE_EXTENSIONS: tuple[str, ...] = (
-    ".py", ".pyi",
-    ".js", ".jsx", ".mjs", ".cjs",
-    ".ts", ".tsx",
+    ".py",
+    ".pyi",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".ts",
+    ".tsx",
     ".go",
     ".rs",
     ".java",
-    ".c", ".h", ".cpp", ".hpp", ".cc", ".cxx",
+    ".c",
+    ".h",
+    ".cpp",
+    ".hpp",
+    ".cc",
+    ".cxx",
     ".cs",
     ".rb",
     ".php",
-    ".kt", ".kts",
+    ".kt",
+    ".kts",
     ".swift",
     ".scala",
-    ".sh", ".bash", ".zsh",
+    ".sh",
+    ".bash",
+    ".zsh",
     ".dart",
     ".lua",
     ".sol",
@@ -124,6 +146,7 @@ def get_source_extensions(repo_root: Path | str | None = None) -> tuple[str, ...
         if has_config:
             try:
                 import yaml
+
                 data = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
                 ast_cfg = data.get("ast", {})
                 if isinstance(ast_cfg, dict):
@@ -274,26 +297,56 @@ class ASTParser:
                 tree = parser.parse(content_bytes)
                 root = tree.root_node
                 if custom_visitor:
-                    custom_visitor(self, root, content_bytes, symbols, parent_class=None, language=language, chart_location=filepath)
+                    custom_visitor(
+                        self,
+                        root,
+                        content_bytes,
+                        symbols,
+                        parent_class=None,
+                        language=language,
+                        chart_location=filepath,
+                    )
                 elif language == "python":
-                    self._parse_python(root, content_bytes, symbols, language=language, chart_location=filepath)
+                    self._parse_python(
+                        root, content_bytes, symbols, language=language, chart_location=filepath
+                    )
                 elif language in {"javascript", "typescript"}:
-                    self._parse_js_ts(root, content_bytes, symbols, language=language, chart_location=filepath)
+                    self._parse_js_ts(
+                        root, content_bytes, symbols, language=language, chart_location=filepath
+                    )
                 elif language == "go":
-                    self._parse_go(root, content_bytes, symbols, language=language, chart_location=filepath)
+                    self._parse_go(
+                        root, content_bytes, symbols, language=language, chart_location=filepath
+                    )
                 elif language == "rust":
-                    self._parse_rust(root, content_bytes, symbols, language=language, chart_location=filepath)
+                    self._parse_rust(
+                        root, content_bytes, symbols, language=language, chart_location=filepath
+                    )
                 elif language == "java":
-                    self._parse_java(root, content_bytes, symbols, language=language, chart_location=filepath)
+                    self._parse_java(
+                        root, content_bytes, symbols, language=language, chart_location=filepath
+                    )
                 elif language in {"c", "cpp"}:
-                    self._parse_c_cpp(root, content_bytes, symbols, language=language, chart_location=filepath)
+                    self._parse_c_cpp(
+                        root, content_bytes, symbols, language=language, chart_location=filepath
+                    )
                 else:
-                    self._parse_universal_tree_sitter(root, content_bytes, symbols, language=language, chart_location=filepath)
+                    self._parse_universal_tree_sitter(
+                        root, content_bytes, symbols, language=language, chart_location=filepath
+                    )
             except Exception:
                 pass
         elif custom_visitor:
             try:
-                custom_visitor(self, None, content_bytes, symbols, parent_class=None, language=language, chart_location=filepath)
+                custom_visitor(
+                    self,
+                    None,
+                    content_bytes,
+                    symbols,
+                    parent_class=None,
+                    language=language,
+                    chart_location=filepath,
+                )
             except Exception:
                 pass
 
@@ -313,7 +366,7 @@ class ASTParser:
     def _get_node_text(self, node: Node, content_bytes: bytes) -> str:
         """Decode node text using Tree-sitter byte offsets (not Python str indices)."""
         try:
-            return content_bytes[node.start_byte:node.end_byte].decode("utf-8")
+            return content_bytes[node.start_byte : node.end_byte].decode("utf-8")
         except Exception:
             return ""
 
@@ -345,6 +398,7 @@ class ASTParser:
         return tokens
 
     def _extract_body_blocks(self, body_node: Node | None, content_bytes: bytes) -> list[BodyBlock]:
+        _ = content_bytes
         if not body_node:
             return []
         blocks: list[BodyBlock] = []
@@ -431,7 +485,9 @@ class ASTParser:
                             if first_stmt.type == "expression_statement":
                                 expr = first_stmt.children[0]
                                 if expr.type == "string":
-                                    docstring = self._get_node_text(expr, content_bytes).strip('"\'')
+                                    docstring = self._get_node_text(expr, content_bytes).strip(
+                                        "\"'"
+                                    )
 
                     body_blocks = self._extract_body_blocks(body_node, content_bytes)
                     structural_tokens = (
@@ -453,7 +509,9 @@ class ASTParser:
                         language=language,
                         chart_location=chart_location,
                     )
-                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
+                    self._append_symbol(
+                        symbols, sym, chart_location
+                    )  # dsa:ignore per-symbol registration
 
             elif ctype == "class_definition":
                 if name_node:
@@ -472,7 +530,9 @@ class ASTParser:
                         language=language,
                         chart_location=chart_location,
                     )
-                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
+                    self._append_symbol(
+                        symbols, sym, chart_location
+                    )  # dsa:ignore per-symbol registration
 
                     if body_node:
                         self._parse_python(
@@ -486,20 +546,18 @@ class ASTParser:
 
             elif ctype == "assignment":
                 # Top-level variables or constants
-                if parent_class is None: # Only at module level for now
+                if parent_class is None:  # Only at module level for now
                     left_node = child.child_by_field_name("left")
                     if left_node and left_node.type == "identifier":
                         name = self._get_node_text(left_node, content_bytes)
                         # Heuristic: ALL_CAPS = Constant
                         stype = SymbolType.CONSTANT if name.isupper() else SymbolType.VARIABLE
 
-                        symbols.append(CodeSymbol(
-                            name=name,
-                            type=stype,
-                            **loc,
-                            signature=name,
-                            body=child_text
-                        ))
+                        symbols.append(
+                            CodeSymbol(
+                                name=name, type=stype, **loc, signature=name, body=child_text
+                            )
+                        )
 
             if ctype == "import_statement":
                 # Use cached child_text
@@ -508,12 +566,9 @@ class ASTParser:
                 parts = text.replace("import", "").strip().split(",")
                 for p in parts:
                     iname = p.strip().split(" as ")[0].strip()
-                    symbols.append(CodeSymbol(
-                        name=iname,
-                        type=SymbolType.IMPORT,
-                        **loc,
-                        module=iname
-                    ))
+                    symbols.append(
+                        CodeSymbol(name=iname, type=SymbolType.IMPORT, **loc, module=iname)
+                    )
 
             elif ctype == "import_from_statement":
                 # 'from math import sin, cos'
@@ -533,28 +588,43 @@ class ASTParser:
                             break
 
                     if import_keyword_idx != -1:
-                        for sub in child.children[import_keyword_idx + 1:]:
+                        for sub in child.children[import_keyword_idx + 1 :]:
                             sub_type = sub.type
                             if sub_type == "dotted_name":
                                 imported_names.append(self._get_node_text(sub, content_bytes))
                             elif sub_type == "aliased_import":
-                                sub_names = [self._get_node_text(n, content_bytes) for n in sub.children if n.type in {"identifier", "dotted_name"}]
+                                sub_names = [
+                                    self._get_node_text(n, content_bytes)
+                                    for n in sub.children
+                                    if n.type in {"identifier", "dotted_name"}
+                                ]
                                 if sub_names:
                                     imported_names.append(sub_names[0])
                             elif sub_type == "wildcard_import":
                                 imported_names.append("*")
 
-                    symbols.append(CodeSymbol(
-                        name=module_name,
-                        type=SymbolType.IMPORT,
-                        **loc,
-                        module=module_name,
-                        imported_names=imported_names
-                    ))
+                    symbols.append(
+                        CodeSymbol(
+                            name=module_name,
+                            type=SymbolType.IMPORT,
+                            **loc,
+                            module=module_name,
+                            imported_names=imported_names,
+                        )
+                    )
 
             else:
                 # Recurse for general containers (e.g. if statements, try/except block, etc. - unless already handled)
-                if ctype not in {"function_definition", "class_definition", "import_statement", "import_from_statement"} and child.children:
+                if (
+                    ctype
+                    not in {
+                        "function_definition",
+                        "class_definition",
+                        "import_statement",
+                        "import_from_statement",
+                    }
+                    and child.children
+                ):
                     self._parse_python(
                         child,
                         content_bytes,
@@ -613,7 +683,9 @@ class ASTParser:
                         language=language,
                         chart_location=chart_location,
                     )
-                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
+                    self._append_symbol(
+                        symbols, sym, chart_location
+                    )  # dsa:ignore per-symbol registration
 
             elif ctype == "class_declaration":
                 if name_node:
@@ -632,7 +704,9 @@ class ASTParser:
                         language=language,
                         chart_location=chart_location,
                     )
-                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
+                    self._append_symbol(
+                        symbols, sym, chart_location
+                    )  # dsa:ignore per-symbol registration
 
                     if body_node:
                         self._parse_js_ts(
@@ -647,7 +721,11 @@ class ASTParser:
             elif ctype == "import_statement":
                 # 'import { foo, bar } from "mod"' or 'import defaultExport from "mod"'
                 source_node = next((c for c in child.children if c.type == "string"), None)
-                module_name = self._get_node_text(source_node, content_bytes).strip("'\"") if source_node else ""
+                module_name = (
+                    self._get_node_text(source_node, content_bytes).strip("'\"")
+                    if source_node
+                    else ""
+                )
 
                 imported_names = []
                 clause = next((c for c in child.children if c.type == "import_clause"), None)
@@ -660,14 +738,20 @@ class ASTParser:
                                 # Extract original name or alias
                                 sname_node = spec.child_by_field_name("name")
                                 if sname_node:
-                                    imported_names.append(self._get_node_text(sname_node, content_bytes))
+                                    imported_names.append(
+                                        self._get_node_text(sname_node, content_bytes)
+                                    )
                                 else:
                                     id_nodes = [n for n in spec.children if n.type == "identifier"]
                                     if id_nodes:
-                                        imported_names.append(self._get_node_text(id_nodes[0], content_bytes))
+                                        imported_names.append(
+                                            self._get_node_text(id_nodes[0], content_bytes)
+                                        )
 
                     # check for namespace import (e.g. * as utils)
-                    namespace = next((c for c in clause.children if c.type == "namespace_import"), None)
+                    namespace = next(
+                        (c for c in clause.children if c.type == "namespace_import"), None
+                    )
                     if namespace:
                         id_nodes = [n for n in namespace.children if n.type == "identifier"]
                         if id_nodes:
@@ -678,16 +762,27 @@ class ASTParser:
                     if default_id:
                         imported_names.append(self._get_node_text(default_id, content_bytes))
 
-                symbols.append(CodeSymbol(
-                    name=module_name,
-                    type=SymbolType.IMPORT,
-                    **loc,
-                    module=module_name,
-                    imported_names=imported_names
-                ))
+                symbols.append(
+                    CodeSymbol(
+                        name=module_name,
+                        type=SymbolType.IMPORT,
+                        **loc,
+                        module=module_name,
+                        imported_names=imported_names,
+                    )
+                )
 
             else:
-                if ctype not in {"function_declaration", "method_definition", "class_declaration", "import_statement"} and child.children:
+                if (
+                    ctype
+                    not in {
+                        "function_declaration",
+                        "method_definition",
+                        "class_declaration",
+                        "import_statement",
+                    }
+                    and child.children
+                ):
                     self._parse_js_ts(
                         child,
                         content_bytes,
@@ -884,7 +979,12 @@ class ASTParser:
                 arg = child.child_by_field_name("argument")
                 use_text = self._get_node_text(arg, content_bytes) if arg else ""
                 if not use_text:
-                    use_text = self._get_node_text(child, content_bytes).replace("use", "").replace(";", "").strip()
+                    use_text = (
+                        self._get_node_text(child, content_bytes)
+                        .replace("use", "")
+                        .replace(";", "")
+                        .strip()
+                    )
                 module_name = use_text.split("::")[0] if "::" in use_text else use_text
                 sym = CodeSymbol(
                     name=use_text,
@@ -898,7 +998,18 @@ class ASTParser:
                 self._append_symbol(symbols, sym, chart_location)  # dsa:ignore
 
             else:
-                if ctype not in {"struct_item", "enum_item", "trait_item", "impl_item", "function_item", "use_declaration"} and child.children:
+                if (
+                    ctype
+                    not in {
+                        "struct_item",
+                        "enum_item",
+                        "trait_item",
+                        "impl_item",
+                        "function_item",
+                        "use_declaration",
+                    }
+                    and child.children
+                ):
                     self._parse_rust(
                         child,
                         content_bytes,
@@ -927,10 +1038,17 @@ class ASTParser:
             body_text = self._get_node_text(body_node, content_bytes) if body_node else ""
             body_blocks = self._extract_body_blocks(body_node, content_bytes) if body_node else []
 
-            if ctype in {"class_declaration", "interface_declaration", "enum_declaration", "record_declaration"}:
+            if ctype in {
+                "class_declaration",
+                "interface_declaration",
+                "enum_declaration",
+                "record_declaration",
+            }:
                 if name_node:
                     super_node = child.child_by_field_name("superclass")
-                    super_text = self._get_node_text(super_node, content_bytes) if super_node else ""
+                    super_text = (
+                        self._get_node_text(super_node, content_bytes) if super_node else ""
+                    )
 
                     sym = CodeSymbol(
                         name=name_text,
@@ -989,7 +1107,13 @@ class ASTParser:
                     self._append_symbol(symbols, sym, chart_location)  # dsa:ignore
 
             elif ctype == "import_declaration":
-                imp_text = self._get_node_text(child, content_bytes).replace("import", "").replace("static", "").replace(";", "").strip()
+                imp_text = (
+                    self._get_node_text(child, content_bytes)
+                    .replace("import", "")
+                    .replace("static", "")
+                    .replace(";", "")
+                    .strip()
+                )
                 module_name = imp_text
                 imported_names = [imp_text.split(".")[-1]] if "." in imp_text else [imp_text]
                 sym = CodeSymbol(
@@ -1004,7 +1128,19 @@ class ASTParser:
                 self._append_symbol(symbols, sym, chart_location)  # dsa:ignore
 
             else:
-                if ctype not in {"class_declaration", "interface_declaration", "enum_declaration", "record_declaration", "method_declaration", "constructor_declaration", "import_declaration"} and child.children:
+                if (
+                    ctype
+                    not in {
+                        "class_declaration",
+                        "interface_declaration",
+                        "enum_declaration",
+                        "record_declaration",
+                        "method_declaration",
+                        "constructor_declaration",
+                        "import_declaration",
+                    }
+                    and child.children
+                ):
                     self._parse_java(
                         child,
                         content_bytes,
@@ -1125,7 +1261,9 @@ class ASTParser:
                 path_node = child.child_by_field_name("path")
                 path_text = self._get_node_text(path_node, content_bytes) if path_node else ""
                 if not path_text:
-                    path_text = self._get_node_text(child, content_bytes).replace("#include", "").strip()
+                    path_text = (
+                        self._get_node_text(child, content_bytes).replace("#include", "").strip()
+                    )
                 cleaned = path_text.strip('<">')
                 sym = CodeSymbol(
                     name=cleaned,
@@ -1139,7 +1277,16 @@ class ASTParser:
                 self._append_symbol(symbols, sym, chart_location)  # dsa:ignore
 
             else:
-                if ctype not in {"class_specifier", "struct_specifier", "function_definition", "preproc_include"} and child.children:
+                if (
+                    ctype
+                    not in {
+                        "class_specifier",
+                        "struct_specifier",
+                        "function_definition",
+                        "preproc_include",
+                    }
+                    and child.children
+                ):
                     self._parse_c_cpp(
                         child,
                         content_bytes,
@@ -1149,37 +1296,43 @@ class ASTParser:
                         chart_location=chart_location,
                     )
 
-    _TS_FUNCTION_TYPES = frozenset({
-        "function_item",
-        "function_declaration",
-        "function_definition",
-        "method_declaration",
-        "method_definition",
-        "subroutine",
-        "func_literal",
-    })
-    _TS_CLASS_TYPES = frozenset({
-        "class_declaration",
-        "class_definition",
-        "class_specifier",
-        "struct_item",
-        "struct_specifier",
-        "interface_declaration",
-        "type_declaration",
-        "type_spec",
-        "type_definition",
-        "enum_item",
-        "enum_declaration",
-        "record_declaration",
-        "trait_item",
-    })
-    _TS_IMPORT_TYPES = frozenset({
-        "use_declaration",
-        "import_declaration",
-        "import_statement",
-        "preproc_include",
-        "include_statement",
-    })
+    _TS_FUNCTION_TYPES = frozenset(
+        {
+            "function_item",
+            "function_declaration",
+            "function_definition",
+            "method_declaration",
+            "method_definition",
+            "subroutine",
+            "func_literal",
+        }
+    )
+    _TS_CLASS_TYPES = frozenset(
+        {
+            "class_declaration",
+            "class_definition",
+            "class_specifier",
+            "struct_item",
+            "struct_specifier",
+            "interface_declaration",
+            "type_declaration",
+            "type_spec",
+            "type_definition",
+            "enum_item",
+            "enum_declaration",
+            "record_declaration",
+            "trait_item",
+        }
+    )
+    _TS_IMPORT_TYPES = frozenset(
+        {
+            "use_declaration",
+            "import_declaration",
+            "import_statement",
+            "preproc_include",
+            "include_statement",
+        }
+    )
 
     def _parse_universal_tree_sitter(
         self,
@@ -1288,7 +1441,11 @@ class ASTParser:
                 self._append_symbol(symbols, sym, chart_location)  # dsa:ignore
 
             else:
-                if child.children and ctype not in self._TS_CLASS_TYPES and ctype not in self._TS_FUNCTION_TYPES:
+                if (
+                    child.children
+                    and ctype not in self._TS_CLASS_TYPES
+                    and ctype not in self._TS_FUNCTION_TYPES
+                ):
                     self._parse_universal_tree_sitter(  # dsa:ignore
                         child,
                         content_bytes,
@@ -1318,9 +1475,9 @@ class ASTParser:
     _RUBY_DEPTH_TOKENS_RE = re.compile(
         r"\b(?:class|module|def|if|unless|while|until|case|for|begin|do|end)\b"
     )
-    _RUBY_INC_KEYWORDS = frozenset({
-        "class", "module", "def", "if", "unless", "while", "until", "case", "for", "begin", "do"
-    })
+    _RUBY_INC_KEYWORDS = frozenset(
+        {"class", "module", "def", "if", "unless", "while", "until", "case", "for", "begin", "do"}
+    )
 
     def _parse_universal_fallback(
         self,
@@ -1461,8 +1618,12 @@ class ASTParser:
             else:
                 opens = line.count("{")
                 closes = line.count("}")
-                current_brace_depth += (opens - closes)
-                while scope_stack and current_brace_depth <= scope_stack[-1]["brace_depth"] and closes > 0:
+                current_brace_depth += opens - closes
+                while (
+                    scope_stack
+                    and current_brace_depth <= scope_stack[-1]["brace_depth"]
+                    and closes > 0
+                ):
                     closed = scope_stack.pop()
                     closed["end_line"] = line_num
 

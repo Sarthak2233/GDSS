@@ -43,9 +43,7 @@ def render_dot(graph: CodeGraph) -> str:
     for source, target, data in graph.g.edges(data=True):
         relation = data.get("relation", "")
         edge_attrs = f' [label="{_escape_dot(relation)}"]' if relation else ""
-        lines.append(
-            f'  "{_escape_dot(source)}" -> "{_escape_dot(target)}"{edge_attrs};'
-        )
+        lines.append(f'  "{_escape_dot(source)}" -> "{_escape_dot(target)}"{edge_attrs};')
 
     lines.append("}")
     return "\n".join(lines) + "\n"

@@ -17,6 +17,7 @@ web/app/globals.css (theme() references tokens).
 Degrades gracefully: if web/ does not exist, SKIP. Exits non-zero on violations.
 Output is agent-oriented: WHAT / WHY / FIX.
 """
+
 from __future__ import annotations
 
 import re
@@ -38,7 +39,7 @@ HEX_RE = re.compile(r"#[0-9a-fA-F]{3,8}\b")
 LINEAR_EASE_RE = re.compile(r'ease\s*:\s*["\']linear["\']')
 # Raw duration literals in ms/s inside transition/animation objects:
 #   duration: 300  /  duration: "300ms"  /  duration: 0.25
-RAW_DURATION_RE = re.compile(r'duration\s*:\s*([0-9]+(?:\.[0-9]+)?)(ms|s)?\b')
+RAW_DURATION_RE = re.compile(r"duration\s*:\s*([0-9]+(?:\.[0-9]+)?)(ms|s)?\b")
 MOTION_INTERACTIVE_RE = re.compile(r"\b(whileHover|whileTap|whileFocus|whileDrag)\b")
 REDUCED_MOTION_RE = re.compile(r"(useReducedMotion|prefers-reduced-motion|prefersReducedMotion)")
 
@@ -60,7 +61,7 @@ def scan_file(path: Path) -> list[str]:
     for m in HEX_RE.finditer(text):
         # Allow hex inside rgba()/theme() and in comments; only flag standalone hex.
         start = m.start()
-        before = text[max(0, start - 8): start]
+        before = text[max(0, start - 8) : start]
         if "rgba(" in before or "theme(" in before:
             continue
         findings.append(
@@ -114,14 +115,20 @@ def main() -> int:
         return 0
 
     exts = (".tsx", ".ts", ".css")
-    files = [p for p in WEB.rglob("*") if p.suffix in exts and "node_modules" not in p.parts and ".next" not in p.parts]
+    files = [
+        p
+        for p in WEB.rglob("*")
+        if p.suffix in exts and "node_modules" not in p.parts and ".next" not in p.parts
+    ]
 
     all_findings: list[str] = []
     for f in files:
         all_findings.extend(scan_file(f))
 
     if not all_findings:
-        print("frontend/token_fitness: OK (no raw tokens, no linear easing, reduced-motion present).")
+        print(
+            "frontend/token_fitness: OK (no raw tokens, no linear easing, reduced-motion present)."
+        )
         return 0
 
     print("frontend/token_fitness: FAIL")

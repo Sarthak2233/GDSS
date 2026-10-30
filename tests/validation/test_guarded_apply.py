@@ -1,4 +1,5 @@
 """Tests for gdss.validation.guarded_apply (Human-Approved Patch Apply)."""
+
 from __future__ import annotations
 
 import subprocess
@@ -27,9 +28,7 @@ def dummy_git_repo(tmp_path: Path) -> tuple[Path, str]:
 
     auth_file = repo_dir / "auth.py"
     auth_file.write_text(
-        "def login(user: str) -> bool:\n"
-        "    timeout = 10\n"
-        "    return bool(user)\n",
+        "def login(user: str) -> bool:\n    timeout = 10\n    return bool(user)\n",
         encoding="utf-8",
     )
     subprocess.run(["git", "add", "."], cwd=repo_dir, check=True)
@@ -154,6 +153,7 @@ def test_atomic_apply_dry_run(
     sug_dir = repo_dir / ".gdss" / "suggestions"
     sug_dir.mkdir(parents=True, exist_ok=True)
     import json
+
     (sug_dir / "sug_test123.json").write_text(json.dumps(sample_suggestion_data), encoding="utf-8")
 
     res = apply_suggestion(
@@ -178,6 +178,7 @@ def test_atomic_apply_success(
     sug_dir = repo_dir / ".gdss" / "suggestions"
     sug_dir.mkdir(parents=True, exist_ok=True)
     import json
+
     (sug_dir / "sug_test123.json").write_text(json.dumps(sample_suggestion_data), encoding="utf-8")
 
     res = apply_suggestion(
@@ -226,6 +227,7 @@ def test_atomic_apply_syntax_failure_triggers_automatic_rollback(
     sug_dir = repo_dir / ".gdss" / "suggestions"
     sug_dir.mkdir(parents=True, exist_ok=True)
     import json
+
     (sug_dir / "sug_broken.json").write_text(json.dumps(broken_sug), encoding="utf-8")
 
     res = apply_suggestion(
@@ -250,6 +252,7 @@ def test_manual_rollback_command(
     sug_dir = repo_dir / ".gdss" / "suggestions"
     sug_dir.mkdir(parents=True, exist_ok=True)
     import json
+
     (sug_dir / "sug_test123.json").write_text(json.dumps(sample_suggestion_data), encoding="utf-8")
 
     # 1. Apply
@@ -287,6 +290,7 @@ def test_cli_apply_dry_run_and_execution(
     sug_dir = repo_dir / ".gdss" / "suggestions"
     sug_dir.mkdir(parents=True, exist_ok=True)
     import json
+
     (sug_dir / "sug_test123.json").write_text(json.dumps(sample_suggestion_data), encoding="utf-8")
 
     # 1. CLI Help
@@ -314,5 +318,3 @@ def test_cli_apply_dry_run_and_execution(
     assert res_rb.exit_code == 0
     assert "Successfully restored" in res_rb.output
     assert "timeout = 10" in auth_file.read_text(encoding="utf-8")
-
-

@@ -1,226 +1,38 @@
 {
-  "gdss/cli/main.py": [
+  "gdss/ai/orchestration.py": [
     {
-      "lineno": 162,
-      "what": "Repeated function call 'parser.parse_file(file_path, old_content)' in function 'status'",
-      "why": "Calling 'parser.parse_file(file_path, old_content)' multiple times in the same function computes the same result repeatedly.",
+      "lineno": 110,
+      "what": "Repeated function call 'len(st.suggestions)' in function 'analyze_step'",
+      "why": "Calling 'len(st.suggestions)' multiple times in the same function computes the same result repeatedly.",
+      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
+    }
+  ],
+  "gdss/api/service.py": [
+    {
+      "lineno": 442,
+      "what": "Repeated function call 'parser.parse_file(f, oldc)' in function 'get_log'",
+      "why": "Calling 'parser.parse_file(f, oldc)' multiple times in the same function computes the same result repeatedly.",
       "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
     },
     {
-      "lineno": 155,
-      "what": "Repeated function call 'parser.parse_file(file_path, new_content)' in function 'status'",
-      "why": "Calling 'parser.parse_file(file_path, new_content)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 161,
-      "what": "Repeated function call 'observer.get_file_content_at_commit(base_sha, file_path)' in function 'status'",
-      "why": "Calling 'observer.get_file_content_at_commit(base_sha, file_path)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 140,
-      "what": "Repeated function call 'f.read()' in function 'status'",
-      "why": "Calling 'f.read()' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 154,
-      "what": "Repeated function call 'f.read()' in function 'status'",
-      "why": "Calling 'f.read()' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 153,
-      "what": "Repeated function call 'open(full_new_path, 'r', encoding='utf-8', errors='ignore')' in function 'status'",
-      "why": "Calling 'open(full_new_path, 'r', encoding='utf-8', errors='ignore')' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 121,
-      "what": "Linear membership test on list variable 'deleted_files'",
-      "why": "Checking membership on the list variable 'deleted_files' takes O(N) time.",
-      "fix": "Convert 'deleted_files' to a set (or use a set for membership queries) for O(1) lookup."
-    },
-    {
-      "lineno": 223,
-      "what": "Linear membership test with literal list/tuple",
-      "why": "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-      "fix": "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
-    },
-    {
-      "lineno": 308,
-      "what": "Repeated function call 'parser.parse_file(file_path, old_content)' in function 'log'",
-      "why": "Calling 'parser.parse_file(file_path, old_content)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 300,
-      "what": "Repeated function call 'parser.parse_file(file_path, new_content)' in function 'log'",
-      "why": "Calling 'parser.parse_file(file_path, new_content)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 307,
-      "what": "Repeated function call 'observer.get_file_content_at_commit(commit_a.hexsha, file_path)' in function 'log'",
-      "why": "Calling 'observer.get_file_content_at_commit(commit_a.hexsha, file_path)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 299,
-      "what": "Repeated function call 'observer.get_file_content_at_commit(commit_b.hexsha, file_path)' in function 'log'",
-      "why": "Calling 'observer.get_file_content_at_commit(commit_b.hexsha, file_path)' multiple times in the same function computes the same result repeatedly.",
+      "lineno": 435,
+      "what": "Repeated function call 'parser.parse_file(f, newc)' in function 'get_log'",
+      "why": "Calling 'parser.parse_file(f, newc)' multiple times in the same function computes the same result repeatedly.",
       "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
     }
   ],
   "gdss/core/ast_parser.py": [
     {
-      "lineno": 16,
-      "what": "Linear membership test with literal list/tuple",
-      "why": "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-      "fix": "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
-    },
-    {
-      "lineno": 19,
-      "what": "Linear membership test with literal list/tuple",
-      "why": "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-      "fix": "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
-    },
-    {
-      "lineno": 22,
-      "what": "Linear membership test with literal list/tuple",
-      "why": "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-      "fix": "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
-    },
-    {
-      "lineno": 58,
-      "what": "Linear membership test with literal list/tuple",
-      "why": "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-      "fix": "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
-    },
-    {
-      "lineno": 60,
-      "what": "Linear membership test with literal list/tuple",
-      "why": "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-      "fix": "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
-    },
-    {
-      "lineno": 73,
-      "what": "Linear membership test with literal list/tuple",
-      "why": "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-      "fix": "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
-    },
-    {
-      "lineno": 130,
-      "what": "Repeated function call 'child.child_by_field_name('name')' in function '_parse_python'",
-      "why": "Calling 'child.child_by_field_name('name')' multiple times in the same function computes the same result repeatedly.",
+      "lineno": 533,
+      "what": "Repeated function call 'self._append_symbol(symbols, sym, chart_location)' in function '_parse_python'",
+      "why": "Calling 'self._append_symbol(symbols, sym, chart_location)' multiple times in the same function computes the same result repeatedly.",
       "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
     },
     {
-      "lineno": 131,
-      "what": "Repeated function call 'child.child_by_field_name('body')' in function '_parse_python'",
-      "why": "Calling 'child.child_by_field_name('body')' multiple times in the same function computes the same result repeatedly.",
+      "lineno": 707,
+      "what": "Repeated function call 'self._append_symbol(symbols, sym, chart_location)' in function '_parse_js_ts'",
+      "why": "Calling 'self._append_symbol(symbols, sym, chart_location)' multiple times in the same function computes the same result repeatedly.",
       "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 134,
-      "what": "Repeated function call 'self._get_node_text(name_node, content)' in function '_parse_python'",
-      "why": "Calling 'self._get_node_text(name_node, content)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 135,
-      "what": "Repeated function call 'self._get_node_text(body_node, content)' in function '_parse_python'",
-      "why": "Calling 'self._get_node_text(body_node, content)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 188,
-      "what": "Linear membership test with literal list/tuple",
-      "why": "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-      "fix": "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
-    },
-    {
-      "lineno": 205,
-      "what": "Linear membership test with literal list/tuple",
-      "why": "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-      "fix": "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
-    },
-    {
-      "lineno": 238,
-      "what": "Repeated function call 'child.child_by_field_name('name')' in function '_parse_js_ts'",
-      "why": "Calling 'child.child_by_field_name('name')' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 239,
-      "what": "Repeated function call 'child.child_by_field_name('body')' in function '_parse_js_ts'",
-      "why": "Calling 'child.child_by_field_name('body')' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 242,
-      "what": "Repeated function call 'self._get_node_text(name_node, content)' in function '_parse_js_ts'",
-      "why": "Calling 'self._get_node_text(name_node, content)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 278,
-      "what": "Repeated function call 'self._get_node_text(name_node, content)' in function '_parse_js_ts'",
-      "why": "Calling 'self._get_node_text(name_node, content)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 243,
-      "what": "Repeated function call 'self._get_node_text(body_node, content)' in function '_parse_js_ts'",
-      "why": "Calling 'self._get_node_text(body_node, content)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 211,
-      "what": "Linear membership test with literal list/tuple",
-      "why": "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-      "fix": "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
-    },
-    {
-      "lineno": 306,
-      "what": "Linear membership test with literal list/tuple",
-      "why": "Checking membership ('in' / 'not in') against a list/tuple literal takes O(N) time.",
-      "fix": "Convert the literal to a set (e.g., using '{...}') for O(1) average lookup time."
-    }
-  ],
-  "gdss/core/transform_extractor.py": [
-    {
-      "lineno": 124,
-      "what": "Repeated function call 'list(deleted_names)' in function '_extract_function_ops'",
-      "why": "Calling 'list(deleted_names)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 74,
-      "what": "Repeated function call 'list(added_names)' in function '_extract_function_ops'",
-      "why": "Calling 'list(added_names)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 200,
-      "what": "Repeated function call 'list(deleted_names)' in function '_extract_class_ops'",
-      "why": "Calling 'list(deleted_names)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    },
-    {
-      "lineno": 159,
-      "what": "Repeated function call 'list(added_names)' in function '_extract_class_ops'",
-      "why": "Calling 'list(added_names)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    }
-  ],
-  "gdss/graph/code_graph.py": [
-    {
-      "lineno": 157,
-      "what": "NetworkX graph reverse copy",
-      "why": "Calling '.reverse(copy=True)' copies the entire graph, which is highly inefficient for large graphs.",
-      "fix": "Use '.reverse(copy=False)' to return a read-only view of the reversed graph without copying memory."
     }
   ]
 }

@@ -223,6 +223,7 @@ class DriftEngine:
         branch: str,
         reference_branch: str,
     ) -> float:
+        """ Cosine distance between neural embedding centroids of symbols at the two branch tips."""
         branch_syms = self._symbols_at_commit(branch_sha)
         ref_syms = self._symbols_at_commit(ref_sha)
         if not branch_syms and not ref_syms:

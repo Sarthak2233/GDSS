@@ -81,10 +81,10 @@ Real-world production repositories contain far more than just application source
 
 ## Core Guarantees & Invariants
 
-> [!IMPORTANT]
+> [IMPORTANT]
 > **Zero False Negatives Invariant**: If two concurrent branches modify **any** identical file in a repository (regardless of whether it is Python, TypeScript, SQL, JSON, YAML, or plain text), GDSS will **never** report $\Omega_{ij} = 0.0$ ("All Clear"). It guarantees emission of at least a `lexical_overlap` advisory.
 
-> [!NOTE]
+> [NOTE]
 > **Zero Token Bleed Lockfile Reconciliation**: GDSS never asks LLMs to textually synthesize or diff lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `Cargo.lock`, `poetry.lock`). Instead, the validation sandbox invokes native package managers (`pnpm install --lockfile-only`, `cargo generate-lockfile`) against reconciled manifests in an ephemeral Git worktree.
 
 ---

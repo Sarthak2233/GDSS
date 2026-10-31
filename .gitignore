@@ -41,5 +41,9 @@ AGENTS.md
 .cursor/plans/
 
 
+# Nested Standalone Distribution Repositories
+gdss-radar/
+gdss-radar-action/
+
 diff.txt
 my_graph.dot

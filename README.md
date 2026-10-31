@@ -185,19 +185,24 @@ claude mcp add gdss -- gdss mcp
 
 ### 🛠 Installation
 
-GDSS is designed to run locally on developer hardware without requiring a dedicated GPU.
+GDSS is designed to run locally on developer hardware at $0 token cost. Choose the installation method that fits your workflow:
 
 ```bash
-# Clone the repository and install in editable mode
-git clone https://github.com/sbasnet/GDSS.git
+# Option 1: Standalone binary (Linux & macOS) — Recommended for CLI & IDE MCP
+# Requires no Python, virtualenv, or dependency setup
+curl -fsSL https://raw.githubusercontent.com/sarthak2233/GDSS/main/install.sh | bash
+
+# Or via Homebrew (macOS)
+brew tap sarthak2233/tap && brew install gdss
+```
+
+```bash
+# Option 2: Building from source (Contributors & Researchers)
+git clone https://github.com/Sarthak2233/GDSS.git
 cd GDSS
-pip install -e .
 
-# For development (includes ruff, mypy, pytest)
-pip install -e ".[dev]"
-
-# Optional: semantic embedding search (faiss-cpu, onnxruntime)
-pip install -e ".[embeddings]"
+# Bootstrap python virtual environment, install editable package, and run health checks
+bash harness/init.sh
 
 # Verify the three-layer harness gate
 bash harness/verify.sh
@@ -399,7 +404,7 @@ GDSS delivers proactive branch collision intelligence directly inside your pull 
 
 ### Drop-in Workflow (`.github/workflows/gdss-radar.yml`)
 
-Add this workflow to your repository to activate PR collision audits in 2 minutes:
+Add this workflow to your repository to activate PR collision audits via the GitHub Marketplace Action in 2 minutes:
 
 ```yaml
 name: GDSS PR Collision Radar
@@ -418,20 +423,19 @@ jobs:
     name: Audit Cross-Branch PR Collisions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository with full history
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+
+      - name: Run GDSS PR Collision Radar
+        uses: sarthak2233/gdss-radar-action@v1
         with:
-          python-version: "3.11"
-      - run: pip install gdss
-      - name: Run Collision Audit
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_EVENT_PATH: ${{ github.event_path }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: gdss audit-pr
+          token: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+> [!TIP]
+> `sarthak2233/gdss-radar-action@v1` runs a pre-compiled container (`ghcr.io/sarthak2233/gdss-runner:v1`) directly on GitHub's runner with **zero Python setup required**.
 
 > 📖 **Full User & Setup Guide:** See [`docs/GITHUB_ACTIONS_GUIDE.md`](docs/GITHUB_ACTIONS_GUIDE.md) for blocking vs. informational modes, `.gdss.yml` configuration schema, and fork security.
 

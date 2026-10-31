@@ -48,23 +48,50 @@ GDSS builds a **deterministic semantic intelligence layer above Git**:
 
 ## 📦 Installation & Quickstart
 
-### Prerequisites
-- **Python 3.11+** installed
-- **Git 2.25+** installed
-- *(Optional for Web UI)* **Node.js 18+** & **pnpm**
+Choose the distribution method that matches your workflow:
 
-### Local Installation
+### Option 1: Standalone Binary (Recommended for CLI & IDE MCP)
+> **Best for individual developers using Cursor, Claude Code, Copilot, or the terminal.**  
+> Pre-compiled native executable. Requires **no Python, virtualenv, or dependency setup**.
+
+```bash
+# Linux (x86_64) & macOS (Apple Silicon / Intel)
+curl -fsSL https://raw.githubusercontent.com/sarthak2233/GDSS/main/install.sh | bash
+
+# Or via Homebrew (macOS)
+brew tap sarthak2233/tap && brew install gdss
+
+# Verify installation
+gdss --help
+```
+
+### Option 2: GitHub Marketplace Action (Recommended for Teams & CI/CD)
+> **Best for engineering teams and PR reviewers.**  
+> Zero local installation. Runs the pre-built container image in your repository's CI pipeline:
+
+```yaml
+# In .github/workflows/gdss-radar.yml
+- name: Run GDSS PR Collision Radar
+  uses: sarthak2233/gdss-radar-action@v1
+  with:
+    token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Option 3: Building from Source (Contributors)
+> **For developers contributing code, tests, or language parsers to the GDSS engine.**
+
 ```bash
 # Clone the repository
 git clone https://github.com/Sarthak2233/GDSS.git
 cd GDSS
 
-# Bootstrap environment (creates venv and installs editable CLI)
+# Bootstrap python virtual environment, editable install, and health checks
 bash harness/init.sh
 
-# Verify installation
-gdss --help
+# Verify tests and verification gate
+bash harness/verify.sh
 ```
+*For contributor workflows, architecture boundaries, and TDD guides, see [`CONTRIBUTING.md`](../CONTRIBUTING.md).*
 
 ---
 
@@ -332,23 +359,26 @@ jobs:
     name: Audit Cross-Branch PR Collisions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository with full history
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+
+      - name: Run GDSS PR Collision Radar
+        uses: sarthak2233/gdss-radar-action@v1
         with:
-          python-version: "3.11"
-      - run: pip install gdss
-      - name: Run Collision Audit
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_EVENT_PATH: ${{ github.event_path }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        # Can use .gdss.yml defaults or override on CLI:
-        run: gdss audit-pr --branches "feature/*" --exclude "dependabot/*" --same-base-only
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Optional inputs (defaults shown):
+          # threshold: "0.1"
+          # fail_on_collision: "false"
+          # provider: "github-models"
+          # model: "gpt-4o"
 ```
 
-> 📖 **Full CI/CD Guide:** See [`docs/GITHUB_ACTIONS_GUIDE.md`](GITHUB_ACTIONS_GUIDE.md) for blocking vs. informational modes, fork handling, and configuration options.
+> [!TIP]
+> **Zero Python Setup Required:** `sarthak2233/gdss-radar-action@v1` runs a pre-compiled container (`ghcr.io/sarthak2233/gdss-runner:v1`) directly on GitHub's runner, so you don't need `setup-python` or `pip install`.
+>
+> 📖 **Full CI/CD Guide:** See [`docs/GITHUB_ACTIONS_GUIDE.md`](GITHUB_ACTIONS_GUIDE.md) for custom container runners, blocking vs. informational modes, fork handling, and configuration options.
 
 ---
 

@@ -1,0 +1,32 @@
+# Git & Version Control
+.git/
+.gitignore
+
+# Environments & Caches
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Sub-projects & Docs
+web/
+harness/
+docs/
+assets/
+tests/
+gdss-radar/
+gdss-radar-action/
+
+# Secrets & Local Config
+.env
+*.log
+

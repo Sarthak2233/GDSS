@@ -38,5 +38,7 @@ If you are an engineer or researcher contributing code, fixing bugs, or adding l
   - Feedforward guide for AI coding agents and automated workflows in this repository.
 - **[Product Specification (`PRODUCT_SPEC.md`)](PRODUCT_SPEC.md)**:
   - Canonical specification, 31 user stories, implementation decisions, and roadmap status.
+- **[Distribution & Go-to-Market Plan (`docs/DISTRIBUTION_PLAN.md`)](docs/DISTRIBUTION_PLAN.md)**:
+  - Phased rollout strategy: Closed-source GitHub Marketplace Action (A) and Compiled Binary CLI/MCP (C) for immediate distribution, leading to a hosted Enterprise GitHub App (B).
 - **[Product Intent & Philosophy (`docs/PRODUCT_INTENT.md`)](docs/PRODUCT_INTENT.md)**:
   - North Star goals, non-goals, and two-brain honesty rules.

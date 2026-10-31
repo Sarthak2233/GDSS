@@ -3,6 +3,27 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-10-31 - GitHub Marketplace Action (`gdss-radar`), GHCR Container Distribution & Production Documentation
+
+- **Closed-Source Container Runner & Automated GHCR Pipeline**:
+  - Implemented multi-stage production [`Dockerfile`](Dockerfile) with OCI source metadata, git safe directory configurations, and clean non-root packaging.
+  - Authored [`.github/workflows/publish-container.yml`](.github/workflows/publish-container.yml) with automatic triggers on `main` push and manual workflow dispatch, building and publishing `ghcr.io/sarthak2233/gdss-runner:latest` and `:v1`.
+  - Added `gdss-radar/` and `gdss-radar-action/` to `.gitignore`.
+- **Dedicated Public Marketplace Repository (`gdss-radar/`)**:
+  - Initialized isolated Git repository under `gdss-radar/` with MIT License and `action.yml` leveraging `docker://ghcr.io/sarthak2233/gdss-runner:latest`.
+  - Authored comprehensive [`gdss-radar/README.md`](gdss-radar/README.md):
+    - Documented the 7 core intelligence layers minimally (Git DAG Observer, Multi-Language AST Parser, Semantic Transform Algebra, Blast Radius Graph, Pairwise Collision Radar, Ephemeral Worktree Sandbox, Sandboxed AI Convergence Assistant).
+    - Established `.gdss.yml` at the repo root as the single source of truth.
+    - Explained the Golden Rule: explicitly declaring `context_window: 128000` to avoid conservative 16k heuristic fallback constriction and unlock up to 45% of token capacity for rich AST symbol representations.
+    - Added stack-specific recipes (TypeScript/Node.js, Python, Go) and strict branch protection gating (`fail_on_collision: true`).
+  - Authored annotated starter template [`gdss-radar/.gdss.yml.example`](gdss-radar/.gdss.yml.example).
+  - Committed changes cleanly in `gdss-radar/` on `main` (`commit 52c417b`).
+- **Verification Evidence**:
+  - `bash harness/sensors/lint.sh`: OK (ruff clean).
+  - `python harness/sensors/architecture_fitness.py`: OK (layer direction + two-brain purity hold).
+  - Both `GDSS` and `gdss-radar/` working trees are clean.
+
+
 ## 2026-10-28 - Universal Multi-Asset Intelligence, Domain Reducers & Native Lockfile Reconciliation
 
 - **Universal Multi-Asset Collision Engine (`gdss/reducers/`)**:

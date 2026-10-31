@@ -32,7 +32,9 @@ def divergent_repo(repo_path):
     repo.head.reset(index=True, working_tree=True)
     path = os.path.join(repo_path, "a.py")
     with open(path, "w") as f:
-        f.write('"""Feature docstring."""\n\ndef function_1():\n    return 24\n\ndef function_2():\n    return "new"\n')
+        f.write(
+            '"""Feature docstring."""\n\ndef function_1():\n    return 24\n\ndef function_2():\n    return "new"\n'
+        )
     repo.index.add(["a.py"])
     repo.index.commit("Feature commit")
     return repo_path, base_name

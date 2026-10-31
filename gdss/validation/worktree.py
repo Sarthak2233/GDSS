@@ -3,6 +3,7 @@
 Allows GDSS to execute dry-run candidate patches, syntax compilation,
 and test suites without mutating the developer's working directory or index.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -66,7 +67,9 @@ def ephemeral_worktree(repo_path: Path, base_ref: str = "HEAD") -> Iterator[Path
             )
             if res.returncode == 0:
                 created_worktree = True
-                logger.info("Successfully created git worktree at %s (base_ref=%s)", temp_str, base_ref)
+                logger.info(
+                    "Successfully created git worktree at %s (base_ref=%s)", temp_str, base_ref
+                )
                 yield temp_dir
                 return
             logger.warning(
@@ -77,7 +80,12 @@ def ephemeral_worktree(repo_path: Path, base_ref: str = "HEAD") -> Iterator[Path
 
         # Fallback for non-git or worktree error: shallow copy
         logger.debug("Copying repository to %s for isolated sandbox", temp_str)
-        shutil.copytree(resolved_repo, temp_dir, dirs_exist_ok=True, ignore=shutil.ignore_patterns(".git", "venv", "node_modules", ".venv"))
+        shutil.copytree(
+            resolved_repo,
+            temp_dir,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns(".git", "venv", "node_modules", ".venv"),
+        )
         yield temp_dir
     finally:
         if created_worktree:

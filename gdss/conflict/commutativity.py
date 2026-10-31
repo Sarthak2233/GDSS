@@ -34,6 +34,8 @@ _DELETE = {
     OperatorType.DELETE_FILE,
     OperatorType.REMOVE_IMPORT,
     OperatorType.REMOVE_DEPENDENCY,
+    OperatorType.SCHEMA_DROP_TABLE,
+    OperatorType.SCHEMA_DROP_COLUMN,
 }
 _MODIFY = {
     OperatorType.MODIFY_FUNCTION,
@@ -41,6 +43,10 @@ _MODIFY = {
     OperatorType.MODIFY_DEPENDENCY,
     OperatorType.MODIFY_VARIABLE,
     OperatorType.MODIFY_CONSTANT,
+    OperatorType.SCHEMA_MODIFY_TABLE,
+    OperatorType.SCHEMA_MODIFY_COLUMN,
+    OperatorType.DOC_SECTION_MODIFY,
+    OperatorType.LEXICAL_CHUNK_EDIT,
 }
 _ADD = {
     OperatorType.ADD_FUNCTION,
@@ -48,11 +54,25 @@ _ADD = {
     OperatorType.ADD_FILE,
     OperatorType.ADD_IMPORT,
     OperatorType.ADD_DEPENDENCY,
+    OperatorType.SCHEMA_ADD_TABLE,
+    OperatorType.SCHEMA_ADD_COLUMN,
+    OperatorType.DOC_SECTION_APPEND,
+}
+_MIGRATION_HAZARDS = {
+    OperatorType.MIGRATION_STEP,
+    OperatorType.SPLIT_HEAD_HAZARD,
+    OperatorType.MIGRATION_JOURNAL_CLASH,
 }
 
 
 def _type_pair_class(a: OperatorType, b: OperatorType) -> CommutativityClass:
     """Classify two operator *types* assuming same-symbol contact."""
+    # Migration parent contact is strictly a hazard / interference
+    if a in _MIGRATION_HAZARDS or b in _MIGRATION_HAZARDS:
+        return CommutativityClass.INTERFERE
+    # Documentation section appends can commute (union merge)
+    if a == OperatorType.DOC_SECTION_APPEND and b == OperatorType.DOC_SECTION_APPEND:
+        return CommutativityClass.COMMUTE
     if a in _RENAME and b in _DELETE:
         return CommutativityClass.INTERFERE
     if b in _RENAME and a in _DELETE:
@@ -180,6 +200,11 @@ def operator_interference(
                 interfering += 1
 
     if contacts > 0 or interfering > 0:
-        logger.debug("Operator interference check: %d interfering, %d contacts across %d x %d ops",
-                     interfering, contacts, len(branch_ops), len(other_ops))
+        logger.debug(
+            "Operator interference check: %d interfering, %d contacts across %d x %d ops",
+            interfering,
+            contacts,
+            len(branch_ops),
+            len(other_ops),
+        )
     return interfering, contacts

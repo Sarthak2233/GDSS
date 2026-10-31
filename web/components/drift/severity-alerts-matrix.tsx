@@ -4,7 +4,6 @@ import React, { useState, useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { duration, easing } from "@/lib/motion";
 import { colors } from "@/lib/tokens";
-import { DriftEmptyState } from "@/components/drift/drift-empty-state";
 import { DriftErrorState } from "@/components/drift/drift-error-state";
 
 export interface DriftAlertItem {
@@ -120,10 +119,6 @@ export function SeverityAlertsMatrix({
     return <DriftErrorState error={error} />;
   }
 
-  if (alerts.length === 0) {
-    return <DriftEmptyState />;
-  }
-
   return (
     <div
       className="w-full flex flex-col gap-6 rounded-xl border border-border bg-surfaceGlass p-6"
@@ -205,7 +200,19 @@ export function SeverityAlertsMatrix({
       )}
 
       {/* Alerts Matrix / List */}
-      {filteredAlerts.length === 0 ? (
+      {alerts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-8 text-center rounded-lg border border-border/60 bg-surface/30 gap-2">
+          <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-semibold uppercase tracking-wider bg-success/15 text-success border border-success/40">
+            Commutative Equilibrium
+          </span>
+          <p className="text-sm font-medium text-text mt-1">
+            Repository geometry is stable around the attractor
+          </p>
+          <p className="text-xs text-textMuted font-mono max-w-md">
+            All active branch trajectories remain within acceptable drift thresholds. No immediate semantic collisions detected against the reference attractor.
+          </p>
+        </div>
+      ) : filteredAlerts.length === 0 ? (
         <div className="p-8 text-center rounded-lg border border-border bg-surface/50 text-sm text-textMuted">
           No alerts match the selected severity ({activeSeverity}) or branch ({activeBranch}).
         </div>

@@ -3,6 +3,7 @@
 Allows GDSS validation to remain completely agnostic of repository layout
 (flat repos, multi-service directories, monorepos, Bazel, etc.).
 """
+
 from __future__ import annotations
 
 import os

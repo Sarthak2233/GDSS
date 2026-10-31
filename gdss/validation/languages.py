@@ -3,6 +3,7 @@
 Enables GDSS to easily extend validation, syntax parsing, typechecking,
 and testing to any programming language beyond the core defaults.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -73,7 +74,12 @@ def get_default_registry() -> LanguageRegistry:
             extensions=[".ts", ".tsx"],
             default_test_cmd="pnpm test {test_file}",
             default_typecheck_cmd="tsc --noEmit",
-            test_file_patterns=["{name}.test.ts", "{name}.test.tsx", "{name}.spec.ts", "{name}.spec.tsx"],
+            test_file_patterns=[
+                "{name}.test.ts",
+                "{name}.test.tsx",
+                "{name}.spec.ts",
+                "{name}.spec.tsx",
+            ],
         )
     )
     registry.register(

@@ -3,6 +3,7 @@
 Provides preflight security, AST symbol validation, atomic patch application,
 automatic syntax verification rollback, and manual undo without Git mutations.
 """
+
 from __future__ import annotations
 
 import difflib
@@ -192,7 +193,11 @@ def preflight_check(
     # 4. Freshness check against Git HEAD
     active_head = current_head_sha or get_git_head_sha(root_path)
     target_commit = suggestion_data.get("target_commit", "")
-    if target_commit and active_head and target_commit.strip().lower() != active_head.strip().lower():
+    if (
+        target_commit
+        and active_head
+        and target_commit.strip().lower() != active_head.strip().lower()
+    ):
         what = f"Stale suggestion '{suggestion_id}'"
         why = f"Suggestion was calculated for commit {target_commit[:10]}, but current HEAD is {active_head[:10]}."
         fix = "Run 'gdss suggest' to regenerate fresh candidate suggestions against current HEAD."
@@ -356,14 +361,21 @@ def apply_suggestion(
         return _fail_apply(suggestion_id, "", "", what, why, fix)
 
     # 1. Run guarded preflight check
-    logger.info("Executing guarded apply for suggestion '%s' (strategy=%s, dry_run=%s)", suggestion_id, strategy_name, dry_run)
+    logger.info(
+        "Executing guarded apply for suggestion '%s' (strategy=%s, dry_run=%s)",
+        suggestion_id,
+        strategy_name,
+        dry_run,
+    )
     preflight = preflight_check(
         suggestion_data=suggestion_data,
         repo_root=root_path,
         strategy_name=strategy_name,
     )
     if not preflight.valid or preflight.target_file is None or preflight.patch_text is None:
-        logger.warning("Preflight check rejected apply for suggestion '%s': %s", suggestion_id, preflight.what)
+        logger.warning(
+            "Preflight check rejected apply for suggestion '%s': %s", suggestion_id, preflight.what
+        )
         return ApplyResult(
             success=False,
             suggestion_id=suggestion_id,
@@ -473,7 +485,11 @@ def rollback_suggestion(
         target_file = (root_path / rel_path).resolve()
         target_file.write_text(original_content, encoding="utf-8")
         rb_file.unlink(missing_ok=True)
-        logger.info("Successfully restored '%s' from rollback snapshot for suggestion '%s'", rel_path, suggestion_id)
+        logger.info(
+            "Successfully restored '%s' from rollback snapshot for suggestion '%s'",
+            rel_path,
+            suggestion_id,
+        )
         return RollbackResult(
             success=True,
             suggestion_id=suggestion_id,

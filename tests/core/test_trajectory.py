@@ -32,10 +32,7 @@ def branched_repo():
     repo.head.reference = feature
     repo.head.reset(index=True, working_tree=True)
     with open(path, "w") as f:
-        f.write(
-            "def add(a, b):\n    return a + b\n\n"
-            "def mul(a, b):\n    return a * b\n"
-        )
+        f.write("def add(a, b):\n    return a + b\n\ndef mul(a, b):\n    return a * b\n")
     repo.index.add(["calc.py"])
     repo.index.commit("add mul")
 

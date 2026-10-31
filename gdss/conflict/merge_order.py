@@ -74,9 +74,7 @@ def plan_merge_order(
             ),
         )
     else:
-        seed_index, seed_operator = next(
-            (item for item in indexed if item[1] == seed), indexed[0]
-        )
+        seed_index, seed_operator = next((item for item in indexed if item[1] == seed), indexed[0])
 
     remaining = [item for item in indexed if item[0] != seed_index]
     order: list[Hashable] = [seed_operator]
@@ -98,8 +96,13 @@ def plan_merge_order(
         proposed_cost=_sequence_cost(order, costs),
         steps=tuple(steps),
     )
-    logger.info("Planned merge order for %d branches: %s (baseline cost: %.2f, proposed cost: %.2f)",
-                len(operators), [str(x) for x in plan.order], plan.baseline_cost, plan.proposed_cost)
+    logger.info(
+        "Planned merge order for %d branches: %s (baseline cost: %.2f, proposed cost: %.2f)",
+        len(operators),
+        [str(x) for x in plan.order],
+        plan.baseline_cost,
+        plan.proposed_cost,
+    )
     return plan
 
 

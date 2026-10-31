@@ -51,7 +51,9 @@ class TransformExtractor:
         return False
 
     def _rename_allowed(self, del_sym: CodeSymbol, add_sym: CodeSymbol, score: float) -> bool:
-        if not self._is_valid_identifier(del_sym.name) or not self._is_valid_identifier(add_sym.name):
+        if not self._is_valid_identifier(del_sym.name) or not self._is_valid_identifier(
+            add_sym.name
+        ):
             return False
         if del_sym.name == add_sym.name:
             return False
@@ -132,7 +134,10 @@ class TransformExtractor:
                 continue
             if old_block.structural_tokens != new_block.structural_tokens:
                 changed.append(block_id)
-            elif old_block.start_line != new_block.start_line or old_block.end_line != new_block.end_line:
+            elif (
+                old_block.start_line != new_block.start_line
+                or old_block.end_line != new_block.end_line
+            ):
                 # formatting-only line shift within same block shape
                 pass
 
@@ -185,7 +190,9 @@ class TransformExtractor:
 
         for key in sorted(deleted):
             operators.append(
-                SemanticOperator(OperatorType.REMOVE_DEPENDENCY, file, commit, name=old_map[key].name)
+                SemanticOperator(
+                    OperatorType.REMOVE_DEPENDENCY, file, commit, name=old_map[key].name
+                )
             )
         for key in sorted(added):
             operators.append(

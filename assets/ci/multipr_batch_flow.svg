@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 420" width="100%" height="420">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="tensorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <linearGradient id="triGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#5b21b6"/>
+    </linearGradient>
+
+    <linearGradient id="sandboxGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+
+    <linearGradient id="commentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <!-- Arrow Markers -->
+    <marker id="arrow-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#34d399"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1020" height="420" rx="16" fill="url(#bgGrad)" stroke="#1e293b" stroke-width="2"/>
+
+  <!-- Title & Subtitle -->
+  <text x="40" y="44" font-family="Segoe UI, Roboto, sans-serif" font-size="20" font-weight="700" fill="#f8fafc">
+    🔀 GDSS Multi-PR Batch Handling: Pairwise 3-Way Triangles in 1 CI Run
+  </text>
+  <text x="40" y="68" font-family="Segoe UI, Roboto, sans-serif" font-size="13" fill="#94a3b8">
+    Audits N concurrent PRs in one workflow without prompt explosion by evaluating isolated 3-way AST triangles
+  </text>
+
+  <!-- Step 1: Autonomous Discovery -->
+  <g transform="translate(40, 105)">
+    <rect width="160" height="195" rx="12" fill="#1e293b" stroke="#06b6d4" stroke-width="2"/>
+    <rect x="0" y="0" width="160" height="34" rx="12" fill="url(#cyanGrad)"/>
+    <text x="80" y="22" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">1. DISCOVERY (1 RUN)</text>
+    <text x="12" y="55" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0">Trigger: PR #42</text>
+    <text x="12" y="74" font-family="monospace" font-size="10" fill="#7dd3fc">GET /pulls?state=open</text>
+    <text x="12" y="98" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="600" fill="#94a3b8">Discovered 5 PRs:</text>
+    <text x="12" y="116" font-family="monospace" font-size="9" fill="#38bdf8">• #39 (billing-v2)</text>
+    <text x="12" y="132" font-family="monospace" font-size="9" fill="#38bdf8">• #40 (docs-update)</text>
+    <text x="12" y="148" font-family="monospace" font-size="9" fill="#38bdf8">• #41 (feature-auth)</text>
+    <text x="12" y="164" font-family="monospace" font-size="9" fill="#38bdf8">• #43, #44 (infra)</text>
+    <rect x="10" y="173" width="140" height="16" rx="4" fill="#0f172a"/>
+    <text x="80" y="185" font-family="Segoe UI, Roboto, sans-serif" font-size="8" fill="#64748b" text-anchor="middle">All target base 'main'</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <line x1="200" y1="202" x2="235" y2="202" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow-cyan)"/>
+
+  <!-- Step 2: Deterministic Tensor Filter -->
+  <g transform="translate(240, 105)">
+    <rect width="170" height="195" rx="12" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+    <rect x="0" y="0" width="170" height="34" rx="12" fill="url(#tensorGrad)"/>
+    <text x="85" y="22" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">2. LOCAL TENSOR (Ω_ij)</text>
+    <text x="12" y="55" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0">$0 Token Evaluation:</text>
+    <text x="12" y="74" font-family="monospace" font-size="10" fill="#fbbf24">• Pairwise AST matrix</text>
+    <text x="12" y="96" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="600" fill="#a7f3d0">Non-Colliding (Clear):</text>
+    <text x="12" y="112" font-family="monospace" font-size="9" fill="#94a3b8">#40, #43, #44 (Ω = 0.0)</text>
+    <text x="12" y="134" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="600" fill="#f87171">Collisions Detected:</text>
+    <text x="12" y="150" font-family="monospace" font-size="9" fill="#fca5a5">• #41 (auth): Ω = 0.85</text>
+    <text x="12" y="166" font-family="monospace" font-size="9" fill="#fca5a5">• #39 (pay):  Ω = 0.62</text>
+    <rect x="10" y="173" width="150" height="16" rx="4" fill="#0f172a"/>
+    <text x="85" y="185" font-family="Segoe UI, Roboto, sans-serif" font-size="8" fill="#fbbf24" text-anchor="middle">Filters out non-colliding</text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <line x1="410" y1="202" x2="445" y2="202" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow-cyan)"/>
+
+  <!-- Step 3: Isolated 3-Way Triangles -->
+  <g transform="translate(450, 105)">
+    <rect width="180" height="195" rx="12" fill="#1e293b" stroke="#7c3aed" stroke-width="2"/>
+    <rect x="0" y="0" width="180" height="34" rx="12" fill="url(#triGrad)"/>
+    <text x="90" y="22" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">3. 3-WAY TRIANGLES</text>
+    <text x="12" y="55" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0">One PR At A Time:</text>
+    <rect x="8" y="65" width="164" height="48" rx="6" fill="#0f172a" stroke="#4c1d95"/>
+    <text x="14" y="80" font-family="Segoe UI, Roboto, sans-serif" font-size="9" font-weight="700" fill="#c084fc">Triangle 1: PR #41</text>
+    <text x="14" y="94" font-family="monospace" font-size="8" fill="#94a3b8">V_base + V_42 + V_41</text>
+    <text x="14" y="106" font-family="Segoe UI, Roboto, sans-serif" font-size="8" fill="#38bdf8">login() signature change</text>
+
+    <rect x="8" y="120" width="164" height="48" rx="6" fill="#0f172a" stroke="#4c1d95"/>
+    <text x="14" y="135" font-family="Segoe UI, Roboto, sans-serif" font-size="9" font-weight="700" fill="#c084fc">Triangle 2: PR #39</text>
+    <text x="14" y="149" font-family="monospace" font-size="8" fill="#94a3b8">V_base + V_42 + V_39</text>
+    <text x="14" y="161" font-family="Segoe UI, Roboto, sans-serif" font-size="8" fill="#38bdf8">apply_discount() param</text>
+
+    <text x="90" y="185" font-family="Segoe UI, Roboto, sans-serif" font-size="8" fill="#a78bfa" text-anchor="middle">Zero N-way prompt bleed</text>
+  </g>
+
+  <!-- Arrow 3 -> 4 -->
+  <line x1="630" y1="202" x2="665" y2="202" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow-cyan)"/>
+
+  <!-- Step 4: Ephemeral Sandboxing -->
+  <g transform="translate(670, 105)">
+    <rect width="155" height="195" rx="12" fill="#1e293b" stroke="#2563eb" stroke-width="2"/>
+    <rect x="0" y="0" width="155" height="34" rx="12" fill="url(#sandboxGrad)"/>
+    <text x="77" y="22" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">4. SANDBOX TESTING</text>
+    <text x="12" y="55" font-family="Segoe UI, Roboto, sans-serif" font-size="11" font-weight="600" fill="#e2e8f0">Independent Checks:</text>
+    <text x="12" y="74" font-family="monospace" font-size="9" fill="#60a5fa">• Worktree Patch #41</text>
+    <text x="18" y="88" font-family="Segoe UI, Roboto, sans-serif" font-size="8" fill="#4ade80">✓ Syntax OK, 14 tests</text>
+    <text x="12" y="108" font-family="monospace" font-size="9" fill="#60a5fa">• Worktree Patch #39</text>
+    <text x="18" y="122" font-family="Segoe UI, Roboto, sans-serif" font-size="8" fill="#4ade80">✓ Syntax OK, 9 tests</text>
+    <text x="12" y="142" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="600" fill="#e2e8f0">Self-Correction:</text>
+    <text x="12" y="158" font-family="Segoe UI, Roboto, sans-serif" font-size="9" fill="#94a3b8">Max 2 agentic retries</text>
+    <rect x="8" y="171" width="139" height="18" rx="4" fill="#0f172a" stroke="#16a34a"/>
+    <text x="77" y="184" font-family="Segoe UI, Roboto, sans-serif" font-size="8" font-weight="700" fill="#4ade80" text-anchor="middle">Both Patches Verified ✓</text>
+  </g>
+
+  <!-- Arrow 4 -> 5 -->
+  <line x1="825" y1="202" x2="860" y2="202" stroke="#34d399" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+
+  <!-- Step 5: Aggregated Sticky PR Report -->
+  <g transform="translate(865, 105)">
+    <rect width="115" height="195" rx="12" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+    <rect x="0" y="0" width="115" height="34" rx="12" fill="url(#commentGrad)"/>
+    <text x="57" y="22" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">5. 1 STICKY PR</text>
+    <text x="10" y="55" font-family="Segoe UI, Roboto, sans-serif" font-size="10" font-weight="600" fill="#e2e8f0">Aggregated:</text>
+    <text x="10" y="72" font-family="Segoe UI, Roboto, sans-serif" font-size="9" fill="#a7f3d0">• Unified Table</text>
+    <text x="10" y="88" font-family="Segoe UI, Roboto, sans-serif" font-size="9" fill="#a7f3d0">• Topologies</text>
+    <text x="10" y="104" font-family="Segoe UI, Roboto, sans-serif" font-size="9" fill="#a7f3d0">• Merge Orders</text>
+    <rect x="8" y="122" width="99" height="30" rx="5" fill="#065f46" stroke="#34d399"/>
+    <text x="57" y="136" font-family="Segoe UI, Roboto, sans-serif" font-size="8" font-weight="700" fill="#ffffff" text-anchor="middle">1-Click Commit</text>
+    <text x="57" y="147" font-family="Segoe UI, Roboto, sans-serif" font-size="7" fill="#d1fae5" text-anchor="middle">Suggestion #41</text>
+    <rect x="8" y="156" width="99" height="30" rx="5" fill="#065f46" stroke="#34d399"/>
+    <text x="57" y="170" font-family="Segoe UI, Roboto, sans-serif" font-size="8" font-weight="700" fill="#ffffff" text-anchor="middle">1-Click Commit</text>
+    <text x="57" y="181" font-family="Segoe UI, Roboto, sans-serif" font-size="7" fill="#d1fae5" text-anchor="middle">Suggestion #39</text>
+  </g>
+
+  <!-- Bottom Legend Banner -->
+  <rect x="40" y="325" width="940" height="65" rx="10" fill="#1e293b" stroke="#334155"/>
+  <text x="60" y="350" font-family="Segoe UI, Roboto, sans-serif" font-size="12" font-weight="700" fill="#f8fafc">Architecture Principle: Pairwise 3-Way Isolation</text>
+  <text x="60" y="370" font-family="Segoe UI, Roboto, sans-serif" font-size="11" fill="#94a3b8">
+    <tspan fill="#38bdf8" font-weight="600">Zero Prompt Bloat:</tspan> Prevents context explosion by solving N concurrent PRs via independent 3-way AST triangles (Base, Incoming PR, Concurrent PR) • <tspan fill="#fbbf24" font-weight="600">Single Sticky Comment:</tspan> All collisions combined into one table on the incoming PR.
+  </text>
+</svg>

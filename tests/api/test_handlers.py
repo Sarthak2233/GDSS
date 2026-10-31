@@ -3,11 +3,13 @@ from gdss.api.service import (
     get_drift,
     get_embeddings_projection,
     get_graph,
+    get_hierarchy,
     get_log,
     get_similar,
     get_status,
     get_symbols,
     get_tensor,
+    update_hierarchy,
 )
 from tests.api.test_privacy import assert_privacy_safe
 
@@ -18,21 +20,25 @@ def test_get_status_safe(repo_path):
     assert "data" in response
     assert_privacy_safe(response)
 
+
 def test_get_status_invalid_ref(repo_path):
     response = get_status(repo_path, ref="nonexistent")
     assert response["status"] == "error"
     assert response["error"]["code"] == "INVALID_REF"
+
 
 def test_get_graph_safe(repo_path):
     response = get_graph(repo_path)
     assert response["status"] == "ok"
     assert_privacy_safe(response)
 
+
 def test_get_drift_safe(divergent_repo):
     repo_path, base_name = divergent_repo
     response = get_drift(repo_path, ref=base_name)
     assert response["status"] == "ok"
     assert_privacy_safe(response)
+
 
 def test_get_drift_convergence_score_and_label(divergent_repo):
     """convergence_score is float; convergence_label is converging|diverging|stable."""
@@ -52,11 +58,13 @@ def test_get_drift_convergence_score_and_label(divergent_repo):
     assert isinstance(cp["reasons"], list)
     assert cp["heuristic"] == "flat"
 
+
 def test_get_alerts_safe(divergent_repo):
     repo_path, base_name = divergent_repo
     response = get_alerts(repo_path, ref=base_name)
     assert response["status"] == "ok"
     assert_privacy_safe(response)
+
 
 def test_serialize_alert_uses_rich_message():
     """Alert serialization uses DriftAlert.message and severity string."""
@@ -87,6 +95,7 @@ def test_serialize_alert_uses_rich_message():
     assert row["affected"][0]["distance"] == 0.4
     assert row["affected"][0]["reason"] == "modified_in_both"
 
+
 def test_get_alerts_message_is_rich(divergent_repo):
     """Alert message uses DriftAlert.message when alerts fire."""
     repo_path, base_name = divergent_repo
@@ -114,6 +123,7 @@ def test_get_alerts_message_is_rich(divergent_repo):
         assert "distance" in sym
         assert "reason" in sym
 
+
 def test_get_branches(divergent_repo):
     from gdss.api.service import get_branches
 
@@ -123,6 +133,7 @@ def test_get_branches(divergent_repo):
     assert base_name in response["data"]["branches"]
     assert "feature" in response["data"]["branches"]
     assert response["data"]["active_branch"] is not None
+
 
 def test_get_drift_history(divergent_repo):
     from gdss.api.service import get_drift_history
@@ -137,10 +148,12 @@ def test_get_drift_history(divergent_repo):
     assert "timestamp" in response["data"]["history"][0]
     assert "magnitude" in response["data"]["history"][0]
 
+
 def test_get_log_safe(repo_path):
     response = get_log(repo_path, n=5)
     assert response["status"] == "ok"
     assert_privacy_safe(response)
+
 
 def test_get_similar_safe(repo_path):
     response = get_similar(repo_path, symbol="function_1", k=2)
@@ -236,7 +249,9 @@ def test_get_tensor_excludes_reference_attractor_from_branches(divergent_repo):
     assert response["status"] == "ok"
     data = response["data"]
     assert "feature" in data["branches"]
-    assert base_name not in data["branches"], "Attractor reference branch should not be an axis of the conflict tensor"
+    assert base_name not in data["branches"], (
+        "Attractor reference branch should not be an axis of the conflict tensor"
+    )
 
 
 def test_convergence_label_deadzone():
@@ -248,3 +263,80 @@ def test_convergence_label_deadzone():
     assert _convergence_label(1e-5) == "diverging"
     assert _convergence_label(-1e-5) == "converging"
 
+
+def test_get_drift_commit_memoization(divergent_repo):
+    repo_path, base_name = divergent_repo
+    from gdss.api.service import clear_service_cache
+
+    clear_service_cache()
+    res1 = get_drift(repo_path, ref=base_name)
+    assert res1["status"] == "ok"
+
+    res2 = get_drift(repo_path, ref=base_name)
+    assert res2["status"] == "ok"
+    assert res1["data"]["drift"] == res2["data"]["drift"]
+
+    clear_service_cache()
+
+
+def test_get_tensor_branch_filtering(divergent_repo):
+    repo_path, base_name = divergent_repo
+    # With non-matching branch filter: candidate branches empty, returns zero risk
+    res_none = get_tensor(repo_path, ref=base_name, branches="non-existent")
+    assert res_none["status"] == "ok"
+    assert res_none["data"]["entries"] == []
+    assert res_none["data"]["merge_risk"] == 0.0
+
+    # With matching branch filter: includes feature
+    res_feat = get_tensor(repo_path, ref=base_name, branches="feature")
+    assert res_feat["status"] == "ok"
+    assert "feature" in res_feat["data"]["branches"]
+
+
+def test_get_drift_branch_filtering(divergent_repo):
+    repo_path, base_name = divergent_repo
+    # With non-matching exclude: feature still present
+    res1 = get_drift(repo_path, ref=base_name, exclude="spike*")
+    assert res1["status"] == "ok"
+    assert any(r["branch"] == "feature" for r in res1["data"]["drift"])
+
+    # With matching exclude: feature omitted
+    res2 = get_drift(repo_path, ref=base_name, exclude="feature*")
+    assert res2["status"] == "ok"
+    assert not any(r["branch"] == "feature" for r in res2["data"]["drift"])
+
+
+def test_hierarchy_service_handlers(tmp_path):
+    # Initialize empty repo dir for hierarchy db
+    repo_dir = str(tmp_path)
+    # Default hierarchy
+    res = get_hierarchy(repo_dir)
+    assert res["status"] == "ok"
+    assert res["data"]["priority_chain"] == ["main"]
+    assert res["data"]["include"] == []
+    assert res["data"]["exclude"] == []
+
+    # Update hierarchy
+    update_res = update_hierarchy(
+        repo_dir,
+        {
+            "priority_chain": ["develop", "staging", "main"],
+            "include": ["feature/*"],
+            "exclude": ["spike/*"],
+        },
+    )
+    assert update_res["status"] == "ok"
+    assert update_res["data"]["priority_chain"] == ["develop", "staging", "main"]
+    assert update_res["data"]["include"] == ["feature/*"]
+    assert update_res["data"]["exclude"] == ["spike/*"]
+
+
+def test_get_suggestions_format_prompt(divergent_repo):
+    from gdss.api.service import get_suggestions
+
+    repo_path, base_name = divergent_repo
+    res = get_suggestions(repo_path, ref=base_name, format="prompt")
+    assert res["status"] == "ok"
+    for item in res["data"]:
+        assert "prompt" in item
+        assert "Principal Software Integration Engineer" in item["prompt"]

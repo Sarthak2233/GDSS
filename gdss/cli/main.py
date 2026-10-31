@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+from typing import Annotated
 from unittest.mock import patch
 
 import typer
@@ -18,6 +19,7 @@ model_app = typer.Typer(help="Manage local Ollama model lifecycle")
 app.add_typer(graph_app, name="graph")
 app.add_typer(model_app, name="model")
 
+
 def run_shell(repo_path: str, command: str | None = None):
     status_code = 0
     try:
@@ -26,7 +28,7 @@ def run_shell(repo_path: str, command: str | None = None):
             status_code = 1
         else:
             # Patcher for non-interactive mode
-            patcher = patch('rich.prompt.Prompt.ask', return_value='default')
+            patcher = patch("rich.prompt.Prompt.ask", return_value="default")
             if command:
                 patcher.start()
 
@@ -47,11 +49,14 @@ def run_shell(repo_path: str, command: str | None = None):
     if status_code != 0:
         sys.exit(status_code)
 
+
 @app.callback(invoke_without_command=True)
 def main_callback(
     ctx: typer.Context,
     repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose informational logging"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose informational logging"
+    ),
     debug: bool = typer.Option(False, "--debug", help="Enable debug diagnostic logging"),
     log_file: str | None = typer.Option(None, "--log-file", help="Path to write log output"),
 ):
@@ -60,25 +65,36 @@ def main_callback(
     if ctx.invoked_subcommand is None:
         run_shell(repo)
 
+
 @app.command()
 def start(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path")):
     """Start interactive shell (alias)"""
     run_shell(repo)
 
+
 @app.command()
-def status(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"), ref: str = typer.Option("main", "--ref", help="Reference attractor branch")):
+def status(
+    repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
+    ref: str = typer.Option("main", "--ref", help="Reference attractor branch"),
+):
     """Show attractor/remote state, trajectory operators, and uncommitted semantic delta."""
     run_shell(repo, f"status {ref}")
 
+
 @app.command()
-def log(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"), n: int = typer.Option(5, "-n", help="Number of commits")):
+def log(
+    repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
+    n: int = typer.Option(5, "-n", help="Number of commits"),
+):
     """Show semantic commit log."""
     run_shell(repo, f"log {n}")
+
 
 @app.command()
 def analyze(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path")):
     """Deep semantic analysis and dependency mapping."""
     run_shell(repo, "analyze")
+
 
 @app.command()
 def similar(
@@ -97,13 +113,28 @@ def reindex(
     """Rebuild the local embedding vector index under .gdss/vectors/."""
     run_shell(repo, "reindex")
 
+
 @app.command()
 def drift(
     repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
     ref: str = typer.Option("main", "--ref", help="Reference attractor branch"),
+    branches: Annotated[
+        list[str] | None,
+        typer.Option("--branches", "-b", help="Branch names or wildcard patterns to include"),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option("--exclude", help="Branch names or wildcard patterns to exclude"),
+    ] = None,
 ):
     """Show per-branch drift magnitude (tip proxy + trajectory integral)."""
-    run_shell(repo, f"drift {ref}")
+    cmd = f"drift {ref}"
+    if branches:
+        cmd += f" --branches {','.join(branches)}"
+    if exclude:
+        cmd += f" --exclude {','.join(exclude)}"
+    run_shell(repo, cmd)
+
 
 @app.command()
 def alerts(
@@ -113,19 +144,36 @@ def alerts(
     """Show drift alerts for diverging branch trajectories."""
     run_shell(repo, f"alerts {ref}")
 
+
 @app.command()
 def tensor(
     repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
     ref: str = typer.Option("main", "--ref", help="Reference attractor branch"),
+    branches: Annotated[
+        list[str] | None,
+        typer.Option("--branches", "-b", help="Branch names or wildcard patterns to include"),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option("--exclude", help="Branch names or wildcard patterns to exclude"),
+    ] = None,
 ):
     """Show sparse conflict tensor Omega_ij and R_merge."""
-    run_shell(repo, f"tensor {ref}")
+    cmd = f"tensor {ref}"
+    if branches:
+        cmd += f" --branches {','.join(branches)}"
+    if exclude:
+        cmd += f" --exclude {','.join(exclude)}"
+    run_shell(repo, cmd)
+
 
 @app.command()
 def serve(
     repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
     port: int = typer.Option(8787, "--port", help="Port to bind to"),
-    allow_local_source: bool = typer.Option(False, "--allow-local-source", help="Allow source-bearing API requests"),
+    allow_local_source: bool = typer.Option(
+        False, "--allow-local-source", help="Allow source-bearing API requests"
+    ),
 ):
     """Serve the local API (Local HTTP FastAPI service)."""
     from pathlib import Path
@@ -143,6 +191,7 @@ def serve(
     console.print(f"[bold green]Starting GDSS Local API on http://127.0.0.1:{port}[/]")
     uvicorn.run(app_instance, host="127.0.0.1", port=port, log_level="info")
 
+
 @app.command()
 def mcp() -> None:
     """Start the Model Context Protocol (MCP) server over stdio for Cursor/Copilot."""
@@ -153,31 +202,67 @@ def mcp() -> None:
     except (KeyboardInterrupt, BrokenPipeError):
         pass
 
+
 @app.command()
 def watch(repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path")):
     """Real-time monitoring of the distributed event bus."""
     run_shell(repo, "watch")
 
+
 @app.command()
-def diff(target: str = typer.Argument("main"), repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path")):
+def diff(
+    target: str = typer.Argument("main"),
+    repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
+):
     """Semantic diff from merge-base(target) through the working tree."""
     run_shell(repo, f"diff {target}")
+
 
 @app.command()
 def suggest(
     repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
     ref: str = typer.Option("main", "--ref", help="Reference attractor branch"),
+    branches: Annotated[
+        list[str] | None,
+        typer.Option("--branches", "-b", help="Branch names or wildcard patterns to include"),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option("--exclude", help="Branch names or wildcard patterns to exclude"),
+    ] = None,
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
     as_prompt: bool = typer.Option(False, "--as-prompt", help="Output LLM-ready prompt"),
-    llm: bool = typer.Option(False, "--llm", help="Automatically request a patch from LLM (auto-detects vLLM or Ollama)"),
-    provider_name: str = typer.Option("auto", "--provider", help="Provider to use: auto (default), vllm, ollama, openai/github, or openrouter"),
-    model: str = typer.Option("qwen2.5-coder:7b", "--model", help="Model to use (for Ollama or OpenAI-compatible provider)"),
+    llm: bool = typer.Option(
+        False, "--llm", help="Automatically request a patch from LLM (auto-detects vLLM or Ollama)"
+    ),
+    provider_name: str = typer.Option(
+        "auto",
+        "--provider",
+        help="Provider to use: auto (default), vllm, ollama, openai/github, or openrouter",
+    ),
+    model: str = typer.Option(
+        "qwen2.5-coder:7b",
+        "--model",
+        help="Model to use (for Ollama or OpenAI-compatible provider)",
+    ),
     combos: int = typer.Option(3, "--combos", help="Number of resolution strategies to generate"),
-    max_candidates: int = typer.Option(50, "--max-candidates", help="Limit number of suggestion anchors analyzed"),
-    validate: bool = typer.Option(False, "--validate", help="Validate candidate patches in ephemeral sandbox"),
-    sandbox_timeout: int = typer.Option(30, "--sandbox-timeout", help="Timeout in seconds for sandbox validation"),
-    context_window: int | None = typer.Option(None, "--context-window", help="Explicit LLM context window size override in tokens"),
-    max_refinements: int = typer.Option(2, "--max-refinements", help="Maximum agentic self-correction refinement attempts if validation fails"),
+    max_candidates: int = typer.Option(
+        50, "--max-candidates", help="Limit number of suggestion anchors analyzed"
+    ),
+    validate: bool = typer.Option(
+        False, "--validate", help="Validate candidate patches in ephemeral sandbox"
+    ),
+    sandbox_timeout: int = typer.Option(
+        30, "--sandbox-timeout", help="Timeout in seconds for sandbox validation"
+    ),
+    context_window: int | None = typer.Option(
+        None, "--context-window", help="Explicit LLM context window size override in tokens"
+    ),
+    max_refinements: int = typer.Option(
+        2,
+        "--max-refinements",
+        help="Maximum agentic self-correction refinement attempts if validation fails",
+    ),
 ):
     """Generate ranked semantic resolution suggestions (Phase 5)."""
     import json
@@ -199,22 +284,33 @@ def suggest(
             elif provider_name == "ollama":
                 provider = OllamaProvider(model=model)
             elif provider_name == "openrouter":
-                provider = OpenAICompatibleProvider(base_url="https://openrouter.ai/api/v1", model=model if model != "qwen2.5-coder:7b" else None)
+                provider = OpenAICompatibleProvider(
+                    base_url="https://openrouter.ai/api/v1",
+                    model=model if model != "qwen2.5-coder:7b" else None,
+                )
             elif provider_name in {"openai", "github", "github-models"}:
-                provider = OpenAICompatibleProvider(model=model if model != "qwen2.5-coder:7b" else None)
+                provider = OpenAICompatibleProvider(
+                    model=model if model != "qwen2.5-coder:7b" else None
+                )
             else:  # auto
                 from gdss.ai.suggester import _pick_provider
+
                 provider = _pick_provider(llm=True, provider=None)
             if provider is None and llm:
-                console.print("[bold red]✗ Error:[/] --llm requested but no provider is reachable (vLLM, Ollama, or GITHUB_TOKEN/OPENAI_API_KEY).")
+                console.print(
+                    "[bold red]✗ Error:[/] --llm requested but no provider is reachable (vLLM, Ollama, or GITHUB_TOKEN/OPENAI_API_KEY)."
+                )
                 raise typer.Exit(code=1)  # dsa:ignore
 
         orchestrated_state = None
         if validate or (llm and not as_prompt):
             from gdss.ai.orchestration import ConvergenceState, run_convergence_pipeline
+
             state = ConvergenceState(
                 repo_path=repo,
                 reference_branch=ref,
+                branches=branches,
+                exclude_branches=exclude,
                 llm=llm,
                 validate=validate,
                 combos=combos,
@@ -229,6 +325,8 @@ def suggest(
             suggestions = get_suggestions(
                 repo_path=repo,
                 reference_branch=ref,
+                branches=branches,
+                exclude_branches=exclude,
                 llm=llm,
                 provider=provider,
                 combos=combos,
@@ -237,27 +335,25 @@ def suggest(
 
         if as_prompt:
             from gdss.ai.context import build_analysis_context
+            from gdss.ai.context_builder import extract_3way_symbol_context
             from gdss.ai.prompt_builder import build_conflict_prompt
-            ctx = build_analysis_context(repo, ref)
+
+            ctx = build_analysis_context(repo, ref, branches=branches, exclude_branches=exclude)
             for s in suggestions:
-                if s.anchor:
-                    content = ctx.observer.get_file_content_at_commit(
-                        s.anchor.target_branch, s.anchor.file_path
+                other_br = getattr(s.context, "other_branch", "") if s.context else ""
+                collision_ctx = extract_3way_symbol_context(ctx, s, other_branch=other_br)
+                console.print(
+                    build_conflict_prompt(
+                        suggestion=s,
+                        repo=repo,
+                        ref=ref,
+                        collision_context=collision_ctx,
+                        branch_commits=ctx.branch_commits,
+                        branch_intents=ctx.branch_intents,
+                        other_branch=other_br,
                     )
-                    block = "".join(content.splitlines(keepends=True)[s.anchor.line_start - 1 : s.anchor.line_end]) if content else ""
-                    other_br = getattr(s.context, "other_branch", "") if s.context else ""
-                    console.print(
-                        build_conflict_prompt(
-                            suggestion=s,
-                            anchored_symbol_block=block,
-                            repo=repo,
-                            ref=ref,
-                            branch_commits=ctx.branch_commits,
-                            branch_intents=ctx.branch_intents,
-                            other_branch=other_br,
-                        )
-                    )
-                    console.print("\n--- Next Suggestion ---\n")
+                )
+                console.print("\n--- Next Suggestion ---\n")
             return
 
         if json_output:
@@ -270,23 +366,38 @@ def suggest(
             return
 
         from gdss.ai.suggestion_store import save_suggestion
+
         for s in suggestions:
             try:
                 save_suggestion(s, repo)
             except Exception as exc:
                 logger.debug("Failed saving suggestion %s to cache: %s", s.suggestion_id, exc)
-            console.print(f"\n[bold blue]Suggestion {s.rank}[/]: {s.kind} on [bold]{s.file_path}[/] (Confidence: {s.confidence:.2f}) [dim cyan](ID: {s.suggestion_id})[/]")
+            console.print(
+                f"\n[bold blue]Suggestion {s.rank}[/]: {s.kind} on [bold]{s.file_path}[/] (Confidence: {s.confidence:.2f}) [dim cyan](ID: {s.suggestion_id})[/]"
+            )
             console.print(f"Rationale: {s.rationale}")
             console.print(f"Action: {s.action}")
             refinements = 0
             if orchestrated_state and orchestrated_state.refinement_history:
                 refinements = sum(
-                    1 for e in orchestrated_state.refinement_history if e.get("suggestion_id") == s.suggestion_id
+                    1
+                    for e in orchestrated_state.refinement_history
+                    if e.get("suggestion_id") == s.suggestion_id
                 )
             if refinements > 0:
-                console.print(f"  [cyan]ℹ Refined through {refinements} self-correction attempt(s)[/]")
+                console.print(
+                    f"  [cyan]ℹ Refined through {refinements} self-correction attempt(s)[/]"
+                )
             for st in s.patch_combinations:
-                status_badge = "[green]✓ Sandbox Validated[/]" if st.validated else ("[red]✗ Failed Validation[/]" if st.validation_status == "rejected" else f"(Valid: {st.validated})")
+                status_badge = (
+                    "[green]✓ Sandbox Validated[/]"
+                    if st.validated
+                    else (
+                        "[red]✗ Failed Validation[/]"
+                        if st.validation_status == "rejected"
+                        else f"(Valid: {st.validated})"
+                    )
+                )
                 console.print(f"  - Strategy: {st.label} {status_badge}")
                 if st.validation_error:
                     console.print(f"    [dim red]Error: {st.validation_error}[/]")
@@ -299,10 +410,21 @@ def suggest(
 @app.command("apply")
 def apply_cmd(
     suggestion_id: str = typer.Argument(..., help="Suggestion ID to apply (e.g., sug_abc123)"),
-    strategy: str | None = typer.Option(None, "--strategy", "-s", help="Resolution strategy (keep_left, keep_right, compose, custom)"),
+    strategy: str | None = typer.Option(
+        None,
+        "--strategy",
+        "-s",
+        help="Resolution strategy (keep_left, keep_right, compose, custom)",
+    ),
     repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Simulate application and display unified diff without modifying files"),
-    rollback: bool = typer.Option(False, "--rollback", help="Roll back a previously applied suggestion"),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Simulate application and display unified diff without modifying files",
+    ),
+    rollback: bool = typer.Option(
+        False, "--rollback", help="Roll back a previously applied suggestion"
+    ),
 ):
     """Safely apply or rollback an approved suggestion to the working tree."""
     from gdss.validation.guarded_apply import apply_suggestion, rollback_suggestion
@@ -312,7 +434,9 @@ def apply_cmd(
         if not rb_res.success:
             console.print(f"[bold red]✗ Rollback failed:[/]\n{rb_res.error}")
             raise typer.Exit(code=1)  # dsa:ignore
-        console.print(f"[bold green]✓[/] Successfully restored [bold]{rb_res.target_file}[/] from rollback backup.")
+        console.print(
+            f"[bold green]✓[/] Successfully restored [bold]{rb_res.target_file}[/] from rollback backup."
+        )
         return
 
     apply_res = apply_suggestion(suggestion_id, repo, strategy_name=strategy, dry_run=dry_run)
@@ -321,23 +445,55 @@ def apply_cmd(
         raise typer.Exit(code=1)  # dsa:ignore
 
     mode_label = "[yellow](DRY RUN)[/]" if dry_run else "[bold green]✓ Successfully applied[/]"
-    console.print(f"{mode_label} suggestion [bold cyan]{apply_res.suggestion_id}[/] (strategy: [bold]{apply_res.strategy}[/]) to [bold]{apply_res.target_file}[/]:\n")
+    console.print(
+        f"{mode_label} suggestion [bold cyan]{apply_res.suggestion_id}[/] (strategy: [bold]{apply_res.strategy}[/]) to [bold]{apply_res.target_file}[/]:\n"
+    )
     if apply_res.diff:
         from rich.syntax import Syntax
+
         console.print(Syntax(apply_res.diff, "diff", theme="monokai", line_numbers=False))
     if not dry_run:
-        console.print("\n[dim]Note: Only your local working tree file was modified. Git index, commits, and branches are untouched.[/]")
-        console.print(f"[dim]To undo this change, run: [cyan]gdss apply --rollback {apply_res.suggestion_id}[/][/]")
+        console.print(
+            "\n[dim]Note: Only your local working tree file was modified. Git index, commits, and branches are untouched.[/]"
+        )
+        console.print(
+            f"[dim]To undo this change, run: [cyan]gdss apply --rollback {apply_res.suggestion_id}[/][/]"
+        )
 
 
 @app.command("audit-pr")
 def audit_pr_cmd(
     repo: str = typer.Option(os.getcwd(), "--repo", help="Repository path"),
-    pr_number: int | None = typer.Option(None, "--pr-number", help="PR number to audit (auto-detected from GITHUB_EVENT_PATH in CI)"),
-    token: str | None = typer.Option(None, "--token", help="GitHub token (defaults to GITHUB_TOKEN env var)"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Simulate audit and print radar markdown report without modifying GitHub"),
-    output: str | None = typer.Option(None, "--output", "-o", help="Write radar markdown report to file"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose informational logging"),
+    pr_number: int | None = typer.Option(
+        None, "--pr-number", help="PR number to audit (auto-detected from GITHUB_EVENT_PATH in CI)"
+    ),
+    token: str | None = typer.Option(
+        None, "--token", help="GitHub token (defaults to GITHUB_TOKEN env var)"
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Simulate audit and print radar markdown report without modifying GitHub",
+    ),
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Write radar markdown report to file"
+    ),
+    branches: Annotated[
+        list[str] | None,
+        typer.Option("--branches", "-b", help="PR head branch names or patterns to audit against"),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option("--exclude", help="PR head branch names or patterns to exclude"),
+    ] = None,
+    same_base_only: bool | None = typer.Option(
+        None,
+        "--same-base-only/--no-same-base-only",
+        help="Only audit PRs targeting the exact same base branch (default: true)",
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose informational logging"
+    ),
     debug: bool = typer.Option(False, "--debug", help="Enable debug diagnostic logging"),
     log_file: str | None = typer.Option(None, "--log-file", help="Path to write log output"),
 ):
@@ -355,6 +511,9 @@ def audit_pr_cmd(
         dry_run=dry_run,
         output_file=output,
         console=console,
+        branches=branches,
+        exclude=exclude,
+        same_base_only=same_base_only,
     )
     if exit_code != 0:
         raise typer.Exit(code=exit_code)  # dsa:ignore
@@ -364,18 +523,23 @@ def audit_pr_cmd(
 def model_status():
     """Check if the local Ollama service is reachable."""
     from gdss.ai.model_manager import ModelManager, ModelManagerError
+
     try:
         mgr = ModelManager()
         stat = mgr.status()
-        console.print(f"[bold green]✓[/] Ollama service is reachable (version {stat.get('version')})")
+        console.print(
+            f"[bold green]✓[/] Ollama service is reachable (version {stat.get('version')})"
+        )
     except ModelManagerError as e:
         console.print(f"[bold red]✗ Error:[/] {e}")
         raise typer.Exit(code=1) from e
+
 
 @model_app.command("list")
 def model_list():
     """List locally available models in the Ollama registry."""
     from gdss.ai.model_manager import ModelManager, ModelManagerError
+
     try:
         mgr = ModelManager()
         models = mgr.list_models()
@@ -388,10 +552,12 @@ def model_list():
         console.print(f"[bold red]✗ Error:[/] {e}")
         raise typer.Exit(code=1) from e
 
+
 @model_app.command("install")
 def model_install(model: str = typer.Argument(..., help="Model name to pull")):
     """Pull a model from the Ollama registry."""
     from gdss.ai.model_manager import ModelManager, ModelManagerError
+
     try:
         mgr = ModelManager()
         console.print(f"Pulling model '{model}'...")
@@ -403,10 +569,12 @@ def model_install(model: str = typer.Argument(..., help="Model name to pull")):
         console.print(f"[bold red]✗ Error:[/] {e}")
         raise typer.Exit(code=1) from e
 
+
 @model_app.command("ensure")
 def model_ensure(model: str = typer.Argument(..., help="Model name to ensure")):
     """Pull a model if it is not already available locally."""
     from gdss.ai.model_manager import ModelManager, ModelManagerError
+
     try:
         mgr = ModelManager()
         models = mgr.list_models()
@@ -422,10 +590,12 @@ def model_ensure(model: str = typer.Argument(..., help="Model name to ensure")):
         console.print(f"[bold red]✗ Error:[/] {e}")
         raise typer.Exit(code=1) from e
 
+
 @model_app.command("remove")
 def model_remove(model: str = typer.Argument(..., help="Model name to remove")):
     """Remove a model from the local Ollama registry."""
     from gdss.ai.model_manager import ModelManager, ModelManagerError
+
     try:
         mgr = ModelManager()
         mgr.remove_model(model)
@@ -462,6 +632,7 @@ def graph_export(
 
     console.print(f"[bold red]✗ Error:[/] {error_message}")
     raise typer.Exit(code=1)
+
 
 if __name__ == "__main__":
     app()

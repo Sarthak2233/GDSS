@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { motion, useReducedMotion } from "framer-motion";
 import { GitMerge, RefreshCw } from "lucide-react";
@@ -34,17 +35,26 @@ function lookupEntry(
 }
 
 export default function TensorPage() {
-  const { refName } = useRepo();
+  const { refName, selectedBranches } = useRepo();
   const reduceMotion = useReducedMotion();
   const [selected, setSelected] = useState<OmegaCellSelection | null>(null);
+  const [includeRemotes, setIncludeRemotes] = useState<boolean>(false);
+
+  const branchesParam =
+    selectedBranches.length > 0
+      ? `&branches=${encodeURIComponent(selectedBranches.join(","))}`
+      : "";
 
   const tensorQuery = useQuery({
-    queryKey: ["tensor", refName],
+    queryKey: ["tensor", refName, selectedBranches, includeRemotes],
     queryFn: () =>
       fetcher<ApiOkEnvelope<TensorData>>(
-        `/v1/tensor?ref=${encodeURIComponent(refName)}`
+        `/v1/tensor?ref=${encodeURIComponent(refName)}${branchesParam}${
+          includeRemotes ? "&include_remotes=true" : ""
+        }`
       ),
     staleTime: 5000,
+    placeholderData: (prev) => prev,
   });
 
   const data = tensorQuery.data?.data;
@@ -80,19 +90,47 @@ export default function TensorPage() {
             <EvidencePhaseBadge phase="deterministic" />
           </div>
           <p className="text-sm text-textMuted mt-1">
-            Flat pairwise Ω<sub>ij</sub> vs attractor{" "}
-            <span className="font-mono text-accent">{refName}</span>. Not
-            geometric ⟨v,P(v)⟩_G.
+            Flat pairwise Ω<sub>ij</sub> collision matrix across concurrent branches vs attractor{" "}
+            <span className="font-mono text-accent">{refName}</span>.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => tensorQuery.refetch()}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm text-textMuted hover:bg-surfaceElevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          <RefreshCw className="w-4 h-4" aria-hidden="true" />
-          Refresh
-        </button>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Branch Scope Toggle */}
+          <div className="flex items-center rounded-lg border border-border bg-surfaceGlass p-0.5 text-xs font-mono">
+            <button
+              type="button"
+              onClick={() => setIncludeRemotes(false)}
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                !includeRemotes
+                  ? "bg-accent/20 text-accent font-semibold shadow-xs"
+                  : "text-textMuted hover:text-text"
+              }`}
+            >
+              Local Branches
+            </button>
+            <button
+              type="button"
+              onClick={() => setIncludeRemotes(true)}
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                includeRemotes
+                  ? "bg-accent/20 text-accent font-semibold shadow-xs"
+                  : "text-textMuted hover:text-text"
+              }`}
+            >
+              + Remotes &amp; PRs
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => tensorQuery.refetch()}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm text-textMuted hover:bg-surfaceElevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <RefreshCw className="w-4 h-4" aria-hidden="true" />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {tensorQuery.isLoading && (
@@ -117,20 +155,27 @@ export default function TensorPage() {
       )}
 
       {data && isEmpty && (
-        <div className="rounded-xl border border-border bg-surface p-6 space-y-2">
-          <p className="text-sm font-semibold text-text">
-            WHAT: No pairwise Ω entries
+        <div className="rounded-xl border border-border bg-surfaceGlass p-6 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded text-xs font-mono font-semibold uppercase tracking-wider bg-accent/15 text-accent border border-accent/40">
+              Single Branch Mode
+            </span>
+            <p className="text-sm font-semibold text-text">
+              No concurrent pairwise collisions detected
+            </p>
+          </div>
+          <p className="text-sm text-textMuted leading-relaxed">
+            The Conflict Tensor computes pairwise interference (Ω<sub>ij</sub>) between{" "}
+            <strong>multiple concurrent pull requests or feature branches</strong> before they merge into{" "}
+            <span className="font-mono text-accent">{refName}</span>. With only one feature branch active,
+            there are no cross-PR collisions to evaluate.
           </p>
-          <p className="text-sm text-textMuted">
-            WHY:{" "}
-            {data.message ||
-              "Single attractor / no other local branch trajectories."}
-          </p>
-          <p className="text-sm text-textMuted">
-            FIX: Create another local branch with semantic changes, then refresh
-            this page (or run <code className="font-mono text-accent">gdss tensor</code>
-            ).
-          </p>
+          <div className="p-3 rounded-lg bg-surface/60 border border-border/60 text-xs font-mono text-textSubtle space-y-1">
+            <p className="text-text font-semibold">Pro Tips:</p>
+            <p>• Switch to &quot;+ Remotes &amp; PRs&quot; above to include remote tracking branches in the matrix.</p>
+            <p>• Run <code className="text-accent">git fetch origin</code> to fetch colleagues&apos; active PR branches.</p>
+            <p>• Check <Link href="/drift" className="text-accent underline">Drift Monitor</Link> to inspect single-branch drift against the attractor.</p>
+          </div>
         </div>
       )}
 

@@ -52,9 +52,7 @@ def test_drift_on_diagonal():
         "feature": [_op(OperatorType.ADD_FUNCTION, file="a.py", name="alpha")],
         "main": [_op(OperatorType.ADD_FUNCTION, file="b.py", name="beta")],
     }
-    result = engine.compute(
-        branch_ops, drift_magnitudes={"feature": 0.55, "main": 0.33}
-    )
+    result = engine.compute(branch_ops, drift_magnitudes={"feature": 0.55, "main": 0.33})
     assert ("feature", "feature") in result.entries
     assert result.entries[("feature", "feature")].omega == 0.55
     assert ("main", "main") in result.entries

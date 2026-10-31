@@ -136,11 +136,7 @@ class TensorEngine:
 
                 impact_i = impact_sets.get(i, _EMPTY_IMPACT)
                 impact_j = impact_sets.get(j, _EMPTY_IMPACT)
-                dep_term = (
-                    1.0
-                    if impact_i and impact_j and (impact_i & impact_j)
-                    else 0.0
-                )
+                dep_term = 1.0 if impact_i and impact_j and (impact_i & impact_j) else 0.0
 
                 interfering, contacts = operator_interference(ops_i, ops_j)
                 interference = interfering / max(1, contacts) if contacts else 0.0
@@ -169,9 +165,7 @@ class TensorEngine:
                 if interference > 0:
                     reasons.append(f"interference={interference:.2f}")
 
-                entries[(i, j)] = TensorEntry(
-                    i=i, j=j, omega=omega, reasons=tuple(reasons)
-                )
+                entries[(i, j)] = TensorEntry(i=i, j=j, omega=omega, reasons=tuple(reasons))
 
         merge_risk = sum(e.omega for e in entries.values())
         return ConflictTensor(branches=branches, entries=entries, merge_risk=merge_risk)

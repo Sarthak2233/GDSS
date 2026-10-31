@@ -9,7 +9,7 @@ import { colors } from "@/lib/tokens";
 interface StatItem {
   id: string;
   label: string;
-  targetValue: number;
+  targetValue: string | number;
   suffix?: string;
   isDecimal?: boolean;
   icon: typeof GitBranch;
@@ -21,7 +21,7 @@ const stats: StatItem[] = [
   {
     id: "branches",
     label: "Branches Tracked",
-    targetValue: 47,
+    targetValue: 'N',
     icon: GitBranch,
     color: colors.accent,
     bgColor: "rgba(124, 92, 255, 0.1)",
@@ -29,7 +29,7 @@ const stats: StatItem[] = [
   {
     id: "drift",
     label: "Drift Vector",
-    targetValue: 0.23,
+    targetValue: "n",
     suffix: " rad",
     isDecimal: true,
     icon: Activity,
@@ -39,7 +39,7 @@ const stats: StatItem[] = [
   {
     id: "conflicts",
     label: "Conflict Tensor",
-    targetValue: 3,
+    targetValue: "n",
     suffix: " Ω",
     icon: ShieldAlert,
     color: colors.conflict,
@@ -48,7 +48,7 @@ const stats: StatItem[] = [
   {
     id: "convergence",
     label: "Convergence",
-    targetValue: 94,
+    targetValue: 'n',
     suffix: "%",
     icon: Sparkles,
     color: colors.trajectory,
@@ -80,38 +80,57 @@ function StatPillCard({
   index: number;
   reduced: boolean | null;
 }) {
-  const [val, setVal] = useState(0);
   const raf = useRef<number | null>(null);
 
+  const [val, setVal] = useState<number | string>(0);
+
   useEffect(() => {
+    const target = stat.targetValue;
+
+    if (typeof target === "string") {
+      setVal(target);
+      return;
+    }
+
     if (reduced) {
-      setVal(stat.targetValue);
+      setVal(target);
       return;
     }
 
     const startTime = performance.now() + index * 100;
     const ms = duration.slow;
+
     const tick = (now: number) => {
       if (now < startTime) {
         raf.current = requestAnimationFrame(tick);
         return;
       }
+
       const elapsed = Math.min((now - startTime) / ms, 1);
       const eased = 1 - Math.pow(1 - elapsed, 3);
-      setVal(stat.targetValue * eased);
+
+      setVal(target * eased);
+
       if (elapsed < 1) {
         raf.current = requestAnimationFrame(tick);
+      } else {
+        setVal(target);
       }
     };
 
     raf.current = requestAnimationFrame(tick);
+
     return () => {
-      if (raf.current) cancelAnimationFrame(raf.current);
+      if (raf.current !== null) {
+        cancelAnimationFrame(raf.current);
+      }
     };
   }, [stat.targetValue, index, reduced]);
 
   const Icon = stat.icon;
-  const formattedVal = stat.isDecimal ? val.toFixed(2) : Math.round(val);
+  const formattedVal = typeof val === "number"
+    ? (stat.isDecimal ? val.toFixed(2) : Math.round(val))
+    : val;
 
   return (
     <motion.div

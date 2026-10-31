@@ -9,12 +9,8 @@ def test_parallel_transport_drops_already_applied_commuting_operator():
 
 
 def test_transport_plan_remaps_file_renames_and_ignores_timestamps():
-    source_operator = SemanticOperator(
-        OperatorType.MODIFY_FUNCTION, "old.py", name="run"
-    )
-    equivalent_frame_operator = SemanticOperator(
-        OperatorType.MODIFY_FUNCTION, "old.py", name="run"
-    )
+    source_operator = SemanticOperator(OperatorType.MODIFY_FUNCTION, "old.py", name="run")
+    equivalent_frame_operator = SemanticOperator(OperatorType.MODIFY_FUNCTION, "old.py", name="run")
     rename = SemanticOperator(
         OperatorType.RENAME_FILE,
         "renamed.py",
@@ -47,5 +43,3 @@ def test_merge_order_plan_reports_a_stable_heuristic_and_cost_comparison():
     assert plan.proposed_cost < plan.baseline_cost
     assert plan.heuristic == "greedy_nearest_neighbor"
     assert [step.omega for step in plan.steps] == [0.1, 0.3]
-
-

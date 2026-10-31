@@ -26,9 +26,7 @@ def _symbol_digest(symbol: CodeSymbol) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _find_symbol(
-    symbols: list[CodeSymbol], operator: SemanticOperator
-) -> CodeSymbol | None:
+def _find_symbol(symbols: list[CodeSymbol], operator: SemanticOperator) -> CodeSymbol | None:
     by_id = {symbol.symbol_id: symbol for symbol in symbols if symbol.symbol_id}
     for symbol_id in (
         operator.to_symbol_id,
@@ -49,7 +47,11 @@ def _find_symbol(
         if name
     }
     candidates = [symbol for symbol in symbols if symbol.name in names]
-    return min(candidates, key=lambda symbol: (symbol.start_line, symbol.start_column)) if candidates else None
+    return (
+        min(candidates, key=lambda symbol: (symbol.start_line, symbol.start_column))
+        if candidates
+        else None
+    )
 
 
 def resolve_anchor(

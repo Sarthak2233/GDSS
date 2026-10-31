@@ -23,12 +23,28 @@ from gdss.watcher.git_observer import GitObserver
 logger = get_logger("gdss.mcp.tools")
 
 
-def find_collisions(reference_branch: str = "main", repo_path: str = ".") -> dict[str, Any]:
+def find_collisions(
+    reference_branch: str = "main",
+    repo_path: str = ".",
+    branches: list[str] | None = None,
+    exclude_branches: list[str] | None = None,
+) -> dict[str, Any]:
     """Compute pairwise branch collision matrix (Omega_ij) and integration risk with concrete AST contacts."""
     path = str(Path(repo_path).resolve())
-    logger.debug("mcp.find_collisions: repo=%s, ref=%s", path, reference_branch)
+    logger.debug(
+        "mcp.find_collisions: repo=%s, ref=%s, branches=%s, exclude=%s",
+        path,
+        reference_branch,
+        branches,
+        exclude_branches,
+    )
     try:
-        context = build_analysis_context(path, reference_branch)
+        context = build_analysis_context(
+            path,
+            reference_branch,
+            branches=branches,
+            exclude_branches=exclude_branches,
+        )
     except AnalysisContextError as e:
         logger.warning("mcp.find_collisions context error: %s", e)
         return {
@@ -47,7 +63,9 @@ def find_collisions(reference_branch: str = "main", repo_path: str = ".") -> dic
         }
 
     collisions: list[dict[str, Any]] = []
-    for (i, j), entry in sorted(context.tensor.entries.items(), key=lambda item: item[1].omega, reverse=True):
+    for (i, j), entry in sorted(
+        context.tensor.entries.items(), key=lambda item: item[1].omega, reverse=True
+    ):
         if i == j:
             continue
 
@@ -63,25 +81,29 @@ def find_collisions(reference_branch: str = "main", repo_path: str = ".") -> dic
             if sym:
                 conflicting_symbols.add(sym)
             commutes = classify(left, right) == CommutativityClass.COMMUTE
-            conflicts_detail.append({
-                "file": file,
-                "symbol": sym,
-                "branch_a_operator": left.operator.value,
-                "branch_b_operator": right.operator.value,
-                "commutes": commutes,
-                "symbol_id": left.symbol_id or right.symbol_id,
-            })
+            conflicts_detail.append(
+                {
+                    "file": file,
+                    "symbol": sym,
+                    "branch_a_operator": left.operator.value,
+                    "branch_b_operator": right.operator.value,
+                    "commutes": commutes,
+                    "symbol_id": left.symbol_id or right.symbol_id,
+                }
+            )
 
-        collisions.append({
-            "branch_a": entry.i,
-            "branch_b": entry.j,
-            "collision_score": round(entry.omega, 3),
-            "reasons": list(entry.reasons),
-            "conflicting_files": sorted(conflicting_files),
-            "conflicting_symbols": sorted(conflicting_symbols),
-            "conflicts": conflicts_detail[:25],
-            "summary": f"Collision between {entry.i} and {entry.j} (risk: {entry.omega:.2f}) due to {', '.join(entry.reasons)}",
-        })
+        collisions.append(
+            {
+                "branch_a": entry.i,
+                "branch_b": entry.j,
+                "collision_score": round(entry.omega, 3),
+                "reasons": list(entry.reasons),
+                "conflicting_files": sorted(conflicting_files),
+                "conflicting_symbols": sorted(conflicting_symbols),
+                "conflicts": conflicts_detail[:25],
+                "summary": f"Collision between {entry.i} and {entry.j} (risk: {entry.omega:.2f}) due to {', '.join(entry.reasons)}",
+            }
+        )
 
     return {
         "reference_branch": reference_branch,
@@ -90,17 +112,25 @@ def find_collisions(reference_branch: str = "main", repo_path: str = ".") -> dic
         "branches": list(context.branches),
         "collision_count": len(collisions),
         "collisions": collisions,
-        "drift_magnitudes": {
-            b: round(mag, 3) for b, mag in context.drift_magnitudes.items()
-        },
+        "drift_magnitudes": {b: round(mag, 3) for b, mag in context.drift_magnitudes.items()},
     }
 
 
-def get_merge_order(reference_branch: str = "main", repo_path: str = ".") -> dict[str, Any]:
+def get_merge_order(
+    reference_branch: str = "main",
+    repo_path: str = ".",
+    branches: list[str] | None = None,
+    exclude_branches: list[str] | None = None,
+) -> dict[str, Any]:
     """Calculate optimal merge sequence across active branches minimizing drift and friction."""
     path = str(Path(repo_path).resolve())
     try:
-        context = build_analysis_context(path, reference_branch)
+        context = build_analysis_context(
+            path,
+            reference_branch,
+            branches=branches,
+            exclude_branches=exclude_branches,
+        )
     except AnalysisContextError as e:
         return {
             "error": str(e),
@@ -141,13 +171,15 @@ def get_merge_order(reference_branch: str = "main", repo_path: str = ".") -> dic
             if idx == 1
             else f"Step {idx}: Merge '{b}' (transition collision cost: {col_step:.2f})."
         )
-        steps.append({
-            "step": idx,
-            "branch": b,
-            "drift_magnitude": round(drift, 3),
-            "transition_omega": round(col_step, 3),
-            "rationale": rationale,
-        })
+        steps.append(
+            {
+                "step": idx,
+                "branch": b,
+                "drift_magnitude": round(drift, 3),
+                "transition_omega": round(col_step, 3),
+                "rationale": rationale,
+            }
+        )
 
     return {
         "reference_branch": reference_branch,
@@ -159,7 +191,9 @@ def get_merge_order(reference_branch: str = "main", repo_path: str = ".") -> dic
     }
 
 
-def inspect_symbol_impact(symbol: str, reference_branch: str = "main", repo_path: str = ".") -> dict[str, Any]:
+def inspect_symbol_impact(
+    symbol: str, reference_branch: str = "main", repo_path: str = "."
+) -> dict[str, Any]:
     """Inspect dependency graph to find downstream callers and modifying branches for a symbol."""
     path = str(Path(repo_path).resolve())
     graph = build_code_graph_from_repo(path)
@@ -220,16 +254,33 @@ def _serialize_op(op: SemanticOperator) -> dict[str, Any]:
 
 
 def plan_semantic_rebase(
-    source_branch: str, target_branch: str, reference_branch: str = "main", repo_path: str = "."
+    source_branch: str,
+    target_branch: str,
+    reference_branch: str = "main",
+    repo_path: str = ".",
+    branches: list[str] | None = None,
+    exclude_branches: list[str] | None = None,
 ) -> dict[str, Any]:
     """Compute semantic rebase plan: identifies cleanly commuting vs blocked operators."""
     path = str(Path(repo_path).resolve())
+    effective_branches = branches
+    if effective_branches is not None:
+        effective_branches = list(set(effective_branches) | {source_branch, target_branch})
     try:
-        context = build_analysis_context(path, reference_branch)
+        context = build_analysis_context(
+            path,
+            reference_branch,
+            branches=effective_branches,
+            exclude_branches=exclude_branches,
+        )
     except AnalysisContextError as e:
         return {"error": str(e), "source_branch": source_branch, "target_branch": target_branch}
     except Exception as e:
-        return {"error": f"Failed to plan rebase: {e}", "source_branch": source_branch, "target_branch": target_branch}
+        return {
+            "error": f"Failed to plan rebase: {e}",
+            "source_branch": source_branch,
+            "target_branch": target_branch,
+        }
 
     ops_source = list(context.branch_operators.get(source_branch, ()))
     ops_target = list(context.branch_operators.get(target_branch, ()))

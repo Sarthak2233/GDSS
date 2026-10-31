@@ -28,7 +28,7 @@ import { DriftEmptyState } from "@/components/drift/drift-empty-state";
 import { EvidencePhaseBadge } from "@/components/ui/evidence-phase-badge";
 
 export default function DriftPage() {
-  const { refName } = useRepo();
+  const { refName, selectedBranches } = useRepo();
   const router = useRouter();
   const reduceMotion = useReducedMotion();
 
@@ -37,13 +37,19 @@ export default function DriftPage() {
   );
   const [showManifoldGuide, setShowManifoldGuide] = useState<boolean>(false);
 
+  const branchesParam =
+    selectedBranches.length > 0
+      ? `&branches=${encodeURIComponent(selectedBranches.join(","))}`
+      : "";
+
   const driftQuery = useQuery({
-    queryKey: ["drift", refName],
+    queryKey: ["drift", refName, selectedBranches],
     queryFn: () =>
       fetcher<ApiOkEnvelope<DriftData>>(
-        `/v1/drift?ref=${encodeURIComponent(refName)}`
+        `/v1/drift?ref=${encodeURIComponent(refName)}${branchesParam}`
       ),
     staleTime: 5000,
+    placeholderData: (prev) => prev,
   });
 
   const alertsQuery = useQuery({
@@ -53,6 +59,7 @@ export default function DriftPage() {
         `/v1/alerts?ref=${encodeURIComponent(refName)}`
       ),
     staleTime: 5000,
+    placeholderData: (prev) => prev,
   });
 
   const isLoading = driftQuery.isLoading || alertsQuery.isLoading;
@@ -100,7 +107,7 @@ export default function DriftPage() {
           ? { duration: 0 }
           : { duration: duration.page / 1000, ease: easing.easeOut }
       }
-      className="flex flex-col h-full space-y-6"
+      className="flex flex-col min-h-full space-y-6"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
@@ -177,40 +184,39 @@ export default function DriftPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-3 rounded bg-surface/80 border border-border/60">
                   <div className="font-semibold text-text mb-1">
-                    Attractor γ<sub>0</sub>(t)
+                    Attractor R (Canonical Base)
                   </div>
                   <p>
                     The reference branch (e.g.{" "}
                     <span className="text-accent">{refName}</span>) is the
-                    attractor. Magnitude = α·tip + β·I_traj.
+                    attractor. Magnitude I(B) = α·d_tip + β·I_traj.
                   </p>
                 </div>
                 <div className="p-3 rounded bg-surface/80 border border-border/60">
                   <div className="font-semibold text-text mb-1">
-                    Tip vs trajectory
+                    Tip vs trajectory (d_tip vs I_traj)
                   </div>
                   <p>
-                    tip_distance is embedding distance between tips;
-                    trajectory_integral is path length along merge_base..tip.
+                    d_tip is embedding cosine distance between tips;
+                    I_traj is cumulative AST transforms along merge_base..tip.
                   </p>
                 </div>
                 <div className="p-3 rounded bg-surface/80 border border-border/60">
                   <div className="font-semibold text-text mb-1">
-                    Velocity &amp; convergence
+                    Velocity v = ΔI/Δt
                   </div>
                   <p>
-                    Label from velocity sign (v&lt;0 converging, v&gt;0
-                    diverging). Score is clamp(1 − mag/threshold) adjusted by
-                    velocity.
+                    v &le; 0: converging toward attractor; v &gt; 0: diverging.
+                    Convergence score clamped in [0, 1].
                   </p>
                 </div>
                 <div className="p-3 rounded bg-surface/80 border border-border/60">
                   <div className="font-semibold text-text mb-1">
-                    Not yet Ω<sub>ij</sub>
+                    Collision Tensor Ω<sub>ij</sub>
                   </div>
                   <p>
-                    Alerts are magnitude buckets. Full commutativity tensor
-                    [T<sub>i</sub>, T<sub>j</sub>] awaits phase 4.
+                    Drift measures 1-to-base divergence. Pairwise branch-to-branch
+                    collisions [T_i, T_j] are tracked in Conflict Tensor.
                   </p>
                 </div>
               </div>
@@ -228,8 +234,24 @@ export default function DriftPage() {
 
       {isLoading && !isError && (
         <div className="flex flex-col gap-6" aria-busy="true">
-          <div className="h-64 w-full rounded-xl border border-border bg-surfaceGlass animate-pulse" />
-          <div className="h-96 w-full rounded-xl border border-border bg-surfaceGlass animate-pulse" />
+          <div className="h-64 w-full rounded-xl border border-border bg-surfaceGlass p-6 flex flex-col justify-between animate-pulse">
+            <div className="flex justify-between items-center">
+              <div className="h-5 w-48 bg-surfaceElevated rounded" />
+              <div className="h-4 w-32 bg-surfaceElevated rounded" />
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="w-36 h-36 rounded-full border-2 border-dashed border-border flex items-center justify-center text-xs text-textMuted font-mono">
+                Computing trajectory vectors...
+              </div>
+            </div>
+            <div className="h-4 w-64 bg-surfaceElevated rounded" />
+          </div>
+          <div className="h-80 w-full rounded-xl border border-border bg-surfaceGlass p-6 flex flex-col gap-4 animate-pulse">
+            <div className="h-5 w-56 bg-surfaceElevated rounded" />
+            <div className="h-10 w-full bg-surfaceElevated rounded" />
+            <div className="h-16 w-full bg-surfaceElevated rounded" />
+            <div className="h-16 w-full bg-surfaceElevated rounded" />
+          </div>
         </div>
       )}
 

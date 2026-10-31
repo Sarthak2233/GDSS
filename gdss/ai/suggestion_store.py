@@ -3,6 +3,7 @@
 Saves verified suggestion metadata and candidate patches to .gdss/suggestions/
 without mutating Git state, files, or branches.
 """
+
 from __future__ import annotations
 
 import json

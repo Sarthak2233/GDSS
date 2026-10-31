@@ -42,4 +42,21 @@ def test_validate_patch_rejects_a_hunk_outside_the_symbol_anchor():
     result = validate_patch(_suggestion(), patch)
 
     assert result.valid is False
-    assert "outside" in result.reason
+    assert result.reason is not None and "outside" in result.reason
+
+
+def test_validate_patch_accepts_clean_replacement_block_with_valid_syntax():
+    code = "def process(amount: float) -> float:\n    return amount * 2.5\n"
+    original = "def process(amount: float) -> float:\n    return amount\n"
+
+    result = validate_patch(_suggestion(), code, original_code=original)
+    assert result.valid is True
+    assert result.synthesized_diff is not None
+    assert "--- a/src/payments.py" in result.synthesized_diff
+
+
+def test_validate_patch_rejects_clean_replacement_block_with_syntax_error():
+    broken_code = "def process(amount: float) -> float:\n    return amount * (\n"
+    result = validate_patch(_suggestion(), broken_code)
+    assert result.valid is False
+    assert "syntax error" in (result.reason or "").lower()

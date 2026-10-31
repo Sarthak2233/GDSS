@@ -6,6 +6,7 @@ Verifies:
 3. Ephemeral sandbox validation and suggestion persistence in .gdss/suggestions/
 4. Sticky comment Markdown rendering with topology badges and 1-click commit suggestions
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -43,7 +44,14 @@ def test_build_pr_analysis_context_multi_branch(tmp_path: Path):
         with patch("gdss.watcher.git_observer.GitObserver.is_valid", return_value=True):
             with patch(
                 "gdss.watcher.git_observer.GitObserver.get_commits_between",
-                return_value=[{"sha": "12345678", "summary": "mock commit", "author": "alice", "message": "mock commit"}],
+                return_value=[
+                    {
+                        "sha": "12345678",
+                        "summary": "mock commit",
+                        "author": "alice",
+                        "message": "mock commit",
+                    }
+                ],
             ):
                 with patch(
                     "gdss.core.trajectory.extract_trajectory_operators",
@@ -67,7 +75,6 @@ def test_build_pr_analysis_context_multi_branch(tmp_path: Path):
                     assert ctx.branch_intents["feat-current"]["title"] == "Current PR"
                     assert "feat-current" in ctx.branch_commits
                     assert len(ctx.branch_commits["feat-current"]) == 1
-
 
 
 def test_run_convergence_pipeline_state_machine(tmp_path: Path):

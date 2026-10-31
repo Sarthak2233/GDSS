@@ -51,9 +51,13 @@ sequenceDiagram
 
 ## 🚀 Quickstart: Adding the Workflow (2 Minutes)
 
-To activate GDSS in your repository, create the file `.github/workflows/gdss-radar.yml` with the following configuration:
+Choose between the GitHub Marketplace Action (recommended) or custom container/runner setup:
 
-### `.github/workflows/gdss-radar.yml`
+### Method 1: GitHub Marketplace Action (Recommended)
+
+This method runs the pre-compiled container image (`ghcr.io/sarthak2233/gdss-runner:v1`) directly on GitHub's runner. **Requires no Python setup, no pip caching, and zero build time.**
+
+Create `.github/workflows/gdss-radar.yml` in your repository:
 
 ```yaml
 name: GDSS PR Collision Radar
@@ -77,10 +81,34 @@ jobs:
     name: Audit Cross-Branch PR Collisions
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository with full commit history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required to resolve branch histories & merge-bases
+
+      - name: Run GDSS PR Collision Radar
+        uses: sarthak2233/gdss-radar-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Optional inputs:
+          # threshold: "0.1"
+          # fail_on_collision: "false"
+          # provider: "github-models"
+          # model: "gpt-4o"
+```
+
+> [!NOTE]
+> No third-party API keys or external secrets are required. The workflow relies entirely on GitHub's built-in `${{ secrets.GITHUB_TOKEN }}`.
+
+### Method 2: Custom / Self-Hosted Runner Workflow
+
+For private self-hosted runners or environments where you build from source:
+
+```yaml
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Required to resolve branch histories
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -100,18 +128,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           gdss audit-pr --output gdss_radar_report.md
-
-      - name: Upload Radar Report Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gdss-radar-report-pr-${{ github.event.pull_request.number }}
-          path: gdss_radar_report.md
-          if-no-files-found: ignore
 ```
-
-> [!NOTE]
-> No third-party API keys or external secrets are required. The workflow relies entirely on GitHub's built-in `${{ secrets.GITHUB_TOKEN }}`.
 
 ---
 

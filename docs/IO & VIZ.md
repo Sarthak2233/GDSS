@@ -191,26 +191,162 @@ snapshot() -> Dict[str, Any]
 
 ---
 
-### 5. Collision Tensor Engine — `TensorEngine` (`gdss/conflict/tensor_engine.py`)
+### 5. Collision Tensor Engine — `TensorEngine` (`gdss/conflict/tensor.py`)
 
-Computes pairwise interaction and collision intensity across concurrent branches $B_i$ and $B_j$:
+Computes pairwise branch interaction and collision intensity across all concurrent branches $B_i$ and $B_j$ before merge:
+
+```python
+compute(
+    branch_ops: Mapping[str, list[SemanticOperator]],
+    drift_magnitudes: Mapping[str, float],
+    impact_sets: Mapping[str, set[str]] | None = None,
+) -> ConflictTensor
+```
+
+| Direction | Detail |
+| :--- | :--- |
+| **In: `branch_ops`** | `Mapping[str, list[SemanticOperator]]` — Extracted semantic operators for each active branch relative to common ancestor or attractor |
+| **In: `drift_magnitudes`** | `Mapping[str, float]` — Precomputed drift magnitude per branch used to populate diagonal self-energy |
+| **In: `impact_sets`** | `Mapping[str, set[str]] | None` — Transitive caller blast radiuses from `CodeGraph.get_downstream_impact()` |
+| **Out: `ConflictTensor`** | Sparse matrix representation containing `branches`, `entries: dict[tuple[str, str], TensorEntry]`, and `merge_risk: float` |
+| **Out: `TensorEntry`** | Evaluated branch pair `(i, j)`, computed collision intensity `omega: float` ($\Omega_{ij} \in [0.0, 1.0]$), and explainable `reasons: tuple[str, ...]` |
+
+#### Mathematical Foundations: Two Formulations of $\Omega_{ij}$
+
+In GDSS, the Collision Tensor is modeled through two complementary representations: the **Theoretical Operator-Graph Formulation** (foundational definition over the code dependency manifold) and the **Discrete Production Implementation** (deterministic, clamped $O(|S|)$ execution in `gdss/conflict/tensor.py`).
+
+##### 1. Theoretical Graph-Spectral Operator Formulation
+Over the semantic repository manifold $G = (S, E)$ consisting of symbol nodes $s \in S$ and directed dependency edges $(s_u, s_v) \in E$, the theoretical collision intensity between branches $B_i$ and $B_j$ is:
 
 $$\Omega_{ij} = \sum_{s \in S} W_s \cdot \Delta_i(s) \cdot \Delta_j(s) + \sum_{(s_u, s_v) \in E} W_{uv} \cdot [\Delta_i(s_u) \Delta_j(s_v) + \Delta_j(s_u) \Delta_i(s_v)] + \sum_{T_i \in \tau_i, T_j \in \tau_j} \|[T_i, T_j]\|$$
 
-- Tracks non-commutative operators ($[T_i, T_j] \ne 0$) such as concurrent signature adaptations vs call modifications.
-- Evaluates total repository merge risk: $R_{\text{merge}} = \frac{2}{N(N-1)} \sum_{i < j} \Omega_{ij}$.
-- Classifies contact topologies: `Union`, `Intersection`, `Disjoint`, `Asymmetric`.
+This formulation decomposes collision tension into three fundamental topological components:
+1. **Node Space — Direct Symbol Overlap ($\sum_{s \in S}$):** Measures concurrent changes applied to identical symbols (functions, classes, types). $W_s$ is the symbol importance weight, while $\Delta_i(s)$ and $\Delta_j(s)$ represent the magnitude of semantic modification on symbol $s$.
+2. **Edge Space — Contractual Call Graph Overlap ($\sum_{(s_u, s_v) \in E}$):** Detects cross-boundary architectural breakage along caller-callee directed edges. If branch $B_i$ alters caller $s_u$ while concurrent branch $B_j$ modifies callee $s_v$'s signature (or vice-versa), this term triggers even if the branches touch completely disjoint files.
+3. **Commutator Lie Bracket — Algebraic Non-Commutativity ($\sum \|[T_i, T_j]\|$):** Evaluates whether the transformation operators commute:
+   $$[T_i, T_j] = T_i \circ T_j - T_j \circ T_i$$
+   - $[T_i, T_j] = 0 \implies$ Commutative (order-independent merge).
+   - $[T_i, T_j] \ne 0 \implies$ Non-commutative interference (order-dependent; one ordering causes build or contract failures).
 
 ---
 
-### 6. Drift & Trajectory Engine — `DriftEngine` (`gdss/drift/drift_engine.py`)
+##### 2. Discrete Production Implementation (`TensorEngine.compute`)
+To run in literal 0 tokens with zero continuous approximation overhead, `TensorEngine` evaluates the theoretical formulation through calibrated discrete indicators clamped to $[0.0, 1.0]$:
 
-Monitors divergence of active branch trajectories from the reference attractor (`main` or `dev`):
+$$\Omega_{ij} = \operatorname{clamp}_{[0, 1]}\Big( w_{\text{file}} \cdot S_{\text{file}} + w_{\text{func}} \cdot S_{\text{func}} + w_{\text{sym}} \cdot S_{\text{sym}} + w_{\text{dep}} \cdot D_{ij} + w_{\text{interfere}} \cdot I_{ij} \Big)$$
 
-- **Tip Proxy:** Cosine distance of symbol vector snapshots between branch tip and attractor tip.
-- **Trajectory Path Integral:** $I(B_i) = \int_{t_0}^{t_1} \|\dot{B}_i(t)\|_G dt$, measuring cumulative semantic churn.
-- **Drift Velocity:** $v(B_i) = \frac{\Delta \text{drift}}{\Delta \text{commits}}$.
-- **Severity Alerts:** Categorized into `INFO`, `WARNING`, and `CRITICAL` based on configurable drift thresholds.
+**Mapping from Theory to Production Code:**
+| Theoretical Component | Discrete Production Term | Default Weight | Meaning |
+| :--- | :--- | :--- | :--- |
+| **Node Space ($\sum_{s \in S}$)** | $w_{\text{file}} \cdot S_{\text{file}}$ | $0.2$ | $1.0$ if $\text{files}(B_i) \cap \text{files}(B_j) \ne \emptyset$ |
+| **Node Space ($\sum_{s \in S}$)** | $w_{\text{func}} \cdot S_{\text{func}}$ | $0.5$ | $1.0$ if both branches modify/delete the same function target |
+| **Node Space ($\sum_{s \in S}$)** | $w_{\text{sym}} \cdot S_{\text{sym}}$ | $0.7$ | $1.0$ if both branches target identical symbol identifiers |
+| **Edge Space ($\sum_{(s_u, s_v) \in E}$)** | $w_{\text{dep}} \cdot D_{ij}$ | $0.4$ | $1.0$ if `CodeGraph` blast radiuses intersect ($\text{impact}_i \cap \text{impact}_j \ne \emptyset$) |
+| **Commutator ($\sum \|[T_i, T_j]\|$)**| $w_{\text{interfere}} \cdot I_{ij}$ | $0.3$ | Interference ratio $I_{ij} = \frac{\text{interfering}}{\max(1, \text{contacts})}$ from `commutativity.py` |
+
+##### 3. Contact Topologies
+Contacting operator pairs are deterministically classified into four geometric contact topologies (`gdss/ai/conflict_topology.py`):
+- **`Disjoint`**: Operators touch disjoint symbols or interfere without a shared parent structure. $\Omega_{ij} \approx 0.0$.
+- **`Union`**: Operators affect disjoint children under a common parent (e.g. adding sibling functions to a class) or append non-conflicting sections. Commutes cleanly; eligible for automatic union merge.
+- **`Intersection`**: Operators overlap identical blocks or full bodies of the same symbol ($[T_i, T_j] \ne 0$). High collision risk ($\Omega_{ij} \ge 0.50$); requires semantic convergence or developer resolution.
+- **`Asymmetric`**: Operator application order alters the resulting AST state (e.g. signature modification vs caller rewrite). Requires explicit merge order sequencing.
+
+##### 4. Diagonal Self-Energy ($\Omega_{ii}$)
+Captures the branch's accumulated divergence from the reference attractor branch (internal semantic churn):
+
+$$\Omega_{ii} = \min(1.0, \|\gamma_i(t)\|)$$
+
+##### 5. Repository Merge Risk ($R_{\text{merge}}$)
+GDSS measures repository merge risk under two complementary formulations:
+- **Total Cumulative Risk ($R_{\text{merge}}^{\text{sum}}$):** Sum of all matrix entries including diagonal self-energy (used by CLI and REST API):
+  $$R_{\text{merge}} = \sum_{e \in \text{entries}} \Omega_e = \sum_{i} \Omega_{ii} + \sum_{i < j} \Omega_{ij}$$
+- **Normalized Pairwise Average Risk ($R_{\text{merge}}^{\text{avg}}$):** Average collision probability across all $\binom{N}{2}$ active branch pairs:
+  $$R_{\text{merge}}^{\text{avg}} = \frac{2}{N(N-1)} \sum_{i < j} \Omega_{ij} \quad (\text{for } N \ge 2)$$
+
+#### What This Calculation Does in the Project:
+1. **Early PR Collision Radar:** Runs in GitHub Actions CI and IDE MCP servers to alert developers when two concurrent feature PRs have non-zero $\Omega_{ij}$, before either branch merges.
+2. **Topological Merge Ordering:** Directs release orchestration by finding the permutation of branches that minimizes progressive cumulative merge friction.
+3. **AI Convergence Grounding:** Provides the AI synthesis prompt builder (`gdss/ai/prompt_builder.py`) with the exact mathematical reasons, contact topology directives, and non-commuting operations that require conflict resolution.
+
+---
+
+### 6. Drift & Trajectory Engine — `DriftEngine` (`gdss/drift/engine.py`)
+
+Measures semantic divergence and trajectory path dynamics of active branch $B_i$ relative to the reference attractor branch ($A$, typically `main` or `develop`):
+
+```python
+compute_magnitude(branch: str, reference_branch: str) -> DriftMagnitude
+snapshot(branch: str, reference_branch: str) -> DriftSnapshot
+affected_symbols(branch: str, reference_branch: str) -> list[AffectedSymbol]
+```
+
+| Direction | Detail |
+| :--- | :--- |
+| **In: `branch`, `reference_branch`** | Git branch names or commit SHAs to compare |
+| **In: Parameters** | $\alpha = 0.5$ (tip distance weight), $\beta = 0.5$ (trajectory integral weight), `trajectory_ceiling = 2.0`, `convergence_threshold = 1.0` |
+| **Out: `DriftMagnitude`** | `tip_distance: float` ($d_{\text{tip}}$), `trajectory_integral: float` ($I_{\text{norm}}$), combined `magnitude: float` ($\|\gamma(t)\|$), `alpha: float`, `beta: float` |
+| **Out: `DriftSnapshot`** | Historical time-series snapshot including `timestamp`, `magnitude`, `velocity: float`, `convergence: float`, and `affected: tuple[AffectedSymbol, ...]` |
+| **Out: `AffectedSymbol`** | `symbol_id: str`, `name: str`, `distance: float` (per-symbol cosine distance), `reason: str` (`"modified_in_both"`) |
+
+#### Mathematical Calculation:
+
+##### 1. Divergence Magnitude ($\|\gamma(t)\|$)
+The total divergence of a branch tip from its reference attractor combines instantaneous tip distance with historical commit path churn:
+
+$$\|\gamma(t)\| = \alpha \cdot d_{\text{tip}} + \beta \cdot I_{\text{norm}}$$
+
+Where:
+- $\alpha = 0.5$: Weight allocated to tip distance.
+- $\beta = 0.5$: Weight allocated to normalized discrete trajectory integral.
+
+##### 2. Tip Centroid Embedding Distance ($d_{\text{tip}}$)
+Quantifies structural semantic distance between the codebase states at branch tip $C_{\text{branch}}$ and attractor tip $C_{\text{ref}}$:
+1. Parse all source symbols present at each tip commit via Tree-sitter: $S_{\text{branch}}$ and $S_{\text{ref}}$.
+2. Compute neural dense embeddings for all symbols via the ONNX code encoder (`all-MiniLM-L6-v2` in $\mathbb{R}^{384}$).
+3. Compute the normalized branch centroid vector for each tip:
+   $$\mathbf{v}_{\text{tip}} = \frac{\sum_{k=1}^{K} \mathbf{v}_k}{\left\|\sum_{k=1}^{K} \mathbf{v}_k\right\|_2} \in \mathbb{R}^{384}$$
+4. Calculate cosine distance between the two tip centroids:
+   $$d_{\text{tip}} = 1 - \frac{\mathbf{v}_{\text{branch}} \cdot \mathbf{v}_{\text{ref}}}{\|\mathbf{v}_{\text{branch}}\|_2 \|\mathbf{v}_{\text{ref}}\|_2}$$
+   *(If both branches have no symbols, $d_{\text{tip}} = 0.0$; if only one has symbols, $d_{\text{tip}} = 1.0$)*.
+
+##### 3. Normalized Discrete Trajectory Path Integral ($I_{\text{norm}}$)
+Measures cumulative structural churn along the sequence of commits since the branch diverged from the merge base:
+1. Identify nearest common ancestor $M = \operatorname{merge\_base}(B, A)$.
+2. Collect the chronological commit sequence: $M = C_0, C_1, C_2, \dots, C_n = B_{\text{tip}}$.
+3. Compute the tip centroid vector $\phi(C_c) = \mathbf{v}_{\text{tip}}(C_c)$ at each commit.
+4. Integrate Euclidean step distances along the discrete trajectory:
+   $$I_{\text{traj}} = \sum_{c=0}^{n-1} \|\phi(C_{c+1}) - \phi(C_c)\|_2$$
+5. Normalize against the saturation ceiling (`trajectory_ceiling = 2.0`):
+   $$I_{\text{norm}} = \min\left( \frac{I_{\text{traj}}}{\text{trajectory\_ceiling}}, 1.0 \right)$$
+
+##### 4. Drift Velocity ($v$) & Convergence Score ($s$)
+Tracking rate of change across consecutive snapshots:
+- **Velocity ($v$):**
+  $$v(B_i) = \frac{\|\gamma(t_{\text{now}})\| - \|\gamma(t_{\text{prior}})\|}{t_{\text{now}} - t_{\text{prior}}}$$
+  $v > 0$ denotes active divergence; $v < 0$ denotes convergence back toward the trunk (e.g. after a rebase or sync).
+- **Convergence Score ($s \in [0.0, 1.0]$):**
+  Evaluates merge readiness under velocity momentum:
+  $$\text{base} = \operatorname{clamp}_{[0, 1]}\left(1 - \frac{\|\gamma(t)\|}{\theta_{\text{conv}}}\right) \quad (\theta_{\text{conv}} = 1.0)$$
+  $$s = \begin{cases} \max(0.0, \text{base} - \min(0.25, v)) & \text{if } v > 0 \text{ (diverging penalty)} \\ \min(1.0, \text{base} + \min(0.25, |v|)) & \text{if } v < 0 \text{ (converging bonus)} \\ \text{base} & \text{if } v = 0 \end{cases}$$
+
+##### 5. Affected Symbols Inventory
+Determines which symbols have been modified concurrently on both the feature branch and the attractor:
+1. Extract trajectory operators from merge base to branch tip ($\tau_{\text{branch}}$) and from merge base to attractor tip ($\tau_{\text{ref}}$).
+2. Compute the shared modified target set:
+   $$\text{shared} = \text{names}(\tau_{\text{branch}}) \cap \text{names}(\tau_{\text{ref}})$$
+3. For each shared symbol $s$, compute its per-symbol cosine distance:
+   $$d(s) = 1 - \frac{\mathbf{v}_{\text{branch}}(s) \cdot \mathbf{v}_{\text{ref}}(s)}{\|\mathbf{v}_{\text{branch}}(s)\|_2 \|\mathbf{v}_{\text{ref}}(s)\|_2}$$
+   *(If vectors are unavailable, e.g. for non-code schema assets, $d(s) = 0.0$ while still preserving entry in the inventory)*.
+
+##### 6. Separation of Concerns: Neural Embeddings vs. Domain Reducers
+- **Neural Embeddings:** Dedicated to programming language AST symbols (Python, TypeScript, Go, Rust, Java, C/C++). AST symbols are parsed into Tree-sitter nodes and projected into $\mathbb{R}^{384}$ dense vector space to capture semantic logic shifts.
+- **Domain Reducers (Deterministic Layer):** Non-code project assets (SQL DDL/DML, database migrations, Dockerfiles, YAML CI manifests, documentation Markdown) bypass neural vector encoders. This protects vector space fidelity from noise caused by unstructured prose or tabular schema text, while domain reducers emit precise deterministic `SemanticOperator` instances (`SCHEMA_MODIFY_TABLE`, `MIGRATION_STEP`, `DOC_SECTION_MODIFY`) that directly enter the **Affected Symbols Inventory** and **Collision Tensor**.
+
+#### What This Calculation Does in the Project:
+1. **Branch Health Gauges:** Classifies branches into real-time health tiers (`INFO`: $\|\gamma(t)\| < 0.3$, `WARNING`: $0.3 \le \|\gamma(t)\| < 0.7$, `CRITICAL`: $\|\gamma(t)\| \ge 0.7$).
+2. **Dashboard Visualizations:** Feeds the Next.js visual manifold (`web/`), rendering dynamic branch trajectory curves, 3D PCA vector space projections, and drift sparklines.
+3. **Collision Tensor Diagonal:** Feeds directly into $\Omega_{ii} = \min(1.0, \|\gamma_i(t)\|)$, ensuring branches with heavy semantic churn have accurate self-energy ratings.
+4. **Targeted Conflict Resolution:** Identifies exact colliding symbols for the AI Convergence Assistant to focus patch generation only where concurrent edits occurred.
 
 ---
 
@@ -533,6 +669,11 @@ GDSS maintains high speed and reproducibility through layered storage:
 | `CodeSymbol` | [`gdss/core/transform_types.py`](../gdss/core/transform_types.py) | Atomic AST entity (function, class, method) | `.to_dict()` |
 | `SemanticOperator` | [`gdss/core/transform_types.py`](../gdss/core/transform_types.py) | Semantic change operator ($dC$) | `.to_dict()` |
 | `CodeGraph` | [`gdss/graph/code_graph.py`](../gdss/graph/code_graph.py) | Full repository dependency manifold | `snapshot()` / JSON export |
+| `ConflictTensor` | [`gdss/conflict/tensor.py`](../gdss/conflict/tensor.py) | Sparse $\Omega_{ij}$ collision matrix and repository merge risk | Dataclass / JSON API |
+| `TensorEntry` | [`gdss/conflict/tensor.py`](../gdss/conflict/tensor.py) | Pairwise collision intensity and contributing reason tags | Dataclass / JSON API |
+| `DriftMagnitude` | [`gdss/drift/types.py`](../gdss/drift/types.py) | Combined tip proxy and discrete trajectory path integral | Dataclass / JSON API |
+| `DriftSnapshot` | [`gdss/drift/types.py`](../gdss/drift/types.py) | Time-series drift telemetry (magnitude, velocity, convergence) | `.to_dict()` / JSON export |
+| `AffectedSymbol` | [`gdss/drift/types.py`](../gdss/drift/types.py) | Co-modified symbol identity with per-symbol cosine distance | `.to_dict()` |
 | `Suggestion` | [`gdss/ai/types.py`](../gdss/ai/types.py) | Ranked merge convergence candidate | `to_metadata()` / `to_local_source()` |
 | `SuggestionAnchor` | [`gdss/ai/types.py`](../gdss/ai/types.py) | AST-to-Git file line boundaries | `.to_dict()` |
 | `PatchCombination` | [`gdss/ai/types.py`](../gdss/ai/types.py) | Algebraic resolution strategy (`keep_left`, `compose`, etc.) | `.to_dict()` |

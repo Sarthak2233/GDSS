@@ -1,3 +1,8 @@
+---
+name: dsa-optimize
+description: A skill to optimize the code with a proper data structure and algorithm implementation to make the code more dfficient
+---
+
 # DSA Optimization Skill
 
 When you write performance-sensitive code, or are asked to optimize an existing module, invoke this skill to ensure algorithmic efficiency.

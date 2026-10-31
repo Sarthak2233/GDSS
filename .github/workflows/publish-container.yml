@@ -3,6 +3,14 @@ name: Publish GDSS Runner Container
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - main
+    paths:
+      - 'gdss/**'
+      - 'Dockerfile'
+      - 'pyproject.toml'
+      - '.github/workflows/publish-container.yml'
   workflow_dispatch:
     inputs:
       tag:
@@ -38,8 +46,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/gdss-runner
           tags: |
-            type=raw,value=latest,enable=${{ github.event_name == 'release' || github.event.inputs.tag == 'latest' }}
-            type=raw,value=v1,enable=${{ github.event_name == 'release' || startsWith(github.event.inputs.tag, 'v1') }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' || github.ref == 'refs/heads/main' || github.event.inputs.tag == 'latest' }}
+            type=raw,value=v1,enable=${{ github.event_name == 'release' || github.ref == 'refs/heads/main' || startsWith(github.event.inputs.tag, 'v1') }}
             type=ref,event=tag
             type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' }}
 

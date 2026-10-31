@@ -99,7 +99,7 @@ GitHub Marketplace requires the repository containing `action.yml` to be public.
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│ PUBLIC GITHUB REPO: sarthak2233/gdss-radar-action      │
+│ PUBLIC GITHUB REPO: sarthak2233/gdss-radar             │
 │  - action.yml (metadata, inputs, marketplace branding) │
 │  - README.md (documentation & quickstart examples)     │
 └───────────────────────────┬────────────────────────────┘
@@ -156,7 +156,7 @@ CMD ["audit-pr"]
 ```
 
 #### `action.yml` Specification
-Inside the public `sarthak2233/gdss-radar-action` repository:
+Inside the public `sarthak2233/gdss-radar` repository:
 
 ```yaml
 name: 'GDSS PR Collision Radar'
@@ -204,7 +204,7 @@ runs:
 ```
 
 #### Marketplace Publishing Workflow
-1. Create a public repository: `https://github.com/sarthak2233/gdss-radar-action`.
+1. Create a public repository: `https://github.com/sarthak2233/gdss-radar`.
 2. Commit `action.yml`, [`docs/USER_GUIDE.md`](USER_GUIDE.md), and standard MIT/Commercial license notice.
 3. Click **Releases** ➔ **Draft a new release**.
 4. Check **"Publish this Action to the GitHub Marketplace"**.
@@ -233,7 +233,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Collision Radar
-        uses: sarthak2233/gdss-radar-action@v1
+        uses: sarthak2233/gdss-radar@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -417,8 +417,8 @@ Because GDSS is written in Python, protecting proprietary algorithms ($\Omega_{i
 - [ ] Create simple installation script (`install.sh`) fetching compiled release binaries.
 
 ### Sprint 2: GitHub Marketplace Action Launch
-- [ ] Create public wrapper repository `sarthak2233/gdss-radar-action`.
-- [ ] Author `action.yml` referencing `docker://ghcr.io/sarthak2233/gdss-runner:v1`.
+- [x] Create public wrapper repository `sarthak2233/gdss-radar`.
+- [x] Author `action.yml` referencing `docker://ghcr.io/sarthak2233/gdss-runner:v1`.
 - [ ] Add branding assets (icon `git-merge`, color `blue`).
 - [ ] Tag release `v1.0.0` and submit to GitHub Marketplace.
 

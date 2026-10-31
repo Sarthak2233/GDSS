@@ -72,7 +72,7 @@ gdss --help
 ```yaml
 # In .github/workflows/gdss-radar.yml
 - name: Run GDSS PR Collision Radar
-  uses: sarthak2233/gdss-radar-action@v1
+  uses: sarthak2233/gdss-radar@v1
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -365,7 +365,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run GDSS PR Collision Radar
-        uses: sarthak2233/gdss-radar-action@v1
+        uses: sarthak2233/gdss-radar@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           # Optional inputs (defaults shown):
@@ -376,7 +376,7 @@ jobs:
 ```
 
 > [!TIP]
-> **Zero Python Setup Required:** `sarthak2233/gdss-radar-action@v1` runs a pre-compiled container (`ghcr.io/sarthak2233/gdss-runner:v1`) directly on GitHub's runner, so you don't need `setup-python` or `pip install`.
+> **Zero Python Setup Required:** `sarthak2233/gdss-radar@v1` runs a pre-compiled container (`ghcr.io/sarthak2233/gdss-runner:v1`) directly on GitHub's runner, so you don't need `setup-python` or `pip install`.
 >
 > 📖 **Full CI/CD Guide:** See [`docs/GITHUB_ACTIONS_GUIDE.md`](GITHUB_ACTIONS_GUIDE.md) for custom container runners, blocking vs. informational modes, fork handling, and configuration options.
 

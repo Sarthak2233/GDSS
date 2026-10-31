@@ -429,13 +429,13 @@ jobs:
           fetch-depth: 0
 
       - name: Run GDSS PR Collision Radar
-        uses: sarthak2233/gdss-radar-action@v1
+        uses: sarthak2233/gdss-radar@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 > [!TIP]
-> `sarthak2233/gdss-radar-action@v1` runs a pre-compiled container (`ghcr.io/sarthak2233/gdss-runner:v1`) directly on GitHub's runner with **zero Python setup required**.
+> `sarthak2233/gdss-radar@v1` runs a pre-compiled container (`ghcr.io/sarthak2233/gdss-runner:v1`) directly on GitHub's runner with **zero Python setup required**.
 
 > 📖 **Full User & Setup Guide:** See [`docs/GITHUB_ACTIONS_GUIDE.md`](docs/GITHUB_ACTIONS_GUIDE.md) for blocking vs. informational modes, `.gdss.yml` configuration schema, and fork security.
 

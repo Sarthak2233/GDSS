@@ -56,10 +56,10 @@ Choose the distribution method that matches your workflow:
 
 ```bash
 # Linux (x86_64) & macOS (Apple Silicon / Intel)
-curl -fsSL https://raw.githubusercontent.com/sarthak2233/GDSS/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sarthak2233/gdss-radar/main/install.sh | bash
 
-# Or via Homebrew (macOS)
-brew tap sarthak2233/tap && brew install gdss
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/sarthak2233/gdss-radar/main/install.ps1 | iex
 
 # Verify installation
 gdss --help

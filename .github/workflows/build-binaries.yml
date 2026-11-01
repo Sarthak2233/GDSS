@@ -1,0 +1,164 @@
+name: Build GDSS Standalone Binaries
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version tag (e.g. v1, v1.0.0)'
+        required: false
+        default: 'v1'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux-amd64
+            binary_name: gdss
+            archive_format: tar.gz
+          - os: macos-14
+            platform: darwin-arm64
+            binary_name: gdss
+            archive_format: tar.gz
+          - os: macos-13
+            platform: darwin-amd64
+            binary_name: gdss
+            archive_format: tar.gz
+          - os: windows-latest
+            platform: windows-amd64
+            binary_name: gdss.exe
+            archive_format: zip
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Determine Version Tag
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            TAG="${{ github.event.inputs.version }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="v1"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Building version ${TAG} on ${{ matrix.platform }}"
+
+      - name: Install Dependencies & Build Tools
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install pyinstaller
+          python -m pip install -e .
+
+      - name: Compile Standalone Executable with PyInstaller
+        shell: bash
+        run: |
+          pyinstaller --clean packaging/pyinstaller/gdss.spec
+
+      - name: Smoke Test Compiled Binary
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ./dist/gdss.exe --help
+          else
+            ./dist/gdss --help
+          fi
+
+      - name: Package Binary Archive
+        id: package
+        shell: bash
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          ARCHIVE_NAME="gdss-${TAG}-${{ matrix.platform }}.${{ matrix.archive_format }}"
+          
+          if [ "${{ matrix.archive_format }}" = "tar.gz" ]; then
+            tar -czvf "${ARCHIVE_NAME}" -C dist gdss
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "${ARCHIVE_NAME}" > "${ARCHIVE_NAME}.sha256"
+            else
+              shasum -a 256 "${ARCHIVE_NAME}" > "${ARCHIVE_NAME}.sha256"
+            fi
+          else
+            powershell -Command "Compress-Archive -Path dist/gdss.exe -DestinationPath '${ARCHIVE_NAME}' -Force"
+            powershell -Command "(Get-FileHash '${ARCHIVE_NAME}' -Algorithm SHA256).Hash.ToLower() + '  ${ARCHIVE_NAME}' | Out-File -Encoding utf8 -FilePath '${ARCHIVE_NAME}.sha256'"
+          fi
+
+          echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.archive_name }}
+          path: |
+            ${{ steps.package.outputs.archive_name }}
+            ${{ steps.package.outputs.archive_name }}.sha256
+          retention-days: 7
+
+  release:
+    name: Publish Release Binaries & Checksums
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Download all built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Consolidate Checksums and Release Assets
+        id: prep
+        shell: bash
+        run: |
+          mkdir -p release_assets
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" \) -exec cp {} release_assets/ \;
+          
+          # Aggregate checksums into a single checksums.txt
+          find artifacts -type f -name "*.sha256" -exec cat {} + > release_assets/checksums.txt
+          
+          echo "Assets to publish:"
+          ls -la release_assets/
+
+      - name: Determine Release Tag
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            TAG="${{ github.event.inputs.version }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="v1"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish Release Assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          files: release_assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

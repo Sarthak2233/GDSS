@@ -188,12 +188,13 @@ claude mcp add gdss -- gdss mcp
 GDSS is designed to run locally on developer hardware at $0 token cost. Choose the installation method that fits your workflow:
 
 ```bash
-# Option 1: Standalone binary (Linux & macOS) — Recommended for CLI & IDE MCP
+# Option 1: Standalone binary (Linux, macOS, Windows) — Recommended for CLI & IDE MCP
 # Requires no Python, virtualenv, or dependency setup
-curl -fsSL https://raw.githubusercontent.com/sarthak2233/GDSS/main/install.sh | bash
+# macOS & Linux (Bash):
+curl -fsSL https://raw.githubusercontent.com/sarthak2233/gdss-radar/main/install.sh | bash
 
-# Or via Homebrew (macOS)
-brew tap sarthak2233/tap && brew install gdss
+# Windows (PowerShell):
+irm https://raw.githubusercontent.com/sarthak2233/gdss-radar/main/install.ps1 | iex
 ```
 
 ```bash
@@ -247,7 +248,8 @@ gdss ▶ quit              # 8. exit (or press Ctrl+D)
 | `gdss graph export` | `--repo`, `--format`, `-o` | Export dependency graph to DOT or JSON |
 | `gdss suggest` | `--repo`, `--ref`, `--branches`, `--exclude`, `--llm`, `--validate` | Propose ranked semantic resolution patches (with optional ephemeral sandbox validation) |
 | `gdss apply` | `SUGGESTION_ID`, `--strategy`, `--dry-run`, `--rollback` | Guarded local application of an approved suggestion with preflight security and rollback |
-| `gdss audit-pr` | `--repo`, `--pr-number`, `--branches`, `--exclude`, `--same-base-only` | Audit concurrent pull requests for semantic collisions and post sticky radar reports |
+| `gdss audit-pr` | `--repo`, `--pr-number`, `--branches`, `--exclude`, `--same-base-only` | Audit concurrent pull requests for semantic collisions and post sticky radar reports | 
+|`gdss tensor` | `--branches`, `feature-a`,`feature-b`, `--ref main`|Compare any two branches offline regardless of base|
 
 
 ---
@@ -278,6 +280,15 @@ GDSS can generate minimal conflict-free patches and plain-English risk assessmen
   export OPENAI_BASE_URL="https://models.inference.ai.azure.com"
   gdss suggest --llm --provider openai --model gpt-4o --repo .
   ```
+  GDSS is completely provider-agnostic. Internally, GDSS routes all LLM calls through OpenAICompatibleProvider.
+
+  **How It Works**
+
+  Rather than locking into proprietary SDKs, GDSS standardizes on the OpenAI Chat Completions protocol (POST /v1/chat/completions). Any provider, gateway, or self-hosted proxy conforming to this specification works out of the box with zero code changes:
+
+  Commercial Clouds: OpenAI (gpt-4o, o1), Azure OpenAI, DeepSeek (deepseek-chat), Groq (llama-3.3-70b-versatile), Mistral, Together AI, or OpenRouter.
+  GitHub Native / CI ($0 Compute): GitHub Models (https://models.inference.ai.azure.com) via repo-native GITHUB_TOKEN.
+  Local / Air-Gapped: LocalAI, LM Studio, Ollama, or vLLM running on developer laptops or private GPU clusters.
 
 ### 🛡️ Ephemeral Sandboxed Validation (Phase 6)
 When `--validate` is passed, candidate patches are tested in an isolated Git worktree (`/tmp/gdss-sandbox-...`) before presentation:

@@ -3,6 +3,31 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-01 - Approach C: Standalone Native Binary Distribution & IDE MCP Server (All OSes)
+
+- **Native Binary Packaging Engine (`packaging/pyinstaller/gdss.spec`)**:
+  - Implemented single-file PyInstaller specification bundling the complete GDSS CLI, Model Context Protocol (MCP) server, NetworkX engine, Uvicorn, FastAPI, and all 8 native C Tree-sitter language grammars.
+  - Excluded heavyweight non-CLI scientific packages to keep executable lean and fast.
+- **Cross-Platform Multi-OS Build Pipeline (`.github/workflows/build-binaries.yml`)**:
+  - Configured multi-OS build matrix supporting all major platforms:
+    - Linux x86_64 (`linux-amd64` on Ubuntu 22.04)
+    - macOS Apple Silicon (`darwin-arm64` on macOS 14)
+    - macOS Intel (`darwin-amd64` on macOS 13)
+    - Windows x86_64 (`windows-amd64` on Windows Latest)
+  - Automates PyInstaller compilation, smoke testing (`gdss --help`), archive packaging (`.tar.gz` and `.zip`), SHA-256 checksum generation, and GitHub Release asset publishing.
+- **Universal 1-Line Installer Scripts (`install.sh`, `install.ps1`)**:
+  - Created POSIX-compliant `install.sh` for Linux & macOS with auto-detection of OS, architecture, checksum verification, and safe directory fallbacks (`/usr/local/bin` / `~/.local/bin`).
+  - Created PowerShell `install.ps1` for Windows with architecture detection, zip extraction to `%LOCALAPPDATA%\Programs\gdss`, and automatic User `PATH` registration.
+  - Copied both scripts into public `gdss-radar/` so testers can run single-command installations.
+- **Comprehensive IDE MCP & Standalone Binary Guide (`docs/STANDALONE_BINARY_AND_MCP_GUIDE.md`)**:
+  - Documented setup for Cursor (`~/.cursor/mcp.json`), Claude Code (`claude mcp add gdss -- gdss mcp`), and VS Code Copilot.
+  - Detailed the 6 deterministic MCP tools: `gdss_find_collisions`, `gdss_get_merge_order`, `gdss_inspect_symbol_impact`, `gdss_plan_semantic_rebase`, `gdss_sandbox_validate_patch`, and `gdss_validate_patch`.
+- **Verification Evidence**:
+  - `bash harness/sensors/lint.sh`: OK (ruff clean).
+  - `python harness/sensors/architecture_fitness.py`: OK (layer direction + two-brain purity hold).
+  - Both `GDSS` and `gdss-radar/` working trees verified.
+
+
 ## 2026-10-31 - GitHub Marketplace Action (`gdss-radar`), GHCR Container Distribution & Production Documentation
 
 - **Closed-Source Container Runner & Automated GHCR Pipeline**:

@@ -153,3 +153,4 @@ echo -e "       \"mcpServers\": {"
 echo -e "         \"gdss\": { \"command\": \"gdss\", \"args\": [\"mcp\"] }"
 echo -e "       }"
 echo -e "     }"
+

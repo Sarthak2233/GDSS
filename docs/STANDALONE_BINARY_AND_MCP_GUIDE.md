@@ -198,3 +198,4 @@ gdss apply sug_8f2a91c3
 - **$0 Token Cost to GDSS**: The developer's own Cursor or Claude Code subscription powers the natural language reasoning.
 - **100% Deterministic Core**: AST parsing, dependency mapping, caller/callee graphs, and collision tensors run locally on developer CPU.
 - **Zero Cloud Telemetry**: Your source code stays on your laptop. No code is transmitted to external GDSS servers.
+

@@ -9,18 +9,34 @@ from gdss.ai.openai_provider import OpenAICompatibleProvider
 from gdss.ai.vllm_provider import VLLMProvider
 
 
-def test_openai_compatible_provider_defaults_to_github_models(
+def test_openai_compatible_provider_azure_ai_foundry(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
-    monkeypatch.setenv("GITHUB_TOKEN", "ghp_test12345")
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "azure-key-123")
+    monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://my-resource.openai.azure.com/openai/v1")
 
     provider = OpenAICompatibleProvider(cache_dir=tmp_path)
-    assert provider.base_url == "https://models.inference.ai.azure.com"
-    assert provider.api_key == "ghp_test12345"
+    assert provider.base_url == "https://my-resource.openai.azure.com/openai/v1"
+    assert provider.api_key == "azure-key-123"
     assert provider.model == "gpt-4o-mini"
+
+
+def test_openai_compatible_provider_retired_github_models_warning(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    import logging
+
+    with caplog.at_level(logging.WARNING):
+        provider = OpenAICompatibleProvider(
+            base_url="https://models.inference.ai.azure.com",
+            cache_dir=tmp_path,
+        )
+    assert provider.base_url == "https://models.inference.ai.azure.com"
+    assert "GitHub Models" in caplog.text
+    assert "retired on July 30, 2026" in caplog.text
 
 
 def test_openai_compatible_provider_custom_config(tmp_path: Path) -> None:

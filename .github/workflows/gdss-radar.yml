@@ -13,6 +13,8 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  # Note: Add 'copilot-requests: write' if using GitHub Copilot CLI in CI (requires Copilot Business/Enterprise):
+  # copilot-requests: write
 
 jobs:
   collision-radar:
@@ -35,12 +37,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install .
 
+      # Optional: Setup GitHub Copilot CLI when using provider: "copilot"
+      # - name: Setup Node & Copilot CLI
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: 20
+      # - run: npm install -g @github/copilot
+
       - name: Run GDSS Collision Radar Audit
         id: gdss_audit
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          # Optional: Pass OPENROUTER_API_KEY if using OpenRouter Free Tier for AI patches
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GDSS_LOG_LEVEL: INFO
         run: |
           gdss audit-pr --verbose --output gdss_radar_report.md

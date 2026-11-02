@@ -254,7 +254,7 @@ gdss suggest --repo . --ref main -b feature/auth -b feature/billing
 # With Local LLM (Ollama or vLLM) + Sandbox Validation
 gdss suggest --repo . --ref main --llm --provider ollama --model qwen2.5-coder:7b --validate
 
-# With Cloud Provider (OpenRouter, OpenAI, or GitHub Models)
+# With Cloud Provider (OpenRouter, Azure AI Foundry, or OpenAI)
 export OPENROUTER_API_KEY="sk-or-..."
 gdss suggest --repo . --ref main --llm --provider openrouter --model anthropic/claude-3.5-sonnet --validate
 ```
@@ -447,7 +447,7 @@ gdss apply sug_8f2a91c3 --rollback
 
 
 
-> 📖 **Full Configuration Guide:** See [`docs/CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md) for detailed directives, provider-specific recipes (Ollama, vLLM, OpenRouter, OpenAI, GitHub Models), and context window allocation strategies.
+> 📖 **Full Configuration Guide:** See [`docs/CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md) for detailed directives, provider-specific recipes (Ollama, vLLM, OpenRouter, OpenAI, Azure AI Foundry), and context window allocation strategies.
 >
 > 🌐 **Universal Multi-Asset & Reducers Guide:** See [`docs/UNIVERSAL_MULTI_ASSET_GUIDE.md`](UNIVERSAL_MULTI_ASSET_GUIDE.md) for in-depth coverage of non-code asset support (manifests, migration split-head DAGs, DDL schemas, and lockfile synchronization).
 

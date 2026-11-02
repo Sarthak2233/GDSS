@@ -15,7 +15,7 @@ logger = get_logger("gdss.ai.openai_provider")
 
 
 class OpenAICompatibleProvider:
-    """Provider for OpenAI-compatible Chat Completion APIs (OpenAI, GitHub Models, Azure, vLLM)."""
+    """Provider for OpenAI-compatible Chat Completion APIs (OpenRouter, Azure AI, OpenAI, vLLM, Ollama)."""
 
     def __init__(
         self,
@@ -26,20 +26,37 @@ class OpenAICompatibleProvider:
         timeout: float = 120.0,
     ) -> None:
         openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        azure_key = os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_AI_API_KEY")
         openai_key = os.getenv("OPENAI_API_KEY")
-        github_token = os.getenv("GITHUB_TOKEN")
-        token = api_key or openrouter_key or openai_key or github_token
+        # GITHUB_TOKEN is a GitHub repository management token; it is not an AI inference token post-July 30, 2026.
+        token = api_key or openrouter_key or azure_key or openai_key
         self.api_key = token
 
         # Base URL resolution
-        url = base_url or os.getenv("OPENAI_BASE_URL")
+        url = (
+            base_url
+            or os.getenv("OPENAI_BASE_URL")
+            or os.getenv("AZURE_OPENAI_ENDPOINT")
+            or os.getenv("AZURE_AI_ENDPOINT")
+        )
         if not url:
-            if openrouter_key and not openai_key and not github_token:
+            if openrouter_key and not openai_key and not azure_key:
                 url = "https://openrouter.ai/api/v1"
-            elif github_token and not openai_key:
-                url = "https://models.inference.ai.azure.com"
-            else:
+            elif openai_key:
                 url = "https://api.openai.com/v1"
+            elif azure_key:
+                url = "https://api.openai.com/v1"
+            else:
+                url = "https://openrouter.ai/api/v1" if openrouter_key else "https://api.openai.com/v1"
+
+        if "models.inference.ai.azure.com" in url or "models.github.ai" in url:
+            logger.warning(
+                "GitHub Models (%s) was retired on July 30, 2026. This endpoint is no longer "
+                "operational (HTTP 410 Gone). Please migrate to Microsoft Azure AI Foundry "
+                "(https://<resource>.openai.azure.com/openai/v1), OpenRouter, or local Ollama.",
+                url,
+            )
+
         self.base_url = url.rstrip("/")
 
         # Model resolution
@@ -53,8 +70,8 @@ class OpenAICompatibleProvider:
         self.model = (
             model
             or os.getenv("OPENROUTER_MODEL")
+            or os.getenv("AZURE_OPENAI_MODEL")
             or os.getenv("OPENAI_MODEL")
-            or os.getenv("GITHUB_MODEL")
             or default_model
         )
         self.cache_dir = cache_dir or Path(".gdss/llm_cache")
@@ -77,6 +94,8 @@ class OpenAICompatibleProvider:
         headers: dict[str, str] = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+            if "azure.com" in self.base_url:
+                headers["api-key"] = self.api_key
         if "openrouter.ai" in self.base_url:
             headers["HTTP-Referer"] = "https://github.com/Sarthak2233/GDSS"
             headers["X-Title"] = "GDSS"

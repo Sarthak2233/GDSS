@@ -74,7 +74,7 @@ flowchart TD
 
     subgraph DeliveryLayer ["6. Delivery & Convergence (Layers 9, 10, 11)"]
         MCP["Model Context Protocol (Cursor / Claude / Copilot)"]
-        Suggester["AI Convergence Assistant (Ollama, vLLM, GitHub Models)"]
+        Suggester["AI Convergence Assistant (Ollama, vLLM, Azure AI, OpenRouter)"]
         Sandbox["Ephemeral Worktree Sandbox (Syntax, Types, Tests)"]
         Apply["Guarded Apply Engine (gdss apply)"]
         CI["GitHub Actions PR Radar (gdss audit-pr)"]

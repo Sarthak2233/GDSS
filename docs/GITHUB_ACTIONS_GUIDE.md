@@ -141,7 +141,7 @@ You can customize the radar's behavior by placing a `.gdss.yml` (or `.gdss.yaml`
 
 radar:
   # AI model used for generating convergence patches
-  # Default: gpt-4o-mini (GitHub Models / Copilot)
+  # Default: gpt-4o (Azure AI / OpenAI) or qwen/qwen-2.5-coder-32b-instruct (OpenRouter Free Tier)
   model: "gpt-4o"
 
   # Explicit context window size in tokens (HIGHLY RECOMMENDED)
@@ -149,8 +149,8 @@ radar:
   # up to 96,000 characters) without falling back to heuristic approximations or gateway probing.
   context_window: 128000
 
-  # Inference provider backend: "github" (default in CI), "openai", "openrouter", "ollama", "vllm"
-  provider: "github"
+  # Inference provider backend: "openrouter" (default in CI), "copilot" (GitHub Copilot CLI), "azure", "openai", "ollama", "vllm"
+  provider: "openrouter"
 
   # Maximum agentic self-correction iterations when sandboxed worktree validation fails
   # Default: 2 retries
@@ -210,7 +210,7 @@ ast:
 | :--- | :---: | :---: | :--- |
 | `radar.model` | `string` | `"gpt-4o-mini"` | The model name routed through the provider endpoint. |
 | `radar.context_window` | `integer` | *Dynamic* | **Required best practice.** The exact context window capacity in tokens (e.g. `128000`). Precludes fallback guessing and maximizes the code condensation budget. |
-| `radar.provider` | `string` | `"github"` | Provider backend: `"github"` (native GitHub Models via `GITHUB_TOKEN`), `"openai"`, `"openrouter"`, `"ollama"`, or `"vllm"`. |
+| `radar.provider` | `string` | `"openrouter"` | Provider backend: `"openrouter"` (free tier available), `"copilot"` (GitHub Copilot CLI), `"azure"`, `"openai"`, `"ollama"`, or `"vllm"`. |
 | `radar.max_refinements` | `integer` | `2` | Maximum agentic self-correction attempts inside ephemeral sandbox worktrees before halting. |
 | `radar.risk_threshold` | `float` | `0.8` | The numeric collision risk cutoff score between `0.0` and `1.0`. |
 | `radar.fail_on_collision` | `boolean` | `false` | When `true`, the workflow exits with code `1` if $\Omega_{ij} \ge \text{risk threshold}$, blocking the merge button. |
@@ -431,7 +431,7 @@ gdss apply sug_a1b2c3d4e5f6 --dry-run
 ### Bring Your Own Compute (Zero Token Cost to GDSS)
 GDSS operates on a Bring-Your-Own-Compute (BYOC) philosophy:
 - **Deterministic Core ($0 Tokens):** AST parsing, dependency graph building, and the collision interaction tensor ($\Omega_{ij}$) run locally inside the GitHub Actions runner. They consume **0 AI tokens**.
-- **Reconciliation Patching (GitHub Models):** If patch generation is needed, GDSS connects directly to the GitHub Models endpoint (`https://models.inference.ai.azure.com`) using the workflow's native `GITHUB_TOKEN`. Token usage is billed directly to your GitHub repository or organization plan; GDSS collects zero fees.
+- **Reconciliation Patching (OpenRouter / Copilot CLI / Azure AI Foundry):** If patch generation is needed, GDSS connects to OpenRouter Free Tier (via `OPENROUTER_API_KEY`), GitHub Copilot CLI (via `GITHUB_TOKEN` with `copilot-requests: write`), or Microsoft Azure AI Foundry. When using Copilot CLI, GDSS enforces `--deny-tool='*'` to ensure the AI cannot touch repository files directly—all patches are captured from `stdout` and validated inside GDSS's ephemeral worktree sandbox. Deterministic collision analysis runs at $0 cost on the runner CPU without any external AI keys. GDSS collects zero fees.
 
 ### Handling Fork Pull Requests
 Pull requests submitted from external forks do not have write access to repository secrets by default. GDSS handles this safely:

@@ -108,12 +108,12 @@ GDSS sits as an intelligent layer above Git, combining:
 * **Implementation:**
   - Maintain the existing `LLMProvider(Protocol)` interface.
   - Implement an `OpenAICompatibleProvider` supporting any OpenAI-spec endpoint:
-    - GitHub Models (`https://models.inference.ai.azure.com`) via `GITHUB_TOKEN`
-    - Hosted commercial APIs (OpenAI, Anthropic via adapter, Groq, OpenRouter)
+    - Microsoft Azure AI Foundry (`https://<resource>.openai.azure.com/openai/v1`)
+    - Hosted commercial APIs (OpenRouter Free Tier, OpenAI, Groq, DeepSeek)
     - Local self-hosted vLLM/Ollama
   - **Inference Ownership Rules:**
     1. **MCP Mode:** GDSS tools execute deterministically and return structured facts. The calling agent (Cursor/Copilot) pays for the conversation tokens. GDSS incurs zero cost.
-    2. **CI Mode:** Uses GitHub Copilot CLI/Models with repo credentials or user-supplied API secrets.
+    2. **CI Mode:** 100% deterministic collision radar on CPU ($0 tokens). Optional AI convergence patches connect via OpenRouter Free Tier, Azure AI Foundry, or user API secrets.
     3. **CLI Mode:** Uses configured API key or local daemon if available; defaults gracefully to deterministic reports if no model is present.
 
 ### 4. Sandboxed Worktree Validation Architecture

@@ -86,8 +86,8 @@
   <rect x="322" y="348" width="216" height="92" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" />
   <text x="332" y="370" fill="#f59e0b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">C. CLI --llm or CI Actions</text>
   <text x="332" y="388" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Local: Ollama / vLLM on laptop</text>
-  <text x="332" y="402" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">CI: GitHub Models / Copilot CLI</text>
-  <text x="332" y="418" fill="#fde68a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="10">via GITHUB_TOKEN · $0 Extra</text>
+  <text x="332" y="402" fill="#e2e8f0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">CI: OpenRouter Free / Azure AI</text>
+  <text x="332" y="418" fill="#fde68a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="10">BYOC Keys · $0 Extra</text>
 
   <!-- Arrow Stage 2 -> Stage 3 -->
   <line x1="550" y1="275" x2="600" y2="275" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-purple)" />

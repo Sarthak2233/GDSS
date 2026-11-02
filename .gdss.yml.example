@@ -1,0 +1,161 @@
+# ==============================================================================
+# .gdss.yml - GDSS Semantic Repository Intelligence Configuration
+# ==============================================================================
+# IMPORTANT: Name this file '.gdss.yml' (or '.gdss.yaml') in your REPOSITORY ROOT.
+# ⚠️ DO NOT name it '.gdss-radar.yml' (the engine looks specifically for .gdss.yml).
+#
+# Both local developer CLI operations and the GitHub Actions CI Radar will
+# automatically load these settings as the single source of truth.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. AI Convergence & PR Collision Radar
+# ------------------------------------------------------------------------------
+radar:
+  # The LLM used for semantic patch reconciliation & contract synthesis.
+  # Popular options:
+  #   - "gpt-4o" (Microsoft Azure AI Foundry, OpenAI)
+  #   - "gpt-4o-mini" (Fast, lightweight, low-cost)
+  #   - "deepseek-chat" (DeepSeek V3 / R1)
+  #   - "claude-3-5-sonnet-20241022" (OpenRouter / Anthropic)
+  #   - "llama-3.3-70b-versatile" (Groq / OpenRouter)
+  #   - "qwen2.5-coder:7b" (Local Ollama / vLLM)
+  model: "gpt-4o"
+
+  # [RECOMMENDED BEST PRACTICE] Explicit Context Window (in tokens)
+  # ----------------------------------------------------------------------------
+  # Declaring context_window explicitly guarantees that GDSS allocates up to 45%
+  # of the context window (up to 96,000 characters) for rich code symbol AST
+  # definitions, caller/callee graphs, and commit trajectories.
+  #
+  # If omitted, GDSS uses heuristic fallbacks which default conservatively to 16k,
+  # causing unnecessary ellipsis condensation (/* ... N lines condensed ... */).
+  #
+  # Reference sizes:
+  #   gemini-1.5-pro / 2.0-pro: 2000000
+  #   gemini-1.5-flash: 1000000
+  #   claude-3-5-sonnet: 200000
+  #   gpt-4o: 128000
+  #   gpt-4o-mini: 128000
+  #   llama-3.3-70b: 128000
+  #   deepseek-chat: 64000
+  context_window: 128000
+
+  # LLM Provider:
+  #   - "openrouter" (Recommended free tier & multi-model gateway via OPENROUTER_API_KEY)
+  #   - "openai" (uses OPENAI_API_KEY)
+  #   - "deepseek" (uses DEEPSEEK_API_KEY)
+  #   - "copilot" (GitHub Copilot CLI in CI via GITHUB_TOKEN & copilot-requests: write)
+  #   - "ollama" / "vllm" (for self-hosted local setups)
+  provider: "openrouter"
+  model: "qwen/qwen-2.5-coder-32b-instruct"
+
+  # Collision risk sensitivity threshold (0.0 to 1.0).
+  # Collisions with severity >= risk_threshold will be flagged in the PR report.
+  #   0.05 = Aggressive (flags subtle cross-file caller dependencies)
+  #   0.10 = Standard recommended balance (default)
+  #   0.25 = Strict (flags only direct signature changes & severe AST overlaps)
+  #   0.80 = Critical only (flags only outright contradictory mutations)
+  risk_threshold: 0.1
+
+  # Maximum agentic self-correction iterations in the ephemeral sandbox.
+  # When GDSS generates a candidate patch, it compiles and runs tests in an
+  # ephemeral Git worktree. If tests fail, it feeds the compiler error trace back
+  # to the model to refine the patch up to max_refinements times.
+  max_refinements: 2
+
+  # Maximum concurrent worker threads for parallel conflict drafting.
+  # Default: 4
+  concurrency_limit: 4
+
+  # Context preservation policy:
+  #   - "lossless" (default: preserves 100% of code tokens without aggressive truncation)
+  #   - "ast_minimal" (signatures and symbol bodies only)
+  #   - "off" (raw context)
+  condensation: "lossless"
+
+  # Branch protection gating:
+  # If true, the CI job exits with code 1 when severe collisions are detected.
+  # If false, the CI job remains green and posts an informational sticky report.
+  fail_on_collision: false
+
+# ------------------------------------------------------------------------------
+# 2. Ephemeral Sandbox Validation
+# ------------------------------------------------------------------------------
+# GDSS validates candidate reconciliation patches in isolated temporary Git
+# worktrees before human review. Configure your project's validation commands:
+validation:
+  # Targeted test runner command.
+  # Use {test_file} placeholder for targeted test execution.
+  # Examples:
+  #   TypeScript/JS: "npm test -- {test_file}" or "pnpm test {test_file}"
+  #   Python:        "pytest {test_file}"
+  #   Go:            "go test -v ./{test_file}/..."
+  #   Rust:          "cargo test --test {test_file}"
+  test_command: "npm test -- {test_file}"
+
+  # Static type checker or linter command.
+  # Use {file} placeholder for targeted file checking.
+  # Examples:
+  #   TypeScript:    "npx tsc --noEmit"
+  #   Python:        "mypy {file}"
+  #   Go:            "golangci-lint run"
+  #   Rust:          "cargo check"
+  typecheck_command: "npx tsc --noEmit"
+
+  # Maximum duration in seconds allowed for validation runs in the sandbox.
+  timeout_seconds: 60
+
+# ------------------------------------------------------------------------------
+# 3. Branch Hierarchy & Flight Radar Boundaries
+# ------------------------------------------------------------------------------
+hierarchy:
+  # Primary reference branch (attractor base)
+  reference_branch: "main"
+
+  # Precedence chain for multi-stage branch landing
+  priority_chain:
+    - "main"
+    - "develop"
+
+  # [CRITICAL] When true, only pull requests targeting the SAME base branch
+  # (e.g. main) are audited against each other. Highly recommended for production
+  # to eliminate noisy false alarms against unrelated maintenance or release branches.
+  same_base_only: true
+
+  # Glob patterns of branches to include in collision auditing (optional)
+  include:
+    - "feature/*"
+    - "fix/*"
+
+  # Glob patterns of branches to exclude from radar auditing
+  exclude:
+    - "dependabot/*"
+    - "renovate/*"
+    - "spike/*"
+    - "release/*"
+
+  # Specific base branches that activate collision radar audits
+  target_bases:
+    - "main"
+    - "develop"
+
+# ------------------------------------------------------------------------------
+# 4. AST Symbol & Path Filtering
+# ------------------------------------------------------------------------------
+ast:
+  # Additional file extensions to track for AST and semantic analysis
+  additional_extensions:
+    - ".vue"
+    - ".svelte"
+    - ".sol"
+
+  # File paths to exclude from AST symbol parsing and collision analysis
+  exclude_patterns:
+    - "node_modules/**"
+    - "dist/**"
+    - "build/**"
+    - "vendor/**"
+    - ".venv/**"
+    - "*.min.js"
+    - "coverage/**"

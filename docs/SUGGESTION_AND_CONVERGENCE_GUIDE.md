@@ -52,7 +52,7 @@ In GDSS, **the core intelligence is 100% deterministic and model-free**:
 │   code diff text synthesized automatically:                            │
 │   • In Cursor / Claude Code: Developer's IDE subscription ($0 GDSS fee)│
 │   • In Headless CLI: Offline Ollama / vLLM on localhost                │
-│   • In GitHub Actions: GitHub Models / Copilot via GITHUB_TOKEN        │
+│   • In GitHub Actions: OpenRouter Free Tier / Azure AI Foundry         │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -163,7 +163,7 @@ flowchart LR
         direction TB
         MF["Model-Free (Algebraic Choices)"]
         IDE["IDE Agent via MCP ($0 GDSS cost)"]
-        LLM["Local LLM / GitHub Models"]
+        LLM["Local LLM / Azure AI / OpenRouter"]
     end
 
     subgraph S3 ["Stage 3: Sandbox"]
@@ -209,7 +209,7 @@ flowchart LR
 ### Stage 2: Strategy & Pluggable Drafting
 - **Model-Free Mode (Default):** Generates strategy options using discrete algebraic templates (`enumerate_combinations`).
 - **IDE Agent Mode (MCP):** IDE agents (Cursor, Claude Code) read the exact AST facts via MCP tools and generate code using the developer's chat subscription.
-- **Headless Mode (`--llm` / CI):** Calls local Ollama/vLLM or GitHub Models via `GITHUB_TOKEN` to synthesize candidate diff hunks.
+- **Headless Mode (`--llm` / CI):** Calls local Ollama/vLLM or cloud providers (OpenRouter Free Tier, Azure AI Foundry, OpenAI) to synthesize candidate diff hunks. Deterministic collision analysis runs at $0 cost on CPU without requiring any LLM.
 
 ### Stage 3: Ephemeral Sandbox Validation
 - [`gdss/validation/sandbox.py`](../gdss/validation/sandbox.py) checks out an isolated, temporary Git worktree in `/tmp/gdss-sandbox-...`.

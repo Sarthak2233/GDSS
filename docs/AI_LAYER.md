@@ -61,7 +61,7 @@ flowchart TD
         PromptBuild --> ProviderRouter{"Provider Router"}
         ProviderRouter -- "Ollama" --> Ollama[OllamaProvider]
         ProviderRouter -- "vLLM" --> VLLM[VLLMProvider]
-        ProviderRouter -- "GitHub Models / OpenRouter / OpenAI" --> OpenAI[OpenAICompatibleProvider]
+        ProviderRouter -- "Azure AI / OpenRouter / OpenAI" --> OpenAI[OpenAICompatibleProvider]
         
         Ollama --> Parser["Patch Parser (patch_parser.py)"]
         VLLM --> Parser
@@ -96,11 +96,12 @@ GDSS's AI layer does not operate in isolation; it integrates across 4 distinct d
 When an incoming pull request is opened or updated:
 - [`gdss/validation/pr_audit.py`](../gdss/validation/pr_audit.py) builds a `PRAuditContext` from GitHub Actions environment variables (`GITHUB_EVENT_PATH`, `GITHUB_TOKEN`).
 - It discovers concurrent PRs via the GitHub REST API and calls `build_pr_analysis_context()` to extract cross-PR commit histories, PR titles, and descriptions.
-- If collisions are found ($\Omega_{ij} > 0.1$) and `GITHUB_TOKEN` is present:
+- If collisions are found ($\Omega_{ij} > 0.1$) and an inference key (`OPENROUTER_API_KEY` or `OPENAI_API_KEY`) is present:
   - It initializes `ConvergenceState` and executes `run_convergence_pipeline()`.
-  - Connects to **GitHub Models** (`https://models.inference.ai.azure.com`) via `OpenAICompatibleProvider` with zero cloud billing.
+  - Connects to **OpenRouter** (`https://openrouter.ai/api/v1` for free-tier open models) or **OpenAI / Groq / DeepSeek** via `OpenAICompatibleProvider`.
   - Runs ephemeral worktree sandbox validation (`ValidationSandbox`). If tests fail, it executes self-correction refinement loops up to `radar.max_refinements` times.
   - Embeds the verified candidate patch into native GitHub ````suggestion ```` markdown blocks in a sticky comment, enabling developers to merge the fix with a 1-click web commit button.
+  - *(If no AI key is configured in CI, GDSS runs purely in deterministic mode, posting the collision topology table and merge ordering recommendations at $0 token cost).*
 
 ### 2. In Local CLI & Terminal (`gdss suggest`)
 When run by a developer in their terminal:
@@ -199,7 +200,7 @@ In [`gdss/ai/suggestion_store.py`](../gdss/ai/suggestion_store.py):
 | **`orchestration.py`** | [`gdss/ai/orchestration.py`](../gdss/ai/orchestration.py) | Full state machine (`Analyze -> Draft -> Validate -> Refine -> Checkpoint`) with LangGraph support and self-correction loops. |
 | **`condensation.py`** | [`gdss/ai/condensation.py`](../gdss/ai/condensation.py) | AST-aware code block condensation, 3-tier context discovery, and code budget calculations. |
 | **`prompt_builder.py`** | [`gdss/ai/prompt_builder.py`](../gdss/ai/prompt_builder.py) | Synthesizes structured conflict prompts and targeted error-trace refinement prompts. |
-| **`openai_provider.py`** | [`gdss/ai/openai_provider.py`](../gdss/ai/openai_provider.py) | Adapter for GitHub Models (`models.inference.ai.azure.com`), OpenRouter, and standard OpenAI endpoints. |
+| **`openai_provider.py`** | [`gdss/ai/openai_provider.py`](../gdss/ai/openai_provider.py) | Adapter for OpenRouter, OpenAI, Groq, DeepSeek, and standard OpenAI-compatible endpoints. |
 | **`ollama_provider.py`** | [`gdss/ai/ollama_provider.py`](../gdss/ai/ollama_provider.py) | Local offline Ollama REST client (`http://localhost:11434`). |
 | **`vllm_provider.py`** | [`gdss/ai/vllm_provider.py`](../gdss/ai/vllm_provider.py) | Local high-throughput vLLM client (`http://localhost:8000`). |
 | **`llm_patch.py`** | [`gdss/ai/llm_patch.py`](../gdss/ai/llm_patch.py) | Abstract `LLMProvider` protocol and `AnyProvider` union type definition. |

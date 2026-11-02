@@ -133,6 +133,6 @@
   <rect x="40" y="325" width="940" height="65" rx="10" fill="#1e293b" stroke="#334155"/>
   <text x="60" y="352" font-family="Segoe UI, Roboto, sans-serif" font-size="12" font-weight="700" fill="#f8fafc">Key Operating Guarantees:</text>
   <text x="60" y="372" font-family="Segoe UI, Roboto, sans-serif" font-size="11" fill="#94a3b8">
-    <tspan fill="#38bdf8" font-weight="600">Zero Token Fees to GDSS</tspan> (via native GITHUB_TOKEN &amp; GitHub Models) • <tspan fill="#fbbf24" font-weight="600">Never Auto-Merges</tspan> (humans decide what lands) • <tspan fill="#34d399" font-weight="600">Single Sticky Comment</tspan> (updates existing comment on re-push)
+    <tspan fill="#38bdf8" font-weight="600">Zero Token Fees to GDSS</tspan> (deterministic CPU radar &amp; BYOC) • <tspan fill="#fbbf24" font-weight="600">Never Auto-Merges</tspan> (humans decide what lands) • <tspan fill="#34d399" font-weight="600">Single Sticky Comment</tspan> (updates existing comment on re-push)
   </text>
 </svg>

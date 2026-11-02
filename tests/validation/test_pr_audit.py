@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from gdss.validation.pr_audit import (
     STICKY_SIGNATURE,
     PRAuditContext,
@@ -326,8 +328,42 @@ def test_load_radar_config_defaults(tmp_path: Path):
     assert cfg["fail_on_collision"] is False
     assert cfg["risk_threshold"] == 0.8
     assert cfg["model"] == "gpt-4o-mini"
-    assert cfg["provider"] == "github"
+    assert cfg["provider"] == "openrouter"
     assert cfg["base_url"] is None
+
+
+def test_load_radar_config_legacy_github_provider_warning(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+):
+    import logging
+
+    gdss_yml = tmp_path / ".gdss.yml"
+    gdss_yml.write_text(
+        """
+radar:
+  provider: "github"
+""",
+        encoding="utf-8",
+    )
+    with caplog.at_level(logging.WARNING):
+        cfg = load_radar_config(str(tmp_path))
+    assert cfg["provider"] == "openrouter"
+    assert "retired on July 30, 2026" in caplog.text
+
+
+def test_load_radar_config_copilot_provider(tmp_path: Path):
+    gdss_yml = tmp_path / ".gdss.yml"
+    gdss_yml.write_text(
+        """
+radar:
+  provider: "copilot"
+  model: "claude-3.5-sonnet"
+""",
+        encoding="utf-8",
+    )
+    cfg = load_radar_config(str(tmp_path))
+    assert cfg["provider"] == "copilot"
+    assert cfg["model"] == "claude-3.5-sonnet"
 
 
 def test_load_radar_config_from_file(tmp_path: Path):

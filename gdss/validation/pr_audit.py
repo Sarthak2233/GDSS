@@ -156,7 +156,7 @@ def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
         "fail_on_collision": False,
         "risk_threshold": 0.8,
         "model": "gpt-4o-mini",
-        "provider": "github",
+        "provider": "openrouter",
         "base_url": None,
         "context_window": None,
         "max_refinements": 2,
@@ -193,6 +193,13 @@ def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
     max_ref = int(radar_data.get("max_refinements", 2))
     base_url = radar_data.get("base_url") or os.environ.get("OPENAI_BASE_URL")
     provider_name = str(radar_data.get("provider", default_config["provider"]))
+    if provider_name == "github":
+        logger.warning(
+            "Configured provider 'github' (GitHub Models) was retired on July 30, 2026. "
+            "Falling back to 'openrouter' / deterministic AST collision analysis. "
+            "To use GitHub Copilot CLI in CI with GITHUB_TOKEN, set provider: 'copilot'."
+        )
+        provider_name = "openrouter"
 
     same_base = hierarchy_data.get("same_base_only")
     if same_base is None:
@@ -474,11 +481,33 @@ def generate_pr_convergence_patch(
 
     raw_code: str = ""
     try:
+        from gdss.ai.copilot_provider import CopilotCLIProvider
+        from gdss.ai.llm_patch import AnyProvider, LLMProvider
         from gdss.ai.openai_provider import OpenAICompatibleProvider
         from gdss.ai.patch_parser import extract_patch_or_replacement
 
-        effective_base_url = base_url or os.environ.get("OPENAI_BASE_URL")
-        provider = OpenAICompatibleProvider(base_url=effective_base_url, model=model, api_key=token)
+        effective_base_url = (
+            base_url
+            or os.environ.get("OPENAI_BASE_URL")
+            or os.environ.get("AZURE_OPENAI_ENDPOINT")
+        )
+        effective_token = (
+            token
+            or os.environ.get("OPENROUTER_API_KEY")
+            or os.environ.get("AZURE_OPENAI_API_KEY")
+            or os.environ.get("OPENAI_API_KEY")
+        )
+        provider: AnyProvider | LLMProvider | None = None
+        if token == "copilot":
+            provider = CopilotCLIProvider(model=model)
+        else:
+            if not effective_token and not effective_base_url:
+                return None
+            provider = OpenAICompatibleProvider(
+                base_url=effective_base_url, model=model, api_key=effective_token
+            )
+        if provider is None:
+            return None
         response_text = provider.complete(prompt).strip()
         raw_code, _ = extract_patch_or_replacement(response_text, expected_file=target_file)
         raw_code = raw_code.strip()
@@ -536,6 +565,8 @@ def audit_pr_collisions(
         )
         try:
             from gdss.ai.context import build_pr_analysis_context
+            from gdss.ai.copilot_provider import CopilotCLIProvider
+            from gdss.ai.llm_patch import AnyProvider, LLMProvider
             from gdss.ai.openai_provider import OpenAICompatibleProvider
             from gdss.ai.orchestration import ConvergenceState, run_convergence_pipeline
             from gdss.conflict.tensor import TensorEngine
@@ -547,24 +578,41 @@ def audit_pr_collisions(
             observer = GitObserver(repo_root_str)
             if observer.is_valid():
                 current_head = context.head_sha or context.head_ref or "HEAD"
-                effective_token = (
-                    context.github_token
-                    or os.environ.get("GITHUB_TOKEN")
-                    or os.environ.get("OPENROUTER_API_KEY")
-                    or os.environ.get("OPENAI_API_KEY")
-                )
-                effective_base_url = (config.get("base_url") if config else None) or os.environ.get(
-                    "OPENAI_BASE_URL"
-                )
-                provider = (
-                    OpenAICompatibleProvider(
-                        base_url=effective_base_url,
-                        model=config.get("model") if config else None,
-                        api_key=effective_token,
+                provider_cfg = config.get("provider") if config else None
+                provider: AnyProvider | LLMProvider | None = None
+                if provider_cfg in {"copilot", "github-copilot"}:
+                    copilot_prov = CopilotCLIProvider(
+                        model=config.get("model") if config else None
                     )
-                    if (effective_token or effective_base_url)
-                    else None
-                )
+                    if copilot_prov.is_available():
+                        provider = copilot_prov
+                        logger.info(
+                            "Using GitHub Copilot CLI inference provider (model: %s)",
+                            copilot_prov.model,
+                        )
+                    else:
+                        logger.warning(
+                            "Copilot CLI provider requested but 'copilot' binary was not found in PATH. "
+                            "Install via 'npm install -g @github/copilot' in workflow. "
+                            "Falling back to deterministic AST collision analysis."
+                        )
+                else:
+                    effective_token = (
+                        os.environ.get("OPENROUTER_API_KEY")
+                        or os.environ.get("AZURE_OPENAI_API_KEY")
+                        or os.environ.get("OPENAI_API_KEY")
+                    )
+                    effective_base_url = (
+                        (config.get("base_url") if config else None)
+                        or os.environ.get("OPENAI_BASE_URL")
+                        or os.environ.get("AZURE_OPENAI_ENDPOINT")
+                    )
+                    if effective_token or effective_base_url:
+                        provider = OpenAICompatibleProvider(
+                            base_url=effective_base_url,
+                            model=config.get("model") if config else None,
+                            api_key=effective_token,
+                        )
 
                 concurrent_branches = [
                     str(p.get("head_sha") or p.get("head_ref") or "")
@@ -626,7 +674,7 @@ def audit_pr_collisions(
                     state = ConvergenceState(
                         repo_path=repo_root_str,
                         reference_branch=context.base_ref,
-                        llm=bool(effective_token),
+                        llm=(provider is not None),
                         validate=True,
                         provider=provider,
                         target_commit=current_head,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from gdss.ai.copilot_provider import CopilotCLIProvider
 from gdss.ai.ollama_provider import OllamaProvider
 from gdss.ai.openai_provider import OpenAICompatibleProvider
 from gdss.ai.vllm_provider import VLLMProvider
@@ -24,4 +25,10 @@ class StubProvider:
         return self.response
 
 
-AnyProvider = OllamaProvider | VLLMProvider | OpenAICompatibleProvider | StubProvider
+AnyProvider = (
+    OllamaProvider
+    | VLLMProvider
+    | OpenAICompatibleProvider
+    | CopilotCLIProvider
+    | StubProvider
+)

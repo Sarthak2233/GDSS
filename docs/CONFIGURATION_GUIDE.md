@@ -27,18 +27,19 @@
   - [1.1 Provider Authentication Matrix Across All 4 Deployment Modes](#11-provider-authentication-matrix-across-all-4-deployment-modes)
   - [2. The 3 Ways to Configure Models](#2-the-3-ways-to-configure-models)
   - [3. Model Precedence & Resolution Cascade](#3-model-precedence--resolution-cascade)
-  - [4. GitHub Models & Copilot Setup (Free vs. Paid, CI & Local CLI)](#4-github-models--copilot-setup-free-vs-paid-ci--local-cli)
+  - [4. Modern Model Setup: Zero-Cost CI & Microsoft Azure AI Foundry](#4-modern-model-setup-zero-cost-ci--microsoft-azure-ai-foundry)
   - [5. Model Selection Guide & Suitability Matrix](#5-model-selection-guide--suitability-matrix)
   - [6. Context Window Budgeting & Condensation Math](#6-context-window-budgeting--condensation-math)
   - [7. Provider-Specific Recipes](#7-provider-specific-recipes)
     - [Recipe A: DeepSeek Direct (High Performance, Ultra-Low Cost)](#recipe-a-deepseek-direct-high-performance-ultra-low-cost)
     - [Recipe B: Groq (Ultra-Fast LPU Inference)](#recipe-b-groq-ultra-fast-lpu-inference)
     - [Recipe C: Local LM Studio / LocalAI (Zero Cost, No API Key)](#recipe-c-local-lm-studio--localai-zero-cost-no-api-key)
-    - [Recipe D: GitHub Models / Copilot (Actions CI & Local CLI)](#recipe-d-github-models--copilot-actions-ci--local-cli)
+    - [Recipe D: Microsoft Azure AI Foundry (Official Microsoft Successor)](#recipe-d-microsoft-azure-ai-foundry-official-microsoft-successor)
     - [Recipe E: OpenRouter (Multi-Model Gateway & Free Tier)](#recipe-e-openrouter-multi-model-gateway--free-tier)
     - [Recipe F: OpenAI Direct & Azure OpenAI](#recipe-f-openai-direct--azure-openai)
     - [Recipe G: Local Ollama (Offline Developer Workstation)](#recipe-g-local-ollama-offline-developer-workstation)
     - [Recipe H: Private vLLM Cluster](#recipe-h-private-vllm-cluster)
+    - [Recipe I: GitHub Copilot CLI (Copilot Business / Enterprise)](#recipe-i-github-copilot-cli-copilot-business--enterprise)
   - [8. Model Troubleshooting & Common Issues](#8-model-troubleshooting--common-issues)
   - [9. Complete Environment Variable Reference Table](#9-complete-environment-variable-reference-table)
 - [What to Expect After Integration](#-what-to-expect-after-integration)
@@ -109,8 +110,8 @@ radar:
   context_window: 128000
 
   # Inference provider backend
-  # Options: "github" (GitHub Models via GITHUB_TOKEN), "openai", "openrouter", "ollama", "vllm", or "openai-compatible"
-  provider: "github"
+  # Options: "openrouter" (default, recommended free tier), "copilot" (GitHub Copilot CLI), "azure", "openai", "ollama", "vllm", or "openai-compatible"
+  provider: "openrouter"
 
   # Optional custom OpenAI-compatible base URL (Universal Protocol)
   # Set this to use ANY OpenAI-compatible provider (DeepSeek, Groq, Together, LM Studio, etc.)
@@ -513,7 +514,7 @@ Because of this universal standard, **any provider or server that supports the O
 | :--- | :--- | :--- |
 | **Cloud Frontier APIs** | DeepSeek, OpenAI, Azure OpenAI, Groq, Together AI, Mistral AI, Fireworks AI, Cerebras | `https://api.deepseek.com/v1`<br>`https://api.groq.com/openai/v1` |
 | **Aggregator Gateways** | OpenRouter, Cloudflare Workers AI | `https://openrouter.ai/api/v1` |
-| **Repository-Native** | GitHub Models (via Azure AI endpoint) | `https://models.inference.ai.azure.com` |
+| **Enterprise Cloud / Azure** | Microsoft Azure AI Foundry (Azure OpenAI Service) | `https://<resource>.openai.azure.com/openai/v1` |
 | **Local / Developer Laptop** | LM Studio, LocalAI, Jan.ai, Ollama, vLLM | `http://localhost:1234/v1`<br>`http://localhost:11434/v1` |
 | **Enterprise Proxies** | LiteLLM Proxy, Portkey, Kong AI Gateway | `http://proxy.internal.corp/v1` |
 
@@ -528,7 +529,7 @@ Developers frequently ask where model credentials and API keys must be provided 
 
 | Deployment Mode | Where Secrets Are Configured | Environment Variables / Headers | Needs Model API Key? | Token Cost to Project |
 | :--- | :--- | :--- | :---: | :---: |
-| **Mode 1: GitHub Actions CI** (`gdss audit-pr`) | GitHub Repository Secrets (`Settings ➔ Secrets and variables ➔ Actions`) | Passed into workflow step: `GITHUB_TOKEN: ${{ secrets.GH_MODELS_PAT }}` (or `OPENAI_API_KEY`, `OPENROUTER_API_KEY`) | **Yes** (when AI patch generation is desired) | **$0** with GitHub Models or OpenRouter Free Tier |
+| **Mode 1: GitHub Actions CI** (`gdss audit-pr`) | GitHub Repository Secrets (`Settings ➔ Secrets and variables ➔ Actions`) | Passed into workflow step: `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}` (PR diffs/comments), optional `OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}` | **Optional** (Zero keys for deterministic radar; key needed for AI patches) | **$0** with OpenRouter Free Tier or Groq Free Tier |
 | **Mode 2: Local CLI & Shell** (`gdss suggest`, `gdss start`) | Local shell profile (`~/.bashrc`, `~/.zshrc`) or `.env` file | `export GITHUB_TOKEN="ghp_..."`<br>`export OPENAI_API_KEY="sk-..."` | **Yes** (only for `gdss suggest --validate` with LLM) | Developer account or local free model (Ollama/LM Studio) |
 | **Mode 3: IDE MCP Tool Server** (Cursor / Claude Code / Copilot) | **No secrets required** in MCP server config (`~/.cursor/mcp.json`) | None (runs via JSON-RPC stdio over local CLI) | **NO** (Zero keys needed) | **$0 Token Bleed** (powered by developer's IDE account) |
 | **Mode 4: Web Visual Dashboard & REST API** (`web/` & `gdss serve`) | Inherited by `gdss serve` daemon process from the host shell | `GITHUB_TOKEN` or `OPENAI_API_KEY` in server shell | **Optional** (Deterministic views need 0 keys) | **$0** for all radar, tensor, and drift views |
@@ -563,10 +564,12 @@ Used in CI/CD secrets management, automated deployment containers, and personal 
 | `OPENAI_BASE_URL` | Universal endpoint URL override | Any HTTP/HTTPS URL (e.g. `https://api.groq.com/openai/v1`) |
 | `OPENAI_API_KEY` | Universal Bearer token | API key for OpenAI, DeepSeek, Groq, or enterprise proxies |
 | `OPENROUTER_API_KEY` | OpenRouter gateway secret | Automatically defaults base URL to `https://openrouter.ai/api/v1` |
-| `GITHUB_TOKEN` | GitHub Models / Copilot token | Automatically defaults base URL to `https://models.inference.ai.azure.com` |
+| `AZURE_OPENAI_API_KEY` | Microsoft Azure AI Foundry / Azure OpenAI key | API key for Azure AI Foundry model deployments |
+| `AZURE_OPENAI_ENDPOINT` | Azure AI Foundry endpoint | e.g. `https://<resource>.openai.azure.com/openai/v1` |
+| `GITHUB_TOKEN` | GitHub repository token | Exclusively for GitHub REST API (fetching PRs, posting sticky comments) |
 | `OPENROUTER_MODEL` | OpenRouter default model override | e.g. `qwen/qwen-2.5-coder-32b-instruct` |
+| `AZURE_OPENAI_MODEL` | Azure AI Foundry deployment name override | e.g. `gpt-4o`, `gpt-4o-mini`, `phi-4` |
 | `OPENAI_MODEL` | OpenAI / Custom endpoint model override | e.g. `deepseek-chat`, `gpt-4o` |
-| `GITHUB_MODEL` | GitHub Models default model override | e.g. `gpt-4o-mini`, `o1-mini` |
 | `GDSS_CONTEXT_WINDOW` | Explicit context window token capacity | e.g. `128000`, `64000` |
 
 #### Method 3: Runtime CLI Flags
@@ -608,7 +611,7 @@ When GDSS resolves which model and endpoint to invoke, it follows a strict 4-tie
 ├────────────────────────────────────────────────────────────────────────┤
 │ 4. Provider Default (Lowest Precedence)                                │
 │    OpenRouter: qwen/qwen-2.5-coder-32b-instruct                        │
-│    GitHub Models / OpenAI: gpt-4o-mini                                 │
+│    Azure AI Foundry / OpenAI: gpt-4o-mini                              │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -627,98 +630,137 @@ graph TD
 
 ---
 
-### 4. GitHub Models & Copilot Setup (Free vs. Paid, CI & Local CLI)
+### 4. Zero-Cost CI & Local Model Setup (Post-GitHub Models Retirement)
 
-A major advantage of GDSS is its ability to run with **$0 proprietary token costs** by using repository-native GitHub infrastructure. However, authentication differs depending on whether you are using a free personal GitHub account or a paid Copilot organization:
+> [!WARNING]
+> **GitHub Models Retired (July 30, 2026)**  
+> GitHub officially shut down its Models playground, catalog, inference API (`models.inference.ai.azure.com`), and BYOK services on **July 30, 2026** (see [GitHub Changelog Announcement](https://github.blog/changelog/2026-07-01-github-models-is-being-fully-retired-on-July-30-2026/)).  
+> **Creating a GitHub Personal Access Token (`GH_MODELS_PAT`) will no longer grant inference access.**
+>
+> In GitHub Actions CI, `GITHUB_TOKEN` is used strictly for repository and PR operations (listing open PRs, posting sticky radar markdown comments, and checking out code). It is not an inference token.
+
+For $0-cost or ultra-low-cost CI collision radar and local development, use the following modern alternatives:
 
 ```
                   ┌──────────────────────────────────────────┐
                   │    GDSS Execution Surface (CI or CLI)    │
                   └────────────────────┬─────────────────────┘
                                        │
-         ┌─────────────────────────────┴─────────────────────────────┐
-         ▼                                                           ▼
-  [ Free Personal GitHub Account ]                [ Paid Copilot / Enterprise Org ]
-  • Standard GITHUB_TOKEN lacks Azure             • Org-level model entitlements
-    inference scope (HTTP 401 error)                enabled for GITHUB_TOKEN
-  • Solution: Create Free GitHub PAT              • Solution: Pass native
-    (GH_MODELS_PAT) with Models scope               GITHUB_TOKEN directly
-         │                                                           │
-         ▼                                                           ▼
-  ┌────────────────────────────────────────────────────────────────────────┐
-  │ GitHub Models Endpoint: https://models.inference.ai.azure.com           │
-  │ Models: gpt-4o-mini, gpt-4o, o1-mini, Meta-Llama-3.1-70B-Instruct     │
-  └────────────────────────────────────────────────────────────────────────┘
+         ┌─────────────────────────────┼─────────────────────────────┐
+         ▼                             ▼                             ▼
+  [ OpenRouter Free Tier ]      [ Groq LPU / DeepSeek ]       [ Local Offline (Ollama) ]
+  • Free coder models           • Sub-second inference        • 100% offline ($0 cost)
+  • qwen/qwen-2.5-coder-32b     • llama-3.3-70b / deepseek    • qwen2.5-coder:7b
+  • OPENROUTER_API_KEY          • OPENAI_API_KEY / BASE_URL   • Zero cloud dependency
 ```
 
-#### A. Free Personal GitHub Accounts
+#### A. Option 1: OpenRouter Free Tier (Recommended CI Default)
+OpenRouter provides free access to capable coder models (e.g. `qwen/qwen-2.5-coder-32b-instruct`):
 
-In standard free GitHub accounts, the default CI runner token (`secrets.GITHUB_TOKEN`) is scoped solely to repository read/write permissions (`contents: read`, `pull-requests: write`). It **does not** include entitlements to call Azure AI model endpoints (`models.inference.ai.azure.com`). If used directly, you will encounter `HTTP 401: Resource not accessible by integration`.
-
-##### Step-by-Step Free PAT Setup (For CI and Local CLI):
-
-1. **Enroll in Free Preview**:
-   - Visit [GitHub Marketplace: Models](https://github.com/marketplace/models) and enroll your GitHub account in the free Models preview.
-
-2. **Generate Fine-Grained Personal Access Token (PAT)**:
-   - Go to **GitHub Profile ➔ Settings ➔ Developer settings ➔ Personal access tokens ➔ Fine-grained tokens**.
-   - Click **Generate new token**.
-   - Under **Account Permissions**, grant access to **GitHub Models / AI Inference** (or create a Classic PAT with `repo` scope).
-   - Copy your generated token (starts with `github_pat_` or `ghp_`).
-
-3. **Using in Local CLI (`gdss suggest`)**:
-   Add the token to your local shell profile (`~/.bashrc` or `~/.zshrc`):
-   ```bash
-   export GITHUB_TOKEN="github_pat_..."
+1. **Sign Up**: Create an account at [OpenRouter.ai](https://openrouter.ai).
+2. **Generate API Key**: Create an API key under Account Settings.
+3. **In `.gdss.yml`**:
+   ```yaml
+   radar:
+     provider: "openrouter"
+     model: "qwen/qwen-2.5-coder-32b-instruct"
+     context_window: 32768
+     max_refinements: 2
    ```
-   Now run local patch convergence and worktree validation at $0 token cost:
+4. **In GitHub Actions CI (`.github/workflows/gdss-radar.yml`)**:
+   Add `OPENROUTER_API_KEY` to repository secrets (**Settings ➔ Secrets and variables ➔ Actions**):
+   ```yaml
+   - name: Run GDSS PR Collision Radar
+     env:
+       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Used for GitHub PR comments & checkout
+       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }} # Used for free AI patch synthesis
+     run: |
+       gdss audit-pr --repo . --pr-number ${{ github.event.pull_request.number }}
+   ```
+5. **In Local CLI**:
    ```bash
-   gdss suggest --provider github --model gpt-4o-mini --validate
+   export OPENROUTER_API_KEY="sk-or-v1-..."
+   gdss suggest --validate
    ```
 
-4. **Using in GitHub Actions CI**:
-   - In your repository, go to **Settings ➔ Secrets and variables ➔ Actions ➔ New repository secret**.
-   - Name the secret **`GH_MODELS_PAT`** and paste your token.
-   - In `.github/workflows/gdss-radar.yml`, pass `GITHUB_TOKEN: ${{ secrets.GH_MODELS_PAT }}`:
-     ```yaml
-     - name: Run GDSS PR Collision Radar
-       env:
-         GITHUB_TOKEN: ${{ secrets.GH_MODELS_PAT }}
-       run: |
-         gdss audit-pr --repo . --pr-number ${{ github.event.pull_request.number }}
-     ```
+#### B. Option 2: Deterministic Radar Mode ($0 Compute, Zero AI Keys Needed)
+If you do not configure an `OPENROUTER_API_KEY` or `OPENAI_API_KEY` in CI, GDSS **does not crash or fail**:
+- It runs the entire **Deterministic PR Collision Radar** on CPU at $0 token cost.
+- It computes the $\Omega_{ij}$ interaction matrix, identifies clashing files and symbols, detects non-commutative AST changes, and calculates the optimal merge order sequence.
+- The sticky PR comment displays the full risk table, conflict topology, and recommendations. Only the optional ` ```suggestion ` AI patch generation is omitted.
 
-#### B. Paid Copilot Business / Enterprise Organizations
-Organizations with **GitHub Copilot Business** or **GitHub Copilot Enterprise** have organization-level model entitlements. 
+#### C. Option 3: Groq LPU or DeepSeek Direct
+For high-speed or low-cost commercial models:
+- **Groq** (`llama-3.3-70b-versatile`): Free / minimal cost, < 2s response time.
+  ```yaml
+  radar:
+    provider: "openai-compatible"
+    base_url: "https://api.groq.com/openai/v1"
+    model: "llama-3.3-70b-versatile"
+    context_window: 128000
+  ```
+- **DeepSeek Direct** (`deepseek-chat`):
+  ```yaml
+  radar:
+    provider: "openai-compatible"
+    base_url: "https://api.deepseek.com/v1"
+    model: "deepseek-chat"
+    context_window: 64000
+  ```
 
-In this tier, the workflow can directly utilize the standard ephemeral `GITHUB_TOKEN` without any personal access tokens:
+#### D. Option 4: Local Workstation (Ollama / LM Studio)
+For offline developers and air-gapped environments:
+```bash
+ollama run qwen2.5-coder:7b
+```
 ```yaml
-- name: Run GDSS PR Collision Radar
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  run: |
-    gdss audit-pr --repo . --pr-number ${{ github.event.pull_request.number }}
+radar:
+  provider: "ollama"
+  model: "qwen2.5-coder:7b"
+  context_window: 32768
 ```
 
-#### C. On-Disk Prompt Caching & Quota Protection (`.gdss/llm_cache/`)
-To prevent burning through personal free-tier rate limits, GDSS includes an automated content-addressed on-disk prompt cache:
-- Every prompt dispatched to GitHub Models is hashed alongside the model name:
+#### E. Option 5: GitHub Copilot CLI in CI (Copilot Business / Enterprise Organizations)
+If your repository is owned by a GitHub Organization with a Copilot Business or Enterprise subscription, you can use the `@github/copilot` CLI as a stateless inference provider authenticated by the runner's native `GITHUB_TOKEN`:
+
+> [!IMPORTANT]
+> **Plan Requirement & Tool Denial Guarantee**:
+> - **Plan Requirement**: In GitHub Actions, `copilot-requests: write` relies on organization-level pooled AI credits. Personal accounts on **Copilot Free** do not have CI API permissions and will receive `403 Forbidden`. For personal free accounts, use **Option 1: OpenRouter Free Tier**.
+> - **Tool Denial**: GDSS strictly invokes Copilot CLI with `--deny-tool='*' --silent --no-ask-user`. Copilot CLI is **completely forbidden from modifying files or running commands** in the runner checkout. The generated patch is captured from `stdout` and safely validated in GDSS's isolated worktree sandbox (`/tmp/gdss-sandbox-...`).
+
+```yaml
+# .gdss.yml
+radar:
+  provider: "copilot"
+  model: "gpt-4o"
+  max_refinements: 2
+```
+
+In `.github/workflows/gdss-radar.yml`:
+```yaml
+permissions:
+  contents: read          # Read-only Git access (protects repo from modification)
+  pull-requests: write     # Required for posting sticky comments
+  issues: write
+  copilot-requests: write  # Authorizes GITHUB_TOKEN for Copilot inference
+
+steps:
+  - uses: actions/checkout@v4
+  - uses: actions/setup-node@v4
+    with:
+      node-version: 20
+  - run: npm install -g @github/copilot
+  - run: gdss audit-pr --verbose
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+#### F. On-Disk Prompt Caching & Quota Protection (`.gdss/llm_cache/`)
+To prevent burning through free-tier rate limits, GDSS includes an automated content-addressed on-disk prompt cache:
+- Every prompt dispatched to any provider is hashed alongside the model name:
   $$\text{cache\_key} = \text{sha256}(\text{model} : \text{prompt})$$
 - Completed responses are saved to `.gdss/llm_cache/<cache_key>`.
 - Re-running `gdss suggest` or `gdss audit-pr` on unchanged code hits the cache instantly ($0\text{ ms}$, zero API round-trips), preventing redundant calls against your daily quota.
-
-#### D. Free-Tier Rate Limits & Handling:
-GitHub Models free tier applies standard rate limits (~15 requests per minute, 150 requests per day for free accounts):
-- **If you hit `HTTP 429: Too Many Requests`**:
-  - GDSS automatically backs off and logs structured diagnostics.
-  - You can immediately switch `.gdss.yml` to the **OpenRouter Free Tier** (`qwen/qwen-2.5-coder-32b-instruct`) or run **Local Ollama** (`qwen2.5-coder:7b`) with zero rate limits.
-
-#### Available Models on GitHub Models Endpoint:
-- `gpt-4o` (Flagship, best for multi-file refactors)
-- `gpt-4o-mini` (Fast, economic, recommended CI default)
-- `o1-mini` (Deep mathematical and algorithmic reasoning)
-- `Meta-Llama-3.1-70B-Instruct`
-- `Mistral-large-2407`
 
 ---
 
@@ -816,35 +858,24 @@ radar:
 
 ---
 
-#### Recipe D: GitHub Models / Copilot (Actions CI & Local CLI)
-Uses native repository GitHub credentials with zero external accounts:
+#### Recipe D: Microsoft Azure AI Foundry (Official Microsoft Successor)
+
+> [!NOTE]
+> **Successor to GitHub Models**: Following the retirement of GitHub Models on July 30, 2026, Microsoft directs all API-driven model workloads to **Microsoft Azure AI Foundry** (`ai.azure.com`).
 
 ```yaml
-# 1. In .gdss.yml (Checked into Git root):
+# .gdss.yml
 radar:
-  provider: "github"
-  model: "gpt-4o-mini"
+  provider: "openai-compatible"
+  base_url: "https://<your-resource-name>.openai.azure.com/openai/v1"
+  model: "gpt-4o"
   context_window: 128000
   max_refinements: 2
-  fail_on_collision: false
 ```
-
 ```bash
-# 2. In Local Developer Shell (~/.bashrc, ~/.zshrc, or .env):
-export GITHUB_TOKEN="github_pat_..."
-
-# Run local suggestion engine & sandboxed validation:
-gdss suggest --validate
-```
-
-```yaml
-# 3. In GitHub Actions (.github/workflows/gdss-radar.yml):
-- name: Run GDSS PR Collision Radar
-  env:
-    # Use secrets.GH_MODELS_PAT for free personal accounts, or secrets.GITHUB_TOKEN for Copilot orgs:
-    GITHUB_TOKEN: ${{ secrets.GH_MODELS_PAT || secrets.GITHUB_TOKEN }}
-  run: |
-    gdss audit-pr --repo . --pr-number ${{ github.event.pull_request.number }}
+# In shell profile or GitHub Actions secret:
+export AZURE_OPENAI_API_KEY="your-azure-key"
+export OPENAI_BASE_URL="https://<your-resource-name>.openai.azure.com/openai/v1"
 ```
 
 ---
@@ -923,12 +954,45 @@ radar:
 
 ---
 
+#### Recipe I: GitHub Copilot CLI (Copilot Business / Enterprise Organizations)
+Use your organization's Copilot subscription in CI without external API keys:
+
+```yaml
+# .gdss.yml
+radar:
+  provider: "copilot"
+  model: "gpt-4o"
+  max_refinements: 2
+```
+
+In `.github/workflows/gdss-radar.yml`, grant `copilot-requests: write` and install `@github/copilot`:
+```yaml
+permissions:
+  contents: read          # Read-only Git access (protects repo from modification)
+  pull-requests: write     # Required for posting sticky PR comments
+  issues: write
+  copilot-requests: write  # Authorizes GITHUB_TOKEN for Copilot inference
+
+steps:
+  - uses: actions/checkout@v4
+  - uses: actions/setup-node@v4
+    with:
+      node-version: 20
+  - run: npm install -g @github/copilot
+  - run: gdss audit-pr --verbose
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+---
+
 ### 8. Model Troubleshooting & Common Issues
 
 | Issue / Error | Root Cause | Exact Resolution |
 | :--- | :--- | :--- |
-| `HTTP 401: Resource not accessible by integration` | Free GitHub account running CI with default `GITHUB_TOKEN` | Generate a free GitHub PAT with Models preview scope and store as `GH_MODELS_PAT`, or switch to OpenRouter free tier. |
-| `HTTP 429: Too Many Requests` | Free-tier rate limits reached on GitHub Models or Groq | Switch to OpenRouter (`qwen-2.5-coder-32b-instruct`), configure backoff, or use local Ollama. |
+| `HTTP 401 / 404 / 410 on models.inference.ai.azure.com` | GitHub Models was retired on July 30, 2026 | Switch provider to OpenRouter (`provider: "openrouter"` with `OPENROUTER_API_KEY`), Microsoft Azure AI Foundry, Groq, DeepSeek, or local Ollama. |
+| `HTTP 403 on Copilot CLI in GitHub Actions` | Personal account on Copilot Free attempting CI inference | `copilot-requests: write` requires an Organization with Copilot Business/Enterprise. Switch to OpenRouter Free Tier (`provider: "openrouter"` with `OPENROUTER_API_KEY`). |
+| `HTTP 429: Too Many Requests` | Free-tier rate limits reached on OpenRouter or Groq | Configure backoff, switch models, or use local Ollama. |
 | `Truncated code in suggestions (/* ... condensed ... */)` | Missing `context_window` setting causing GDSS to fall back to safe 16k window | Explicitly add `context_window: 128000` (or your model's true limit) in `.gdss.yml`. |
 | `Patch rejected by ephemeral sandbox validation` | Model hallucinated invalid syntax or wrong type signature | Ensure `validation.syntax_command` and `validation.typecheck_command` are configured; increase `max_refinements: 3` so agentic self-correction can heal the error. |
 | `Connection refused: localhost:11434 or :1234` | Local model server (Ollama or LM Studio) is not running | Start the server before running GDSS: `ollama serve` or open LM Studio and start the Local Server. |
@@ -941,14 +1005,15 @@ GDSS supports standard environment variables to override `.gdss.yml` settings, p
 
 | Environment Variable | Supported Values / Format | Priority Level | Description |
 | :--- | :--- | :---: | :--- |
-| `GITHUB_TOKEN` | `github_pat_...` or `ghp_...` | High | Authentication token for GitHub REST API (fetching concurrent PRs, posting sticky comments) and GitHub Models inference endpoint. |
-| `GH_MODELS_PAT` | `github_pat_...` | High | Recommended secret name for free personal GitHub accounts storing Fine-grained PATs with Models scope. Passed to `GITHUB_TOKEN` in CI. |
-| `OPENAI_API_KEY` | `sk-...` | High | API key for OpenAI, Azure OpenAI, DeepSeek Direct, Groq, or any OpenAI-compatible provider. |
+| `GITHUB_TOKEN` | `ghp_...` or `${{ secrets.GITHUB_TOKEN }}` | High | Authentication token for GitHub REST API (fetching concurrent PRs, diff retrieval, posting/updating sticky radar comments). |
+| `OPENAI_API_KEY` | `sk-...` | High | API key for OpenAI, DeepSeek Direct, Groq, or any OpenAI-compatible provider. |
+| `AZURE_OPENAI_API_KEY` | Azure secret key | High | API key for Microsoft Azure AI Foundry / Azure OpenAI Service deployments. |
+| `AZURE_OPENAI_ENDPOINT` | `https://<resource>.openai.azure.com/openai/v1` | High | Endpoint URL for Microsoft Azure AI Foundry deployments. |
 | `OPENROUTER_API_KEY` | `sk-or-v1-...` | High | API key for OpenRouter multi-model gateway. |
 | `OPENAI_BASE_URL` | `https://api.deepseek.com/v1`, etc. | High | Custom OpenAI-compatible REST endpoint URL. Overrides `.gdss.yml` `radar.base_url`. |
 | `OPENAI_MODEL` | e.g. `gpt-4o`, `deepseek-chat` | Tier 2 | Model override for OpenAI / OpenAI-compatible providers. |
+| `AZURE_OPENAI_MODEL` | e.g. `gpt-4o`, `phi-4` | Tier 2 | Deployment / model override for Azure AI Foundry. |
 | `OPENROUTER_MODEL` | e.g. `qwen/qwen-2.5-coder-32b-instruct` | Tier 2 | Model override when routing via OpenRouter. |
-| `GITHUB_MODEL` | e.g. `gpt-4o-mini`, `o1-mini` | Tier 2 | Model override for GitHub Models. |
 | `GDSS_CONTEXT_WINDOW` | Integer (e.g. `128000`, `64000`) | Tier 1 | Overrides model context window token size. Precludes heuristic fallback guessing. |
 | `GDSS_SANDBOX_TIMEOUT` | Integer in seconds (e.g. `60`, `120`) | High | Overrides ephemeral worktree validation command timeout (`validation.timeout_seconds`). |
 | `GDSS_LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` | High | Centralized diagnostic logging verbosity across all GDSS subsystems. |

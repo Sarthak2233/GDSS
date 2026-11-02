@@ -62,7 +62,7 @@
 ```
 
 1. **Zero Cloud Infrastructure Burn ($0 OpEx):**
-   - Approaches A & C leverage **Bring Your Own Compute (BYOC)**. GitHub Actions runners execute the analysis, and users supply their own tokens or use free GitHub Models. You incur **$0 in server or GPU hosting bills** while proving product-market fit.
+   - Approaches A & C leverage **Bring Your Own Compute (BYOC)**. GitHub Actions runners execute the analysis, and users supply their own tokens or use free OpenRouter / Azure AI Foundry. You incur **$0 in server or GPU hosting bills** while proving product-market fit.
 2. **Total Code Confidentiality (Closed Source):**
    - The core GDSS engine remains 100% closed source. In Approach A, it is compiled into a stripped Docker container distributed via GitHub Container Registry (`ghcr.io`). In Approach C, it is compiled into a single stripped native executable with no exposed `.py` source.
 3. **High Security Trust from Early Adopters:**
@@ -83,7 +83,7 @@
 | **Delivery Mechanism** | Docker Container (`ghcr.io`) | Native Single Executable | Multi-Tenant Cloud Webhooks |
 | **Source Code State** | Closed (Compiled in Container) | Closed (Compiled ELF/Mach-O) | Closed (Hosted on Private Cloud) |
 | **Compute Cost to You** | **$0** (Runs on GitHub Runners) | **$0** (Runs on User Laptops) | Paid (Your Cloud / GPU Fleet) |
-| **LLM Inference** | GitHub Models / User API Keys | Local Ollama/vLLM or User Keys | Self-Hosted vLLM GPU Cluster |
+| **LLM Inference** | OpenRouter / Azure AI / User Keys | Local Ollama/vLLM or User Keys | Self-Hosted vLLM GPU Cluster |
 | **Setup Friction** | Low (5-line `.github/workflows`) | Minimal (1-line install script) | Zero-Config (1-click app install) |
 | **Target Audience** | PR reviewers, team leads | Individual developers, IDE users | Large enterprises, CTOs |
 | **Monetization Mode** | Free beta / Seat-based Action license | Free IDE tool / Developer edition | Paid Organization SaaS / Team plans |

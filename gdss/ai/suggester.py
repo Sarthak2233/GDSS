@@ -208,24 +208,45 @@ def _draft_combinations(
 
 def _pick_provider(
     llm: bool,
-    provider: AnyProvider | LLMProvider | None,
+    provider: AnyProvider | LLMProvider | str | None,
 ) -> AnyProvider | LLMProvider | None:
     """Return an LLM provider, preferring explicit, env credentials, or reachable local servers."""
+    if isinstance(provider, str):
+        target_kind = provider.lower()
+        if target_kind in {"copilot", "github-copilot"}:
+            from gdss.ai.copilot_provider import CopilotCLIProvider
+
+            return CopilotCLIProvider()  # dsa:ignore
+        if target_kind == "ollama":
+            return OllamaProvider()  # dsa:ignore
+        if target_kind == "vllm":
+            return VLLMProvider()  # dsa:ignore
+        if target_kind in {"openai", "openrouter", "azure", "openai-compatible"}:
+            return OpenAICompatibleProvider()  # dsa:ignore
+        return None
+
     if provider is not None:
         return provider
     if not llm:
         return None
+
     if (
         os.getenv("OPENROUTER_API_KEY")
-        or os.getenv("GITHUB_TOKEN")
+        or os.getenv("AZURE_OPENAI_API_KEY")
         or os.getenv("OPENAI_API_KEY")
         or os.getenv("OPENAI_BASE_URL")
     ):
-        return OpenAICompatibleProvider()
+        return OpenAICompatibleProvider()  # dsa:ignore
+
+    from gdss.ai.copilot_provider import CopilotCLIProvider
+
+    copilot = CopilotCLIProvider()  # dsa:ignore
+    if copilot.is_available():
+        return copilot
     if _server_reachable("http://localhost:8000"):
-        return VLLMProvider()
+        return VLLMProvider()  # dsa:ignore
     if _server_reachable("http://127.0.0.1:11434"):
-        return OllamaProvider()
+        return OllamaProvider()  # dsa:ignore
     return None
 
 
@@ -245,7 +266,7 @@ def suggest(
     exclude_branches: Sequence[str] | None = None,
     llm: bool = False,
     combos: int = 3,
-    provider: AnyProvider | LLMProvider | None = None,
+    provider: AnyProvider | LLMProvider | str | None = None,
     max_candidates: int = 50,
     context: AnalysisContext | None = None,
 ) -> list[Suggestion]:

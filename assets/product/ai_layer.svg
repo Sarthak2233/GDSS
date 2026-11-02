@@ -144,7 +144,7 @@
   <text x="660" y="487" text-anchor="middle" fill="#581c87" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">OpenRouter (Multi-Model Gateway)</text>
 
   <rect x="560" y="502" width="200" height="26" rx="5" fill="#f3e8ff" stroke="#a855f7" stroke-width="1" />
-  <text x="660" y="519" text-anchor="middle" fill="#581c87" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">GitHub Models / OpenAI ($0 CI)</text>
+  <text x="660" y="519" text-anchor="middle" fill="#581c87" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Azure AI Foundry / OpenAI</text>
 
   <!-- Patch Parser -->
   <rect x="800" y="435" width="110" height="45" rx="8" fill="url(#grad-ai)" stroke="#6d28d9" stroke-width="1.5" />

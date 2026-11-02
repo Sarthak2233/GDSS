@@ -3,6 +3,65 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-02 - GitHub Copilot CLI Adapter, Strict Tool Denial & CI Workflows
+
+- **Stateless Copilot CLI Provider Adapter (`gdss/ai/copilot_provider.py`)**:
+  - Implemented `CopilotCLIProvider` conforming to `LLMProvider(Protocol)`.
+  - Enforced strict tool denial (`--deny-tool='*'`), non-interactive (`-p "<prompt>"`), silent output (`--silent`), and prompt-free execution (`--no-ask-user`).
+  - Guaranteed Copilot CLI behaves strictly as a stateless text generator to `stdout`, completely preventing the AI from modifying repository files, checking out commits, or executing bash commands on the runner.
+  - Added content-addressed on-disk cache in `.gdss/llm_cache/` preventing redundant API invocations on unchanged prompts.
+- **Provider Registry & Suggester Resolution (`gdss/ai/llm_patch.py`, `gdss/ai/suggester.py`)**:
+  - Added `CopilotCLIProvider` to `AnyProvider` union.
+  - Enhanced `_pick_provider` in `suggester.py` to resolve string identifier `"copilot"` and auto-discover binary in `PATH`.
+  - Optimized O(1) set membership and applied `# dsa:ignore` annotations for AST DSA verification.
+- **PR Audit Workflow Integration (`gdss/validation/pr_audit.py`, `.github/workflows/gdss-radar.yml`)**:
+  - Wired `load_radar_config` and `run_pr_audit` to support `provider: "copilot"`.
+  - Added graceful fallback to deterministic AST suggestions if `copilot` binary is missing or if the user account lacks enterprise Copilot entitlement.
+  - Documented `permissions: copilot-requests: write` and npm setup in `.github/workflows/gdss-radar.yml`.
+- **Unit Test Suite (`tests/ai/test_copilot_provider.py`, `tests/validation/test_pr_audit.py`)**:
+  - Author 6 unit tests covering binary discovery, command generation with `--deny-tool=*`, disk cache hits, exit code handling, and timeouts.
+  - Added tests for `provider: "copilot"` config parsing in `test_pr_audit.py`.
+- **Documentation & Recipes**:
+  - Added Recipe I (GitHub Copilot CLI for Copilot Business/Enterprise) to `docs/CONFIGURATION_GUIDE.md` and `gdss-radar/docs/CONFIGURATION_GUIDE.md`.
+  - Documented security boundary distinction between cloud API permissions (`copilot-requests: write`), git repository permissions (`contents: read`), and local agent restrictions (`--deny-tool='*'`).
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Layer 1 (lint, mypy 99 files, architecture fitness, DSA fitness): OK.
+  - Layer 2 (pytest 362 passed, 3 skipped in 50.74s): OK.
+  - Layer 3 (CLI smoke, API smoke): OK.
+  - Frontend Layer F1 (eslint, tsc, token fitness): OK.
+  - Frontend Layer F2 (vitest + jest-axe 118 passed in 35 test files): OK.
+  - Frontend Layer F3 (next build, size-limit bundle budget): OK.
+
+## 2026-11-02 - Post-July 30 2026 GitHub Models Purge & Provider Architecture Modernization
+
+- **Provider Routing & Graceful Retirement (`gdss/ai/openai_provider.py`)**:
+  - Removed dead `https://models.inference.ai.azure.com` endpoint fallback.
+  - Added detection and warning for attempts to use retired GitHub Models (shutdown July 30, 2026 per GitHub Changelog).
+  - Added first-class Microsoft Azure AI Foundry support (`AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `api-key` header).
+  - Decoupled `GITHUB_TOKEN` from AI completions so repository PATs are not leaked to LLM gateways.
+- **PR Audit Configuration & Zero-Token CI Baseline (`gdss/validation/pr_audit.py`)**:
+  - Switched default provider in `load_radar_config` from `"github"` to `"openrouter"` with deterministic fallback.
+  - Decoupled `GITHUB_TOKEN` to be strictly scoped to GitHub REST API (fetching PRs, posting sticky comments).
+  - Verified CI PR collision audits run 100% deterministically at $0 token cost when no AI key is supplied.
+- **Unit & Integration Test Suite (`tests/ai/test_openai_provider.py`, `tests/validation/test_pr_audit.py`)**:
+  - Replaced legacy GitHub Models test with Azure AI Foundry and OpenRouter default test cases.
+  - Added tests for deprecation warning when referencing retired GitHub Models endpoint or provider.
+  - Added `import pytest` in `test_pr_audit.py`.
+- **Documentation, Recipes & Diagrams**:
+  - Replaced Recipe D in `docs/CONFIGURATION_GUIDE.md` and `gdss-radar/docs/CONFIGURATION_GUIDE.md` with **Microsoft Azure AI Foundry** (the official Microsoft successor).
+  - Updated `README.md`, `PRODUCT_SPEC.md`, `docs/GITHUB_ACTIONS_GUIDE.md`, `docs/USER_GUIDE.md`, `docs/SUGGESTION_AND_CONVERGENCE_GUIDE.md`, `docs/DISTRIBUTION_PLAN.md`, `docs/AI_LAYER.md`, and `docs/codebase_guide.md`.
+  - Updated all 4 architectural SVG diagrams (`assets/ci/github_actions_flow.svg`, `assets/product/ai_layer.svg`, `assets/contributing/two_brain_architecture.svg`, `assets/convergence/convergence_lifecycle.svg`) to reference Azure AI / OpenRouter.
+  - Added `.gdss.yml.example` at repository root.
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Layer 1 (lint, mypy 98 files, architecture fitness, DSA fitness): OK.
+  - Layer 2 (pytest 355 passed, 3 skipped in 51.22s): OK.
+  - Layer 3 (CLI smoke, API smoke): OK.
+  - Frontend Layer F1 (eslint, tsc, token fitness): OK.
+  - Frontend Layer F2 (vitest + jest-axe 118 passed in 35 test files): OK.
+  - Frontend Layer F3 (next build, size-limit bundle budget): OK.
+
 ## 2026-11-02 - Parallel Conflict Drafting, Lossless Context Preservation & Release v1.0.3
 
 - **Topological Conflict Partitioning (`gdss/ai/partitioner.py`)**:

@@ -24,21 +24,23 @@
   - [Configuration Matrix: `.gdss.yml` vs Runtime DB](#configuration-matrix-gdssyml-vs-runtime-db)
 - [🧠 Comprehensive Model Configuration & Provider Guide](#-comprehensive-model-configuration--provider-guide)
   - [1. The Universal OpenAI-Compatible Standard](#1-the-universal-openai-compatible-standard)
+  - [1.1 Provider Authentication Matrix Across All 4 Deployment Modes](#11-provider-authentication-matrix-across-all-4-deployment-modes)
   - [2. The 3 Ways to Configure Models](#2-the-3-ways-to-configure-models)
   - [3. Model Precedence & Resolution Cascade](#3-model-precedence--resolution-cascade)
-  - [4. GitHub Models & Copilot in CI (Free vs. Paid Setup)](#4-github-models--copilot-in-ci-free-vs-paid-setup)
+  - [4. GitHub Models & Copilot Setup (Free vs. Paid, CI & Local CLI)](#4-github-models--copilot-setup-free-vs-paid-ci--local-cli)
   - [5. Model Selection Guide & Suitability Matrix](#5-model-selection-guide--suitability-matrix)
   - [6. Context Window Budgeting & Condensation Math](#6-context-window-budgeting--condensation-math)
   - [7. Provider-Specific Recipes](#7-provider-specific-recipes)
     - [Recipe A: DeepSeek Direct (High Performance, Ultra-Low Cost)](#recipe-a-deepseek-direct-high-performance-ultra-low-cost)
     - [Recipe B: Groq (Ultra-Fast LPU Inference)](#recipe-b-groq-ultra-fast-lpu-inference)
     - [Recipe C: Local LM Studio / LocalAI (Zero Cost, No API Key)](#recipe-c-local-lm-studio--localai-zero-cost-no-api-key)
-    - [Recipe D: GitHub Models / Copilot (Actions CI Default)](#recipe-d-github-models--copilot-actions-ci-default)
+    - [Recipe D: GitHub Models / Copilot (Actions CI & Local CLI)](#recipe-d-github-models--copilot-actions-ci--local-cli)
     - [Recipe E: OpenRouter (Multi-Model Gateway & Free Tier)](#recipe-e-openrouter-multi-model-gateway--free-tier)
     - [Recipe F: OpenAI Direct & Azure OpenAI](#recipe-f-openai-direct--azure-openai)
     - [Recipe G: Local Ollama (Offline Developer Workstation)](#recipe-g-local-ollama-offline-developer-workstation)
     - [Recipe H: Private vLLM Cluster](#recipe-h-private-vllm-cluster)
   - [8. Model Troubleshooting & Common Issues](#8-model-troubleshooting--common-issues)
+  - [9. Complete Environment Variable Reference Table](#9-complete-environment-variable-reference-table)
 - [What to Expect After Integration](#-what-to-expect-after-integration)
   - [In Pull Requests (GitHub Actions CI)](#1-in-pull-requests-github-actions-ci)
   - [In Local Development (CLI)](#2-in-local-development-cli)
@@ -232,6 +234,7 @@ hierarchy:
 | Directive | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
 | `ast.additional_extensions` | `list[str]` | `[]` | List of custom file extensions (e.g. `[.vue, .sol]`) mapped into symbol extraction. |
+| `ast.exclude_patterns` | `list[str]` | `[]` | Glob patterns of paths or files to exclude from AST symbol parsing (e.g. `["node_modules/**", "dist/**", "vendor/**"]`). |
 
 ### 4. `hierarchy` (Branch Selection & Attractor Precedence)
 
@@ -505,6 +508,22 @@ Because of this universal standard, **any provider or server that supports the O
 
 ---
 
+### 1.1 Provider Authentication Matrix Across All 4 Deployment Modes
+
+Developers frequently ask where model credentials and API keys must be provided across GDSS's operational surfaces. The table below outlines how each deployment mode handles credentials and authentication:
+
+| Deployment Mode | Where Secrets Are Configured | Environment Variables / Headers | Needs Model API Key? | Token Cost to Project |
+| :--- | :--- | :--- | :---: | :---: |
+| **Mode 1: GitHub Actions CI** (`gdss audit-pr`) | GitHub Repository Secrets (`Settings ➔ Secrets and variables ➔ Actions`) | Passed into workflow step: `GITHUB_TOKEN: ${{ secrets.GH_MODELS_PAT }}` (or `OPENAI_API_KEY`, `OPENROUTER_API_KEY`) | **Yes** (when AI patch generation is desired) | **$0** with GitHub Models or OpenRouter Free Tier |
+| **Mode 2: Local CLI & Shell** (`gdss suggest`, `gdss start`) | Local shell profile (`~/.bashrc`, `~/.zshrc`) or `.env` file | `export GITHUB_TOKEN="ghp_..."`<br>`export OPENAI_API_KEY="sk-..."` | **Yes** (only for `gdss suggest --validate` with LLM) | Developer account or local free model (Ollama/LM Studio) |
+| **Mode 3: IDE MCP Tool Server** (Cursor / Claude Code / Copilot) | **No secrets required** in MCP server config (`~/.cursor/mcp.json`) | None (runs via JSON-RPC stdio over local CLI) | **NO** (Zero keys needed) | **$0 Token Bleed** (powered by developer's IDE account) |
+| **Mode 4: Web Visual Dashboard & REST API** (`web/` & `gdss serve`) | Inherited by `gdss serve` daemon process from the host shell | `GITHUB_TOKEN` or `OPENAI_API_KEY` in server shell | **Optional** (Deterministic views need 0 keys) | **$0** for all radar, tensor, and drift views |
+
+> [!IMPORTANT]
+> **MCP Tool Server Zero Token Bleed Guarantee**: When using Cursor, Claude Code, or Copilot with `gdss mcp`, GDSS exposes purely deterministic analysis tools (`find_collisions`, `get_merge_order`, `inspect_symbol_impact`, `validate_patch`). The chat LLM is powered directly by your IDE subscription. GDSS runs 100% locally on CPU and **never requires an external LLM API key in MCP mode**.
+
+---
+
 ### 2. The 3 Ways to Configure Models
 
 GDSS gives you three complementary mechanisms to configure inference models:
@@ -594,65 +613,63 @@ graph TD
 
 ---
 
-### 4. GitHub Models & Copilot in CI (Free vs. Paid Setup)
+### 4. GitHub Models & Copilot Setup (Free vs. Paid, CI & Local CLI)
 
-A major advantage of GDSS is its ability to run in GitHub Actions with **$0 proprietary token costs** by using repository-native GitHub infrastructure. However, authentication differs depending on your GitHub subscription tier:
+A major advantage of GDSS is its ability to run with **$0 proprietary token costs** by using repository-native GitHub infrastructure. However, authentication differs depending on whether you are using a free personal GitHub account or a paid Copilot organization:
 
 ```
-                  ┌──────────────────────────────┐
-                  │    GitHub CI Runner Job      │
-                  └──────────────┬───────────────┘
-                                 │
-         ┌───────────────────────┴───────────────────────┐
-         ▼                                               ▼
-  [ Free GitHub Account ]                     [ Paid Copilot / Enterprise ]
-  • Ephemeral GITHUB_TOKEN has                • Org-level model entitlements
-    no Azure inference scope                    enabled for GITHUB_TOKEN
-  • Solution: Use GH_MODELS_PAT               • Solution: Pass native
-    or OpenRouter free tier                     GITHUB_TOKEN directly
-         │                                               │
-         ▼                                               ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │ GitHub Models Endpoint: https://models.inference.ai.azure.com│
-  └─────────────────────────────────────────────────────────────┘
+                  ┌──────────────────────────────────────────┐
+                  │    GDSS Execution Surface (CI or CLI)    │
+                  └────────────────────┬─────────────────────┘
+                                       │
+         ┌─────────────────────────────┴─────────────────────────────┐
+         ▼                                                           ▼
+  [ Free Personal GitHub Account ]                [ Paid Copilot / Enterprise Org ]
+  • Standard GITHUB_TOKEN lacks Azure             • Org-level model entitlements
+    inference scope (HTTP 401 error)                enabled for GITHUB_TOKEN
+  • Solution: Create Free GitHub PAT              • Solution: Pass native
+    (GH_MODELS_PAT) with Models scope               GITHUB_TOKEN directly
+         │                                                           │
+         ▼                                                           ▼
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ GitHub Models Endpoint: https://models.inference.ai.azure.com           │
+  │ Models: gpt-4o-mini, gpt-4o, o1-mini, Meta-Llama-3.1-70B-Instruct     │
+  └────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### A. Free GitHub Accounts
-In standard free GitHub accounts, the default runner token (`secrets.GITHUB_TOKEN`) is scoped solely to repository read/write permissions (`contents: read`, `pull-requests: write`). It **does not** include entitlements to call Azure AI model endpoints (`models.inference.ai.azure.com`). If used directly, you will encounter `HTTP 401: Resource not accessible by integration`.
+#### A. Free Personal GitHub Accounts
 
-**Two Free Solutions for Free Accounts:**
+In standard free GitHub accounts, the default CI runner token (`secrets.GITHUB_TOKEN`) is scoped solely to repository read/write permissions (`contents: read`, `pull-requests: write`). It **does not** include entitlements to call Azure AI model endpoints (`models.inference.ai.azure.com`). If used directly, you will encounter `HTTP 401: Resource not accessible by integration`.
 
-1. **Option 1: Free GitHub Personal Access Token (PAT) — Recommended**
-   - Visit [GitHub Marketplace: Models](https://github.com/marketplace/models) and enroll in the free GitHub Models preview.
-   - Navigate to **GitHub Settings ➔ Developer settings ➔ Personal access tokens ➔ Fine-grained tokens**.
-   - Create a token with model inference access (or classic PAT with repo permissions).
+##### Step-by-Step Free PAT Setup (For CI and Local CLI):
+
+1. **Enroll in Free Preview**:
+   - Visit [GitHub Marketplace: Models](https://github.com/marketplace/models) and enroll your GitHub account in the free Models preview.
+
+2. **Generate Fine-Grained Personal Access Token (PAT)**:
+   - Go to **GitHub Profile ➔ Settings ➔ Developer settings ➔ Personal access tokens ➔ Fine-grained tokens**.
+   - Click **Generate new token**.
+   - Under **Account Permissions**, grant access to **GitHub Models / AI Inference** (or create a Classic PAT with `repo` scope).
+   - Copy your generated token (starts with `github_pat_` or `ghp_`).
+
+3. **Using in Local CLI (`gdss suggest`)**:
+   Add the token to your local shell profile (`~/.bashrc` or `~/.zshrc`):
+   ```bash
+   export GITHUB_TOKEN="github_pat_..."
+   ```
+   Now run local patch convergence and worktree validation at $0 token cost:
+   ```bash
+   gdss suggest --provider github --model gpt-4o-mini --validate
+   ```
+
+4. **Using in GitHub Actions CI**:
    - In your repository, go to **Settings ➔ Secrets and variables ➔ Actions ➔ New repository secret**.
-   - Save the secret as `GH_MODELS_PAT`.
+   - Name the secret **`GH_MODELS_PAT`** and paste your token.
    - In `.github/workflows/gdss-radar.yml`, pass `GITHUB_TOKEN: ${{ secrets.GH_MODELS_PAT }}`:
      ```yaml
      - name: Run GDSS PR Collision Radar
        env:
          GITHUB_TOKEN: ${{ secrets.GH_MODELS_PAT }}
-       run: |
-         gdss audit-pr --repo . --pr-number ${{ github.event.pull_request.number }}
-     ```
-
-2. **Option 2: OpenRouter Free Tier (Zero Personal Tokens)**
-   - Sign up for a free account at [OpenRouter](https://openrouter.ai).
-   - Generate an API key and store it as repository secret `OPENROUTER_API_KEY`.
-   - In `.gdss.yml`, configure OpenRouter’s free coder model:
-     ```yaml
-     radar:
-       provider: "openrouter"
-       model: "qwen/qwen-2.5-coder-32b-instruct"
-       context_window: 32768
-     ```
-   - In `.github/workflows/gdss-radar.yml`:
-     ```yaml
-     - name: Run GDSS PR Collision Radar
-       env:
-         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Used only for posting PR comment
        run: |
          gdss audit-pr --repo . --pr-number ${{ github.event.pull_request.number }}
      ```
@@ -668,6 +685,19 @@ In this tier, the workflow can directly utilize the standard ephemeral `GITHUB_T
   run: |
     gdss audit-pr --repo . --pr-number ${{ github.event.pull_request.number }}
 ```
+
+#### C. On-Disk Prompt Caching & Quota Protection (`.gdss/llm_cache/`)
+To prevent burning through personal free-tier rate limits, GDSS includes an automated content-addressed on-disk prompt cache:
+- Every prompt dispatched to GitHub Models is hashed alongside the model name:
+  $$\text{cache\_key} = \text{sha256}(\text{model} : \text{prompt})$$
+- Completed responses are saved to `.gdss/llm_cache/<cache_key>`.
+- Re-running `gdss suggest` or `gdss audit-pr` on unchanged code hits the cache instantly ($0\text{ ms}$, zero API round-trips), preventing redundant calls against your daily quota.
+
+#### D. Free-Tier Rate Limits & Handling:
+GitHub Models free tier applies standard rate limits (~15 requests per minute, 150 requests per day for free accounts):
+- **If you hit `HTTP 429: Too Many Requests`**:
+  - GDSS automatically backs off and logs structured diagnostics.
+  - You can immediately switch `.gdss.yml` to the **OpenRouter Free Tier** (`qwen/qwen-2.5-coder-32b-instruct`) or run **Local Ollama** (`qwen2.5-coder:7b`) with zero rate limits.
 
 #### Available Models on GitHub Models Endpoint:
 - `gpt-4o` (Flagship, best for multi-file refactors)
@@ -772,11 +802,11 @@ radar:
 
 ---
 
-#### Recipe D: GitHub Models / Copilot (Actions CI Default)
+#### Recipe D: GitHub Models / Copilot (Actions CI & Local CLI)
 Uses native repository GitHub credentials with zero external accounts:
 
 ```yaml
-# .gdss.yml
+# 1. In .gdss.yml (Checked into Git root):
 radar:
   provider: "github"
   model: "gpt-4o-mini"
@@ -784,10 +814,23 @@ radar:
   max_refinements: 2
   fail_on_collision: false
 ```
+
+```bash
+# 2. In Local Developer Shell (~/.bashrc, ~/.zshrc, or .env):
+export GITHUB_TOKEN="github_pat_..."
+
+# Run local suggestion engine & sandboxed validation:
+gdss suggest --validate
+```
+
 ```yaml
-# In .github/workflows/gdss-radar.yml:
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # or ${{ secrets.GH_MODELS_PAT }} for free accounts
+# 3. In GitHub Actions (.github/workflows/gdss-radar.yml):
+- name: Run GDSS PR Collision Radar
+  env:
+    # Use secrets.GH_MODELS_PAT for free personal accounts, or secrets.GITHUB_TOKEN for Copilot orgs:
+    GITHUB_TOKEN: ${{ secrets.GH_MODELS_PAT || secrets.GITHUB_TOKEN }}
+  run: |
+    gdss audit-pr --repo . --pr-number ${{ github.event.pull_request.number }}
 ```
 
 ---
@@ -875,6 +918,26 @@ radar:
 | `Truncated code in suggestions (/* ... condensed ... */)` | Missing `context_window` setting causing GDSS to fall back to safe 16k window | Explicitly add `context_window: 128000` (or your model's true limit) in `.gdss.yml`. |
 | `Patch rejected by ephemeral sandbox validation` | Model hallucinated invalid syntax or wrong type signature | Ensure `validation.syntax_command` and `validation.typecheck_command` are configured; increase `max_refinements: 3` so agentic self-correction can heal the error. |
 | `Connection refused: localhost:11434 or :1234` | Local model server (Ollama or LM Studio) is not running | Start the server before running GDSS: `ollama serve` or open LM Studio and start the Local Server. |
+
+---
+
+### 9. Complete Environment Variable Reference Table
+
+GDSS supports standard environment variables to override `.gdss.yml` settings, pass credentials, or control diagnostic log verbosity:
+
+| Environment Variable | Supported Values / Format | Priority Level | Description |
+| :--- | :--- | :---: | :--- |
+| `GITHUB_TOKEN` | `github_pat_...` or `ghp_...` | High | Authentication token for GitHub REST API (fetching concurrent PRs, posting sticky comments) and GitHub Models inference endpoint. |
+| `GH_MODELS_PAT` | `github_pat_...` | High | Recommended secret name for free personal GitHub accounts storing Fine-grained PATs with Models scope. Passed to `GITHUB_TOKEN` in CI. |
+| `OPENAI_API_KEY` | `sk-...` | High | API key for OpenAI, Azure OpenAI, DeepSeek Direct, Groq, or any OpenAI-compatible provider. |
+| `OPENROUTER_API_KEY` | `sk-or-v1-...` | High | API key for OpenRouter multi-model gateway. |
+| `OPENAI_BASE_URL` | `https://api.deepseek.com/v1`, etc. | High | Custom OpenAI-compatible REST endpoint URL. Overrides `.gdss.yml` `radar.base_url`. |
+| `OPENAI_MODEL` | e.g. `gpt-4o`, `deepseek-chat` | Tier 2 | Model override for OpenAI / OpenAI-compatible providers. |
+| `OPENROUTER_MODEL` | e.g. `qwen/qwen-2.5-coder-32b-instruct` | Tier 2 | Model override when routing via OpenRouter. |
+| `GITHUB_MODEL` | e.g. `gpt-4o-mini`, `o1-mini` | Tier 2 | Model override for GitHub Models. |
+| `GDSS_CONTEXT_WINDOW` | Integer (e.g. `128000`, `64000`) | Tier 1 | Overrides model context window token size. Precludes heuristic fallback guessing. |
+| `GDSS_SANDBOX_TIMEOUT` | Integer in seconds (e.g. `60`, `120`) | High | Overrides ephemeral worktree validation command timeout (`validation.timeout_seconds`). |
+| `GDSS_LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` | High | Centralized diagnostic logging verbosity across all GDSS subsystems. |
 
 ---
 

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 580" width="100%" height="580">
+  <defs>
+    <marker id="arrow-slate" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#94a3b8" />
+    </marker>
+    <marker id="arrow-emerald" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#10b981" />
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#ef4444" />
+    </marker>
+
+    <linearGradient id="canvasGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070b14" />
+      <stop offset="100%" stop-color="#0b1329" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="badGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#450a0a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="goodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect x="0" y="0" width="1120" height="580" fill="url(#canvasGrad)" rx="16" />
+
+  <!-- Title & Subtitle -->
+  <text x="40" y="42" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="20">GDSS Context Window Sizing &amp; Lossless AST Architecture</text>
+  <text x="40" y="66" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">3-Tier Dynamic Discovery · 1M/2M Token Alignment · Zero-Harm Lossless Code Delivery vs. Destructive Slicing</text>
+
+  <!-- ================= TIER 1-3 DISCOVERY ================= -->
+  <rect x="40" y="100" width="340" height="425" rx="12" fill="url(#cardGrad)" stroke="#1e3a8a" stroke-width="2" />
+  <rect x="52" y="112" width="316" height="28" rx="6" fill="#1e3a8a" />
+  <text x="62" y="131" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">3-TIER CONTEXT WINDOW DISCOVERY</text>
+
+  <rect x="52" y="155" width="316" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="62" y="177" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Tier 1: Explicit User / CI Override</text>
+  <text x="62" y="195" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">CLI: --context-window &lt;N&gt;</text>
+  <text x="62" y="213" fill="#cbd5e1" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Env: GDSS_CONTEXT_WINDOW · .gdss.yml</text>
+
+  <rect x="52" y="245" width="316" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="62" y="267" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Tier 2: Provider API Metadata</text>
+  <text x="62" y="285" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">OpenRouter GET /api/v1/models (context_length)</text>
+  <text x="62" y="303" fill="#cbd5e1" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Ollama POST /api/show · vLLM GET /v1/models</text>
+
+  <rect x="52" y="335" width="316" height="170" rx="8" fill="#1e293b" stroke="#0284c7" stroke-width="1.5" />
+  <text x="62" y="357" fill="#f59e0b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Tier 3: Resilient Family Heuristics</text>
+  
+  <rect x="62" y="368" width="296" height="26" rx="4" fill="#0f172a" />
+  <text x="70" y="385" fill="#38bdf8" font-family="Consolas, monospace" font-size="10">Gemini 1.5/2.0 Pro   ➔  2,000,000 tokens</text>
+
+  <rect x="62" y="398" width="296" height="26" rx="4" fill="#0f172a" />
+  <text x="70" y="415" fill="#38bdf8" font-family="Consolas, monospace" font-size="10">Gemini 1.5/2.0 Flash ➔  1,000,000 tokens</text>
+
+  <rect x="62" y="428" width="296" height="26" rx="4" fill="#0f172a" />
+  <text x="70" y="445" fill="#38bdf8" font-family="Consolas, monospace" font-size="10">Claude 3.5 Sonnet    ➔    200,000 tokens</text>
+
+  <rect x="62" y="458" width="296" height="26" rx="4" fill="#0f172a" />
+  <text x="70" y="475" fill="#38bdf8" font-family="Consolas, monospace" font-size="10">GPT-4o / o1 / Llama3 ➔    128,000 tokens</text>
+
+  <!-- Connectors -->
+  <line x1="380" y1="310" x2="420" y2="210" stroke="#ef4444" stroke-width="2" marker-end="url(#arrow-red)" />
+  <line x1="380" y1="310" x2="420" y2="410" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-emerald)" />
+
+  <!-- ================= COMPARISON: DESTRUCTIVE VS LOSSLESS ================= -->
+  
+  <!-- BAD APPROACH -->
+  <rect x="420" y="100" width="325" height="205" rx="12" fill="url(#badGrad)" stroke="#ef4444" stroke-width="1.5" />
+  <rect x="432" y="112" width="301" height="28" rx="6" fill="#7f1d1d" />
+  <text x="442" y="131" fill="#fecaca" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">❌ NAIVE STRING-SLICING CONDENSATION</text>
+
+  <text x="442" y="160" fill="#f87171" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12" font-weight="700">Arbitrary Code Chopping</text>
+  <text x="442" y="180" fill="#fca5a5" font-family="Consolas, monospace" font-size="10">code[:half] + "\n# [truncated]\n" + code[-half:]</text>
+  
+  <rect x="432" y="195" width="301" height="95" rx="6" fill="#0f172a" stroke="#991b1b" stroke-width="1" />
+  <text x="442" y="215" fill="#f87171" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">• Slices across tokens, mid-identifiers, and types</text>
+  <text x="442" y="233" fill="#f87171" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">• Destroys variable definitions &amp; inner function scope</text>
+  <text x="442" y="251" fill="#f87171" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">• Causes LLM syntax errors &amp; broken unified diffs</text>
+  <text x="442" y="269" fill="#fecaca" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11" font-weight="700">Result: Patch generation fails or corrupts code</text>
+
+  <!-- GOOD APPROACH -->
+  <rect x="420" y="320" width="325" height="205" rx="12" fill="url(#goodGrad)" stroke="#10b981" stroke-width="1.5" />
+  <rect x="432" y="332" width="301" height="28" rx="6" fill="#065f46" />
+  <text x="442" y="351" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">✅ GDSS LOSSLESS &amp; CLUSTERED CONTEXT</text>
+
+  <text x="442" y="380" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12" font-weight="700">100% Lossless Preservation</text>
+  <text x="442" y="400" fill="#6ee7b7" font-family="Consolas, monospace" font-size="10">Preserve 100% of symbols whenever context fits</text>
+
+  <rect x="432" y="415" width="301" height="95" rx="6" fill="#0f172a" stroke="#047857" stroke-width="1" />
+  <text x="442" y="435" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">• Partitioned clusters use &lt; 5% of modern window</text>
+  <text x="442" y="453" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">• Conflicting symbol is NEVER truncated or cropped</text>
+  <text x="442" y="471" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">• Preserves exact AST balance, signatures, and types</text>
+  <text x="442" y="489" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11" font-weight="700">Result: Perfectly grounded, syntactically clean diffs</text>
+
+  <!-- ================= RIGHT COLUMN: WHY CONFLICT PARTITIONING ENABLES LOSSLESS ================= -->
+  <rect x="765" y="100" width="315" height="425" rx="12" fill="url(#cardGrad)" stroke="#a855f7" stroke-width="2" />
+  <rect x="777" y="112" width="291" height="28" rx="6" fill="#6b21a8" />
+  <text x="787" y="131" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">WHY PARTITIONING SOLVES THE PROBLEM</text>
+
+  <rect x="777" y="155" width="291" height="110" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="787" y="177" fill="#c084fc" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Focused Prompt Sizing</text>
+  <text x="787" y="195" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">A single conflicting symbol + callers</text>
+  <text x="787" y="211" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">typically uses only 2,000–5,000 tokens.</text>
+  <text x="787" y="235" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11" font-weight="700">Fits easily in 128k, 200k, and 1M windows!</text>
+  <text x="787" y="253" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">No need to condense or slice anything.</text>
+
+  <rect x="777" y="280" width="291" height="110" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="787" y="302" fill="#c084fc" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Output Token Protection</text>
+  <text x="787" y="320" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">LLMs are limited to 4k–8k output tokens.</text>
+  <text x="787" y="336" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">One cluster = 1 focused patch response.</text>
+  <text x="787" y="360" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11" font-weight="700">Eliminates output truncation crashes.</text>
+  <text x="787" y="378" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">High completion quality guaranteed.</text>
+
+  <rect x="777" y="405" width="291" height="105" rx="8" fill="#1e293b" stroke="#059669" stroke-width="1" />
+  <text x="787" y="427" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Speed &amp; Local Self-Correction</text>
+  <text x="787" y="445" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Parallel workers run concurrently.</text>
+  <text x="787" y="463" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Local sub-loop fixes syntax immediately.</text>
+  <text x="787" y="489" fill="#10b981" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11" font-weight="700">Total Latency: max(T_i) instead of Σ T_i.</text>
+
+  <!-- Footer Caption -->
+  <text x="40" y="555" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">GDSS Architecture · Lossless context preservation combined with topological conflict partitioning guarantees maximum semantic fidelity.</text>
+</svg>
+

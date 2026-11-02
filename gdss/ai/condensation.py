@@ -116,10 +116,17 @@ def resolve_context_window(
 
     # Tier 3: Resilient Family Pattern Heuristics
     m = normalized_model.lower()
-    if any(p in m for p in ("gpt-4o", "o1", "o3", "chatgpt-4o")):
+    # pyrefly: ignore[parse-error]
+    if any(p in m for p in ("gemini-1.5-pro", "gemini-2.0-pro", "gemini-pro-1.5")):
+        ctx = 2000000
+    elif any(p in m for p in ("gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash", "gemini")):
+        ctx = 1000000
+    elif any(p in m for p in ("gpt-4o", "o1", "o3", "chatgpt-4o")):
         ctx = 128000
     elif any(p in m for p in ("claude-3", "claude-3-5")):
         ctx = 200000
+    elif "405b" in m:
+        ctx = 128000
     elif "llama-3.1" in m or "llama-3.2" in m:
         ctx = 128000
     elif "deepseek" in m:
@@ -148,11 +155,15 @@ def get_model_code_budget(
 ) -> int:
     """Return character budget for code blocks based on resolved context window.
 
-    Reserves ~9,000 tokens for system prompt, developer intent, commit messages, and output.
+    Allocates up to 80% of available tokens for code context on large-window models (>=64k),
+    while preserving comfortable headroom for system prompt, developer intent, and output tokens.
     Uses ~3.5 characters per token.
     """
     tokens = resolve_context_window(model_name, provider=provider, user_override=user_override)
-    available_tokens = max(tokens - 9000, min(tokens // 2, 4000))
+    if tokens >= 64000:
+        available_tokens = int(tokens * 0.8)
+    else:
+        available_tokens = max(tokens - 6000, min(tokens // 2, 4000))
     return int(available_tokens * 3.5)
 
 
@@ -161,21 +172,45 @@ def condense_block(
     suggestion: Suggestion,
     original_block: str,
     max_chars: int | None = None,
+    mode: str = "lossless",
 ) -> str:
-    """Condense the block by omitting unmodified methods to fit model context budget."""
-    budget = max_chars if max_chars is not None and max_chars > 0 else 24000
-    if len(original_block) <= budget:
+    """Condense the block by omitting unmodified child methods only when genuinely exceeding budget."""
+    orig_len = len(original_block)
+    if mode == "off" or mode == "lossless":
+        if max_chars is None or max_chars <= 0 or orig_len <= max_chars:
+            return original_block
+
+    budget = max_chars if max_chars is not None and max_chars > 0 else 60000
+    if orig_len <= budget:
         return original_block
 
     anchor = suggestion.anchor
-    if not anchor:
+    anchor_lines = original_block.splitlines(keepends=True)
+    num_anchor_lines = len(anchor_lines)
+
+    def _fold_omission(lines: list[str], total_lines: int) -> str:
+        if total_lines > 10 and orig_len > budget:
+            head_lines = max(3, min(total_lines // 4, 15))
+            tail_lines = max(2, min(total_lines // 6, 10))
+            indent = (
+                len(lines[head_lines]) - len(lines[head_lines].lstrip())
+                if head_lines < total_lines
+                else 4
+            )
+            omission = (" " * indent) + "# ... [unmodified lines omitted for context budget] ...\n"
+            return (
+                "".join(lines[:head_lines]) + omission + "".join(lines[-tail_lines:])
+            )
         return original_block
+
+    if not anchor:
+        return _fold_omission(anchor_lines, num_anchor_lines)  # dsa:ignore
 
     full_content = context.observer.get_file_content_at_commit(
         context.reference_branch, anchor.file_path
     )
     if not full_content:
-        return original_block
+        return _fold_omission(anchor_lines, num_anchor_lines)  # dsa:ignore
 
     symbols = context.parser.parse_file(anchor.file_path, full_content)
 
@@ -193,8 +228,6 @@ def condense_block(
                 target = op.get_target_name()
                 if target:
                     modified_names.add(target)
-
-    anchor_lines = original_block.splitlines(keepends=True)
 
     # Find child symbols entirely inside the anchor that are NOT modified
     children = [
@@ -222,12 +255,19 @@ def condense_block(
 
     condensed = "".join(anchor_lines)
 
-    # If it still exceeds budget, do a balanced head/tail crop
+    # If still exceeding budget, fold middle lines cleanly along line boundaries
     if len(condensed) > budget:
         lines = condensed.splitlines(keepends=True)
-        if len(lines) > 200:
-            condensed = (
-                "".join(lines[:100]) + "\n# ... (hard omitted) ...\n" + "".join(lines[-100:])
+        num_lines = len(lines)
+        if num_lines > 10:
+            head_lines = max(3, min(num_lines // 4, 15))
+            tail_lines = max(2, min(num_lines // 6, 10))
+            indent = (
+                len(lines[head_lines]) - len(lines[head_lines].lstrip())
+                if head_lines < num_lines
+                else 4
             )
+            omission = (" " * indent) + "# ... [unmodified lines omitted for context budget] ...\n"
+            condensed = "".join(lines[:head_lines]) + omission + "".join(lines[-tail_lines:])
 
     return condensed

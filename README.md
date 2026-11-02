@@ -374,6 +374,10 @@ radar:
   provider: "github"
   # Maximum agentic self-correction retries when sandbox validation fails
   max_refinements: 2
+  # Maximum concurrent worker threads for parallel conflict drafting (default: 4)
+  concurrency_limit: 4
+  # Context policy: "lossless" (default, 100% code preservation), "ast_minimal", or "off"
+  condensation: "lossless"
   # Collision risk cutoff score between 0.0 and 1.0 (Omega_ij)
   risk_threshold: 0.8
   # CI Merge Gate Behavior (fail check if Omega_ij >= risk_threshold)

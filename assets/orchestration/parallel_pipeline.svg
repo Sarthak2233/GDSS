@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 620" width="100%" height="620">
+  <defs>
+    <marker id="arrow-slate" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#94a3b8" />
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#38bdf8" />
+    </marker>
+    <marker id="arrow-emerald" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#10b981" />
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#a855f7" />
+    </marker>
+    <marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#f59e0b" />
+    </marker>
+
+    <linearGradient id="canvasGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070b14" />
+      <stop offset="100%" stop-color="#0b1329" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="workerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#131e3b" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect x="0" y="0" width="1120" height="620" fill="url(#canvasGrad)" rx="16" />
+
+  <!-- Title & Subtitle -->
+  <text x="40" y="42" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="20">GDSS Intelligent Parallel Orchestration &amp; Local Sub-Loop Architecture</text>
+  <text x="40" y="66" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="13">Topological Conflict Partitioning · Concurrent LLM Drafting · In-Worker Syntax Self-Correction · Composite Sandbox Proof</text>
+
+  <!-- ================= STAGE 1: TOPOLOGICAL PARTITIONING ================= -->
+  <rect x="40" y="100" width="220" height="470" rx="12" fill="url(#cardGrad)" stroke="#1e3a8a" stroke-width="2" />
+  <rect x="52" y="112" width="196" height="28" rx="6" fill="#1e3a8a" />
+  <text x="62" y="131" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">1 · CONFLICT PARTITIONING</text>
+
+  <rect x="52" y="155" width="196" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="62" y="177" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Incoming Suggestions</text>
+  <text x="62" y="195" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Ranked conflict pairs: S₁, S₂, ..., Sₙ</text>
+  <text x="62" y="213" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">AST anchors &amp; pairwise Ω_ij</text>
+
+  <rect x="52" y="245" width="196" height="95" rx="8" fill="#1e293b" stroke="#0284c7" stroke-width="1.5" />
+  <text x="62" y="267" fill="#f59e0b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Cluster 1 (Coupled)</text>
+  <text x="62" y="285" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">File: services/auth.py</text>
+  <text x="62" y="303" fill="#cbd5e1" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Includes: [login, verify_token]</text>
+  <text x="62" y="321" fill="#10b981" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Unified file context preserved</text>
+
+  <rect x="52" y="355" width="196" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="62" y="377" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Cluster 2 (Disjoint)</text>
+  <text x="62" y="395" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">File: services/billing.py</text>
+  <text x="62" y="413" fill="#a855f7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Independent execution</text>
+
+  <rect x="52" y="445" width="196" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="62" y="467" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Cluster 3 (Disjoint)</text>
+  <text x="62" y="485" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">File: frontend/app.tsx</text>
+  <text x="62" y="503" fill="#a855f7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Independent execution</text>
+
+  <!-- Connectors from Stage 1 to Stage 2 -->
+  <line x1="260" y1="292" x2="310" y2="200" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow-amber)" />
+  <line x1="260" y1="392" x2="310" y2="335" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)" />
+  <line x1="260" y1="482" x2="310" y2="470" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-purple)" />
+
+  <!-- ================= STAGE 2: PARALLEL WORKERS & LOCAL SUB-LOOP ================= -->
+  <rect x="310" y="100" width="480" height="470" rx="12" fill="url(#cardGrad)" stroke="#7c3aed" stroke-width="2" />
+  <rect x="322" y="112" width="456" height="28" rx="6" fill="#7c3aed" />
+  <text x="332" y="131" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">2 · PARALLEL DRAFTING &amp; LOCAL SUB-LOOP (ThreadPoolExecutor)</text>
+
+  <!-- Worker 1 -->
+  <rect x="325" y="155" width="450" height="115" rx="8" fill="url(#workerGrad)" stroke="#f59e0b" stroke-width="1.5" />
+  <text x="337" y="177" fill="#f59e0b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Worker Thread 1: Cluster 1 (services/auth.py)</text>
+  <rect x="337" y="188" width="130" height="65" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="345" y="208" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10" font-weight="700">1. Lossless 3-Way Context</text>
+  <text x="345" y="224" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Base + Branch A + Branch B</text>
+  <text x="345" y="238" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Zero destructive slicing</text>
+
+  <line x1="467" y1="220" x2="495" y2="220" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow-slate)" />
+
+  <rect x="495" y="188" width="125" height="65" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="503" y="208" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10" font-weight="700">2. LLM Dispatch</text>
+  <text x="503" y="224" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Generates strategy patches</text>
+  <text x="503" y="238" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">compose / keep_left</text>
+
+  <line x1="620" y1="220" x2="648" y2="220" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow-slate)" />
+
+  <rect x="648" y="188" width="115" height="65" rx="6" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+  <text x="654" y="208" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10" font-weight="700">3. Fast Local Check</text>
+  <text x="654" y="224" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">AST &amp; Syntax valid</text>
+  <text x="654" y="238" fill="#ecfdf5" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Self-corrects in sub-loop</text>
+
+  <!-- Worker 2 -->
+  <rect x="325" y="285" width="450" height="115" rx="8" fill="url(#workerGrad)" stroke="#0284c7" stroke-width="1.5" />
+  <text x="337" y="307" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Worker Thread 2: Cluster 2 (services/billing.py)</text>
+  <rect x="337" y="318" width="130" height="65" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="345" y="338" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10" font-weight="700">1. Lossless 3-Way Context</text>
+  <text x="345" y="354" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">billing.py pristine AST</text>
+  <text x="345" y="368" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Full caller trace</text>
+
+  <line x1="467" y1="350" x2="495" y2="350" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow-slate)" />
+
+  <rect x="495" y="318" width="125" height="65" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="503" y="338" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10" font-weight="700">2. LLM Dispatch</text>
+  <text x="503" y="354" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Concurrent with Worker 1</text>
+  <text x="503" y="368" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">0 idle wait time</text>
+
+  <line x1="620" y1="350" x2="648" y2="350" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow-slate)" />
+
+  <rect x="648" y="318" width="115" height="65" rx="6" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+  <text x="654" y="338" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10" font-weight="700">3. Fast Local Check</text>
+  <text x="654" y="354" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Diff verified clean</text>
+  <text x="654" y="368" fill="#ecfdf5" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">0 syntax regression</text>
+
+  <!-- Worker 3 -->
+  <rect x="325" y="415" width="450" height="115" rx="8" fill="url(#workerGrad)" stroke="#a855f7" stroke-width="1.5" />
+  <text x="337" y="437" fill="#c084fc" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Worker Thread 3: Cluster 3 (frontend/app.tsx)</text>
+  <rect x="337" y="448" width="130" height="65" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="345" y="468" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10" font-weight="700">1. Lossless 3-Way Context</text>
+  <text x="345" y="484" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">JSX / TSX lossless body</text>
+  <text x="345" y="498" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Complete component state</text>
+
+  <line x1="467" y1="480" x2="495" y2="480" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow-slate)" />
+
+  <rect x="495" y="448" width="125" height="65" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="503" y="468" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10" font-weight="700">2. LLM Dispatch</text>
+  <text x="503" y="484" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Concurrent execution</text>
+  <text x="503" y="498" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Fast response cycle</text>
+
+  <line x1="620" y1="480" x2="648" y2="480" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow-slate)" />
+
+  <rect x="648" y="448" width="115" height="65" rx="6" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+  <text x="654" y="468" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10" font-weight="700">3. Fast Local Check</text>
+  <text x="654" y="484" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Syntax validated</text>
+  <text x="654" y="498" fill="#ecfdf5" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Ready for composite</text>
+
+  <!-- Connectors from Stage 2 to Stage 3 -->
+  <line x1="790" y1="220" x2="840" y2="280" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-emerald)" />
+  <line x1="790" y1="350" x2="840" y2="335" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-emerald)" />
+  <line x1="790" y1="480" x2="840" y2="390" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-emerald)" />
+
+  <!-- ================= STAGE 3: COMPOSITE SANDBOX & AUDIT ================= -->
+  <rect x="840" y="100" width="240" height="470" rx="12" fill="url(#cardGrad)" stroke="#10b981" stroke-width="2" />
+  <rect x="852" y="112" width="216" height="28" rx="6" fill="#065f46" />
+  <text x="860" y="131" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">3 · COMPOSITE PROOF &amp; AUDIT</text>
+
+  <rect x="852" y="155" width="216" height="100" rx="8" fill="#1e293b" stroke="#059669" stroke-width="1.5" />
+  <text x="862" y="177" fill="#34d399" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Composite Worktree Sandbox</text>
+  <text x="862" y="195" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Applies all verified patches</text>
+  <text x="862" y="213" fill="#cbd5e1" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Static Types (mypy, tsc, cargo)</text>
+  <text x="862" y="231" fill="#cbd5e1" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Targeted Unit Tests (pytest, jest)</text>
+  <text x="862" y="247" fill="#6ee7b7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Zero workspace mutation</text>
+
+  <line x1="960" y1="255" x2="960" y2="295" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow-slate)" />
+
+  <rect x="852" y="295" width="216" height="85" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+  <text x="862" y="317" fill="#38bdf8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Audited Suggestion Store</text>
+  <text x="862" y="335" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Persists to .gdss/suggestions/</text>
+  <text x="862" y="353" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Immutable sug_&lt;hash&gt; ID</text>
+  <text x="862" y="369" fill="#10b981" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Validation traces attached</text>
+
+  <line x1="960" y1="380" x2="960" y2="420" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow-slate)" />
+
+  <rect x="852" y="420" width="216" height="110" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" />
+  <text x="862" y="442" fill="#fbbf24" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Human Review Checkpoint</text>
+  <text x="862" y="460" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Strict pause for review</text>
+  <text x="862" y="478" fill="#cbd5e1" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">GitHub PR Sticky 1-Click Diff</text>
+  <text x="862" y="494" fill="#cbd5e1" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">CLI: gdss apply sug_... </text>
+  <text x="862" y="512" fill="#ef4444" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Never auto-merges without human</text>
+
+  <!-- Footer Caption -->
+  <text x="40" y="595" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">GDSS Architecture · Deterministic Conflict Partitioning eliminates O(N) sequential latency while preserving lossless context integrity.</text>
+</svg>
+

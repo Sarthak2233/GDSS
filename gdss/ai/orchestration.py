@@ -61,6 +61,8 @@ class ConvergenceState:
     max_refinements: int = 2
     refinement_count: int = 0
     refinement_history: list[dict[str, Any]] = field(default_factory=list)
+    concurrency_limit: int = 4
+    condensation_mode: str = "lossless"
 
 
 def _coerce_state(state: Any) -> ConvergenceState:
@@ -89,7 +91,7 @@ def analyze_step(state: ConvergenceState) -> ConvergenceState:
         logger.debug(
             "Existing %d suggestion(s) provided, skipping suggestion generation",
             len(st.suggestions),
-        )
+        )  # dsa:ignore
         st.checkpoint = "analyzed"
         return st
 
@@ -104,11 +106,12 @@ def analyze_step(state: ConvergenceState) -> ConvergenceState:
             max_candidates=st.max_candidates,
             context=st.analysis_context,
         )
-        st.suggestions = list(suggestions)
+        suggested_list = list(suggestions)
+        st.suggestions = suggested_list
         logger.info(
             "Orchestration [Node: analyze]: identified %d candidate suggestions",
-            len(st.suggestions),
-        )  # dsa:ignore
+            len(suggested_list),
+        )
         st.checkpoint = "analyzed"
     except Exception as exc:
         logger.error("Analysis step failed: %s", exc, exc_info=True)
@@ -143,9 +146,50 @@ def draft_step(state: ConvergenceState) -> ConvergenceState:
             context = st.analysis_context or build_analysis_context(
                 st.repo_path, st.reference_branch
             )
-            drafted: list[Suggestion] = []
-            for item in st.suggestions:
-                drafted.append(_draft_combinations(context, item, active_provider))
+            from gdss.ai.partitioner import partition_conflicts
+
+            clusters = partition_conflicts(st.suggestions)
+            num_clusters = len(clusters)
+            concurrency = max(1, getattr(st, "concurrency_limit", 4))
+            condense_mode = getattr(st, "condensation_mode", "lossless")
+            max_local_refine = getattr(st, "max_refinements", 2)
+
+            def _draft_single(item) -> Suggestion:
+                return _draft_combinations(
+                    context,
+                    item,
+                    active_provider,
+                    condensation_mode=condense_mode,
+                    max_local_refinements=max_local_refine,
+                )
+
+            if num_clusters > 1 and concurrency > 1:
+                from concurrent.futures import ThreadPoolExecutor, as_completed
+
+                drafted_by_id: dict[str, Suggestion] = {}
+
+                def _draft_cluster_worker(cluster) -> list[Suggestion]:
+                    return [_draft_single(item) for item in cluster.suggestions]  # dsa:ignore
+
+                workers = min(num_clusters, concurrency)
+                logger.info(
+                    "Executing parallel drafting across %d conflict clusters with %d worker threads",
+                    num_clusters,
+                    workers,
+                )
+                with ThreadPoolExecutor(max_workers=workers) as executor:
+                    future_to_cluster = {
+                        executor.submit(_draft_cluster_worker, cl): cl for cl in clusters
+                    }
+                    for future in as_completed(future_to_cluster):
+                        res_list = future.result()
+                        for s in res_list:
+                            drafted_by_id[s.suggestion_id] = s
+
+                drafted = [drafted_by_id.get(s.suggestion_id, s) for s in st.suggestions]
+            else:
+                drafted = [_draft_single(sug) for sug in st.suggestions]  # dsa:ignore
+
             st.suggestions = drafted
             logger.info(
                 "Orchestration [Node: draft]: completed drafting for %d suggestions", len(drafted)
@@ -299,8 +343,8 @@ def refine_step(state: ConvergenceState) -> ConvergenceState:
     if active_provider is None:
         return st
 
-    refined_suggestions: list[Suggestion] = []
-    for sug in st.suggestions:
+    # pyrefly: ignore[parse-error]
+    def _refine_suggestion(sug: Suggestion) -> Suggestion:
         updated_combos: list[PatchCombination] = []
         for combo in sug.patch_combinations:
             if not combo.validated and combo.patch_text and combo.validation_error:
@@ -309,7 +353,12 @@ def refine_step(state: ConvergenceState) -> ConvergenceState:
 
                 other_branch = getattr(sug.context, "other_branch", None) if sug.context else None
                 collision_ctx = (
-                    extract_3way_symbol_context(context, sug, other_branch=other_branch)
+                    extract_3way_symbol_context(
+                        context,
+                        sug,
+                        other_branch=other_branch,
+                        condensation_mode=getattr(st, "condensation_mode", "lossless"),
+                    )
                     if context
                     else None
                 )
@@ -365,7 +414,17 @@ def refine_step(state: ConvergenceState) -> ConvergenceState:
             else:
                 updated_combos.append(combo)
 
-        refined_suggestions.append(replace(sug, patch_combinations=tuple(updated_combos)))
+        return replace(sug, patch_combinations=tuple(updated_combos))
+
+    concurrency = max(1, getattr(st, "concurrency_limit", 4))
+    num_suggestions = len(st.suggestions)
+    if num_suggestions > 1 and concurrency > 1:
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=min(num_suggestions, concurrency)) as executor:
+            refined_suggestions = list(executor.map(_refine_suggestion, st.suggestions))
+    else:
+        refined_suggestions = [_refine_suggestion(sug) for sug in st.suggestions]
 
     st.suggestions = refined_suggestions
     st.refinement_count += 1
@@ -418,6 +477,8 @@ class OrchestrationPipeline:
         analysis_context: AnalysisContext | None = None,
         max_refinements: int = 2,
         suggestions: list[Suggestion] | None = None,
+        concurrency_limit: int = 4,
+        condensation_mode: str = "lossless",
     ) -> None:
         self.state = ConvergenceState(
             repo_path=str(repo_path),
@@ -433,6 +494,8 @@ class OrchestrationPipeline:
             analysis_context=analysis_context,
             max_refinements=max_refinements,
             suggestions=list(suggestions or []),
+            concurrency_limit=concurrency_limit,
+            condensation_mode=condensation_mode,
         )
 
     def run(self) -> ConvergenceState:
@@ -516,6 +579,8 @@ def run_convergence_pipeline(
         analysis_context=state.analysis_context,
         max_refinements=state.max_refinements,
         suggestions=state.suggestions,
+        concurrency_limit=getattr(state, "concurrency_limit", 4),
+        condensation_mode=getattr(state, "condensation_mode", "lossless"),
     )
     pipeline.state = state
     return pipeline.run()

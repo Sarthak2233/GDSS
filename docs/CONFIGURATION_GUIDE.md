@@ -100,8 +100,10 @@ radar:
 
   # Explicit context window size in tokens (MANDATORY BEST PRACTICE)
   # Unlocks full code condensation budget without relying on heuristic fallbacks
-  # - gpt-4o / o1 / o3: 128000
+  # - gemini-1.5-pro / 2.0-pro: 2000000
+  # - gemini-1.5-flash / 2.0-flash: 1000000
   # - claude-3-5-sonnet: 200000
+  # - gpt-4o / o1 / o3: 128000
   # - deepseek-chat: 64000
   # - qwen2.5-coder: 32768
   context_window: 128000
@@ -125,6 +127,16 @@ radar:
   # back to the model up to this limit to iteratively heal the patch.
   # Default: 2 (Recommended: 2 or 3)
   max_refinements: 2
+
+  # Maximum concurrent worker threads for parallel conflict drafting
+  # Default: 4
+  concurrency_limit: 4
+
+  # Context preservation policy:
+  # - "lossless" (default): preserves 100% of code tokens without aggressive truncation
+  # - "ast_minimal": keeps AST symbol signatures and bodies only
+  # - "off": passes raw context with zero filtering
+  condensation: "lossless"
 
   # Collision risk cutoff score between 0.0 and 1.0 (Omega_ij)
   # Collisions at or above this threshold trigger alerts and suggestions
@@ -213,7 +225,9 @@ hierarchy:
 | Directive | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
 | `radar.model` | `string` | `"gpt-4o-mini"` | The exact model identifier dispatched for code reconciliation. |
-| `radar.context_window` | `integer` | *Dynamic* | **Required best practice.** The exact context window capacity in tokens (e.g. `128000`). Precludes fallback guessing and optimizes the code condensation budget. |
+| `radar.context_window` | `integer` | *Dynamic* | **Required best practice.** The exact context window capacity in tokens (e.g. `1000000` for Gemini Flash, `128000` for GPT-4o). Precludes fallback guessing and maximizes lossless code budget. |
+| `radar.concurrency_limit` | `integer` | `4` | Maximum concurrent worker threads for parallel conflict drafting. |
+| `radar.condensation` | `string` | `"lossless"` | Context condensation policy: `"lossless"` (preserves 100% of code when budget allows), `"ast_minimal"`, or `"off"`. See [`PARALLEL_ORCHESTRATION_AND_CONTEXT_GUIDE.md`](PARALLEL_ORCHESTRATION_AND_CONTEXT_GUIDE.md). |
 | `radar.provider` | `string` | `"auto"` | Target provider: `"github"`, `"openai"`, `"openrouter"`, `"ollama"`, `"vllm"`, or `"openai-compatible"`. |
 | `radar.base_url` | `string \| null` | `null` | Custom OpenAI-compatible base URL (e.g. `https://api.deepseek.com/v1`). Connects GDSS to any standard compliant endpoint. |
 | `radar.max_refinements` | `integer` | `2` | Number of automated self-correction retries inside the ephemeral sandbox worktree before halting. |

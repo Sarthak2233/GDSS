@@ -307,6 +307,8 @@ radar:
   context_window: 128000
   provider: "github"
   max_refinements: 2
+  concurrency_limit: 4
+  condensation: "lossless"
   risk_threshold: 0.8
   fail_on_collision: false
 

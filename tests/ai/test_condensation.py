@@ -58,6 +58,12 @@ def test_resolve_context_window_tier2_provider_api():
 
 
 def test_resolve_context_window_tier3_heuristics():
+    # Gemini 1M and 2M models
+    assert resolve_context_window("gemini-1.5-pro") == 2000000
+    assert resolve_context_window("gemini-2.0-pro-exp") == 2000000
+    assert resolve_context_window("gemini-1.5-flash") == 1000000
+    assert resolve_context_window("gemini-2.0-flash") == 1000000
+
     # OpenAI and Copilot models (no API context window)
     assert resolve_context_window("gpt-4o") == 128000
     assert resolve_context_window("gpt-4o-mini") == 128000
@@ -73,13 +79,21 @@ def test_resolve_context_window_tier3_heuristics():
 
 
 def test_get_model_code_budget():
-    # 128k model gives ~400k character budget
-    budget_128k = get_model_code_budget("gpt-4o")
-    assert budget_128k >= 400000
+    # 2M model gives ~5.6M character budget
+    budget_2m = get_model_code_budget("gemini-1.5-pro")
+    assert budget_2m >= 5000000
 
-    # 16k model gives ~25k character budget
+    # 1M model gives ~2.8M character budget
+    budget_1m = get_model_code_budget("gemini-1.5-flash")
+    assert budget_1m >= 2500000
+
+    # 128k model gives ~350k+ character budget
+    budget_128k = get_model_code_budget("gpt-4o")
+    assert budget_128k >= 350000
+
+    # 16k model gives ~25k-40k character budget
     budget_16k = get_model_code_budget("custom-unknown")
-    assert 20000 <= budget_16k <= 30000
+    assert 20000 <= budget_16k <= 45000
 
 
 def test_condense_block_respects_dynamic_budget():
@@ -91,3 +105,10 @@ def test_condense_block_respects_dynamic_budget():
     # Small block under budget is untouched
     condensed = condense_block(mock_context, mock_suggestion, small_block, max_chars=1000)
     assert condensed == small_block
+
+    # Lossless mode returns original block without destructive truncated strings
+    large_block = ("def compute():\n" + ("    x = 1\n" * 500) + "    return x\n")
+    lossless = condense_block(mock_context, mock_suggestion, large_block, max_chars=50000, mode="lossless")
+    assert lossless == large_block
+    assert "[truncated]" not in lossless
+    assert "hard omitted" not in lossless

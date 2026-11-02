@@ -263,6 +263,16 @@ def suggest(
         "--max-refinements",
         help="Maximum agentic self-correction refinement attempts if validation fails",
     ),
+    concurrency: int = typer.Option(
+        4,
+        "--concurrency",
+        help="Number of worker threads for parallel conflict drafting",
+    ),
+    condensation: str = typer.Option(
+        "lossless",
+        "--condensation",
+        help="Context condensation strategy: lossless (default), ast_minimal, or off",
+    ),
 ):
     """Generate ranked semantic resolution suggestions (Phase 5)."""
     import json
@@ -318,6 +328,8 @@ def suggest(
                 sandbox_timeout=float(sandbox_timeout),
                 provider=provider,
                 max_refinements=max_refinements,
+                concurrency_limit=concurrency,
+                condensation_mode=condensation,
             )
             orchestrated_state = run_convergence_pipeline(state)
             suggestions = orchestrated_state.suggestions

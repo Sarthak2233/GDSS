@@ -81,6 +81,8 @@ def _draft_combinations(
     context: AnalysisContext,
     suggestion: Suggestion,
     provider: AnyProvider | LLMProvider,
+    condensation_mode: str = "lossless",
+    max_local_refinements: int = 2,
 ) -> Suggestion:
     """Draft one patch per strategy and retain only deterministic validation passes."""
     from gdss.ai.context_builder import extract_3way_symbol_context
@@ -94,6 +96,7 @@ def _draft_combinations(
         other_branch=other_branch,
         model_name=model_name,
         provider=provider,
+        condensation_mode=condensation_mode,
     )
     block = collision_ctx.branch_a_code or _anchored_block(context, suggestion)
 
@@ -142,7 +145,7 @@ def _draft_combinations(
         except Exception:
             drafted = []
 
-    # Strategy-by-strategy drafting fallback
+    # Strategy-by-strategy drafting fallback with local refinement sub-loop
     if len(drafted) != num_combos:
         drafted = []
         for combination in suggestion.patch_combinations:
@@ -150,6 +153,40 @@ def _draft_combinations(
             patch_text = provider.complete(prompt)
             validation = validate_patch(suggestion, patch_text, original_code=block)
             effective_patch = validation.synthesized_diff or patch_text
+
+            # Local sub-loop: immediate self-correction if syntax or diff parsing failed
+            attempts = 0
+            while not validation.valid and attempts < max_local_refinements:
+                attempts += 1
+                from gdss.ai.patch_parser import extract_patch_or_replacement
+                from gdss.ai.prompt_builder import build_refinement_prompt
+
+                local_refine_prompt = build_refinement_prompt(
+                    suggestion=suggestion,
+                    strategy_label=combination.label,
+                    previous_patch=patch_text,
+                    validation_error=validation.reason or "Syntax/Diff validation failed",
+                    repo=context.repo_path,
+                    ref=context.reference_branch,
+                    anchored_symbol_block=block,
+                    collision_context=collision_ctx,
+                    branch_commits=context.branch_commits,
+                    branch_intents=context.branch_intents,
+                    other_branch=other_branch,
+                )
+                try:
+                    refined_raw = provider.complete(local_refine_prompt).strip()
+                    refined_text, _ = extract_patch_or_replacement(
+                        refined_raw, expected_file=suggestion.file_path
+                    )
+                    sub_validation = validate_patch(suggestion, refined_text, original_code=block)
+                    if sub_validation.valid:
+                        validation = sub_validation
+                        effective_patch = validation.synthesized_diff or refined_text
+                        break
+                except Exception:
+                    break
+
             drafted.append(
                 replace(
                     combination,

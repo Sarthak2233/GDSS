@@ -147,20 +147,28 @@ Generic AI merge tools fail because they only see conflicting file diffs without
   ```
   This allows the model to synthesize a patch that fulfills **both** developers' original architectural goals.
 
-### 3-Tier Model Context Window Discovery & Condensation
+### 3-Tier Model Context Window Discovery & Lossless Sizing
 In [`gdss/ai/condensation.py`](../gdss/ai/condensation.py), GDSS dynamically discovers model context windows and sizes code prompts:
 1. **Tier 1 (Explicit User Override):** Configured via `.gdss.yml` `radar.context_window`, CLI `--context-window`, or `GDSS_CONTEXT_WINDOW`.
 2. **Tier 2 (Dynamic Provider Metadata Inspection):** Queries OpenRouter `GET /api/v1/models`, Ollama `POST /api/show`, or vLLM `GET /v1/models` in memory.
-3. **Tier 3 (Resilient Pattern Heuristics):** Pattern matches model families (`gpt-4o` ➔ 128k, `claude-3` ➔ 200k, `deepseek` ➔ 64k, `qwen2.5` ➔ 32k, fallback ➔ 16k).
+3. **Tier 3 (Resilient Pattern Heuristics):** Pattern matches model families:
+   - Gemini 1.5/2.0 Pro: 2,000,000 tokens
+   - Gemini 1.5/2.0 Flash: 1,000,000 tokens
+   - Claude 3.5 Sonnet / 3 Opus: 200,000 tokens
+   - GPT-4o / o1 / Llama 3.1 405b: 128,000 tokens
+   - DeepSeek V3/R1: 64,000 tokens
+   - Qwen 2.5 Coder: 32,768 tokens
+   - Safe Fallback: 16,384 tokens
 
-**Adaptive Code Budget Sizing:**
-- Reserves ~9,000 tokens for system rules, commit histories, developer intent, and generation headroom.
-- Allocates up to 45% of the remaining window (up to 96,000 characters) for code symbols.
-- If code exceeds this budget, `condense_block()` uses Tree-sitter AST parsing to replace unmodified inner functions with `# ... (unmodified code omitted) ...`, perfectly preserving outer class signatures and interfaces.
+**Lossless-First Context Sizing:**
+- Allocates up to 80% of tokens for code context on large-window models (e.g. 1M tokens $\rightarrow$ ~2,800,000 characters).
+- For complete details on why blind string slicing was removed and how conflict partitioning guarantees lossless context, see [`PARALLEL_ORCHESTRATION_AND_CONTEXT_GUIDE.md`](PARALLEL_ORCHESTRATION_AND_CONTEXT_GUIDE.md).
 
-### Agentic Self-Correction Refinement Loop
-In [`gdss/ai/orchestration.py`](../gdss/ai/orchestration.py), GDSS implements an agentic self-healing loop:
-- When a candidate patch is drafted, it is tested inside an ephemeral Git worktree sandbox across three gates: AST syntax, static types (`mypy`, `tsc`, `cargo check`), and targeted unit tests.
+### Parallel Orchestration & Concentric Refinement Loops
+In [`gdss/ai/orchestration.py`](../gdss/ai/orchestration.py) and [`gdss/ai/partitioner.py`](../gdss/ai/partitioner.py), GDSS executes concurrent parallel drafting across independent conflict clusters:
+- **Topological Partitioning:** Disjoint files are drafted in parallel via a worker pool (`ThreadPoolExecutor`), dropping latency from $O(N)$ to $O(1)$ parallel rounds ($\max(T_i)$).
+- **Fast Local Sub-Loop:** Immediately parses unified diff headers and AST syntax within each worker thread, catching syntax slips before sandbox startup.
+- **Global Sandbox Verification:** Ephemeral Git worktree sandbox validates the composite multi-file patch set with static types (`mypy`, `tsc`, `cargo`) and targeted unit tests.
 - If validation fails, `should_refine(state)` routes execution to `refine_step(state)`.
 - `build_refinement_prompt()` packages the original code, the failed patch, and the exact compiler/linter error trace:
   ```text

@@ -181,39 +181,20 @@ def _condense_code_block(
     budget: int,
     context: AnalysisContext,
     suggestion: Suggestion,
+    mode: str = "lossless",
 ) -> str:
-    """Condense code block to fit within character budget, preserving signature and structure."""
+    """Condense code block only if budget is genuinely exceeded, preserving AST structure."""
+    if mode == "off":
+        return code
+
     if len(code) <= budget:
         return code
 
-    # Try AST-aware child omission first
+    # Try AST-aware child omission without destructive string slicing
     try:
-        condensed = condense_block(context, suggestion, code, max_chars=budget)
+        condensed = condense_block(context, suggestion, code, max_chars=budget, mode=mode)
     except Exception:
         condensed = code
-
-    condensed_len = len(condensed)
-    if condensed_len <= budget:
-        return condensed
-
-    # If still exceeding budget, perform structured head/tail condensation
-    lines = condensed.splitlines(keepends=True)
-    num_lines = len(lines)
-    if num_lines > 20:
-        head_count = max(8, num_lines // 4)
-        tail_count = max(5, num_lines // 6)
-        omission_comment = "    # ... [unmodified code omitted to fit context budget] ...\n"
-        trimmed_lines = lines[:head_count] + [omission_comment] + lines[-tail_count:]
-        candidate = "".join(trimmed_lines)
-        candidate_len = len(candidate)
-        if candidate_len < condensed_len:
-            condensed = candidate
-            condensed_len = candidate_len
-
-    # Hard cap if still over budget
-    if condensed_len > budget and budget > 100:
-        half = (budget - 80) // 2
-        condensed = condensed[:half] + "\n    # ... [truncated] ...\n" + condensed[-half:]
 
     return condensed
 
@@ -226,6 +207,7 @@ def extract_3way_symbol_context(
     model_name: str | None = None,
     provider: Any | None = None,
     max_code_chars: int | None = None,
+    condensation_mode: str = "lossless",
 ) -> SemanticCollisionContext:
     """Extract full 3-way semantic representation: Base ($V_{base}$), Branch A ($V_A$), Branch B ($V_B$)."""
     file_path = suggestion.file_path
@@ -287,9 +269,15 @@ def extract_3way_symbol_context(
 
     per_block_budget = max(budget // 3, 100) if budget < 6000 else max(budget // 3, 2000)
 
-    base_code = _condense_code_block(base_code, per_block_budget, context, suggestion)
-    a_code = _condense_code_block(a_code, per_block_budget, context, suggestion)
-    b_code = _condense_code_block(b_code, per_block_budget, context, suggestion)
+    base_code = _condense_code_block(
+        base_code, per_block_budget, context, suggestion, mode=condensation_mode
+    )
+    a_code = _condense_code_block(
+        a_code, per_block_budget, context, suggestion, mode=condensation_mode
+    )
+    b_code = _condense_code_block(
+        b_code, per_block_budget, context, suggestion, mode=condensation_mode
+    )
 
     # Impacted callers across branches
     callers = _find_impacted_callers(context, symbol_name, branch_a, branch_b)

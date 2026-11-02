@@ -32,7 +32,7 @@ jobs:
             platform: darwin-arm64
             binary_name: gdss
             archive_format: tar.gz
-          - os: macos-13
+          - os: macos-15-intel
             platform: darwin-amd64
             binary_name: gdss
             archive_format: tar.gz

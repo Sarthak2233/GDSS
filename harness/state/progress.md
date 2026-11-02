@@ -3,6 +3,25 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-02 - Documentation Synchronization & Plan Persistence (GDSS + gdss-radar)
+
+- **Root & Action Documentation Audit (`README.md`, `gdss-radar/README.md`)**:
+  - Purged all remaining references to retired GitHub Models and outdated `provider: "github"` options.
+  - Documented post-retirement inference landscape: OpenRouter Free Tier ($0, no credit card required), GitHub Copilot CLI in CI (for Copilot Business/Enterprise), Microsoft Azure AI Foundry, and 100% deterministic local/CI fallback.
+  - Documented strict tool denial security guarantee (`--deny-tool='*' --silent --no-ask-user`) for Copilot CLI, ensuring zero file system mutations or unauthorized code execution in runner worktrees.
+  - Clarified scope of `GITHUB_TOKEN`: strictly for querying PRs and posting sticky report comments; `copilot-requests: write` specifically authorizes Copilot API inference tokens in CI.
+  - Updated configuration examples, stack recipes, and roadmap phase status to reflect `provider: "copilot"` and multi-provider options.
+- **Persistent Plans**:
+  - Committed migration and architecture plans into `.agents/plans/`:
+    - `copilot_cli_provider_and_ci_inference_plan.md`
+    - `github_models_retirement_and_provider_migration_plan.md`
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Python tests: 362 passed, 3 skipped.
+  - Frontend tests: 35 files, 118 passed.
+  - Both working trees committed and clean (`GDSS` commit `d191afc`, `gdss-radar` commit `938f74a`).
+
+
 ## 2026-11-02 - GitHub Copilot CLI Adapter, Strict Tool Denial & CI Workflows
 
 - **Stateless Copilot CLI Provider Adapter (`gdss/ai/copilot_provider.py`)**:

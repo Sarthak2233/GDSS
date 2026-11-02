@@ -155,22 +155,21 @@ jobs:
           fi
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
-      - name: Publish Release Assets to GitHub Release (Private GDSS Repo)
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          files: release_assets/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Publish Release Assets to Public Repo (sarthak2233/gdss-radar)
-        if: env.PUBLIC_RELEASE_PAT != ''
         uses: softprops/action-gh-release@v2
         with:
           repository: sarthak2233/gdss-radar
           tag_name: ${{ steps.version.outputs.tag }}
           files: release_assets/*
         env:
-          GITHUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_PAT }}
-          PUBLIC_RELEASE_PAT: ${{ secrets.PUBLIC_RELEASE_PAT }}
+          GITHUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Publish Release Assets to Private Repo (GDSS)
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          files: release_assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_PAT || secrets.GITHUB_TOKEN }}
 

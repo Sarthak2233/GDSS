@@ -161,8 +161,9 @@ jobs:
           repository: sarthak2233/gdss-radar
           tag_name: ${{ steps.version.outputs.tag }}
           files: release_assets/*
+          token: ${{ secrets.PUBLIC_RELEASE_PAT || vars.PUBLIC_RELEASE_PAT || secrets.GITHUB_TOKEN }}
         env:
-          GITHUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_PAT || vars.PUBLIC_RELEASE_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Publish Release Assets to Private Repo (GDSS)
         continue-on-error: true
@@ -170,6 +171,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           files: release_assets/*
+          token: ${{ secrets.PUBLIC_RELEASE_PAT || vars.PUBLIC_RELEASE_PAT || secrets.GITHUB_TOKEN }}
         env:
-          GITHUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_PAT || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PUBLIC_RELEASE_PAT || vars.PUBLIC_RELEASE_PAT || secrets.GITHUB_TOKEN }}
 

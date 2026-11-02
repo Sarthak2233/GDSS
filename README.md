@@ -134,7 +134,7 @@ GDSS operates on a transparent **Bring Your Own Compute (BYOC)** architecture wi
 - **100% Free Deterministic Core (0 Tokens):** AST parsing, dependency graphs, $\Omega_{ij}$ collision radar, drift tracking, and optimal merge order scheduling run **locally on CPU using Git, Tree-sitter, and linear algebra**. This deterministic layer costs **literal 0 tokens and $0 API fees** for everyone.
 - **Zero Middleman Markup on AI Synthesis:** GDSS does not act as a SaaS middleman or bill per-token fees. When patch synthesis is requested, it connects directly to compute you already own:
   - **In your AI IDE:** Connects to Cursor, Claude Code, or Copilot via standard MCP (`gdss mcp`) using your existing IDE subscription.
-  - **In GitHub CI:** Runs deterministic collision detection 100% free via standard GitHub Actions runner CPU ($0). Optional AI convergence patches connect to OpenRouter Free Tier, Microsoft Azure AI Foundry, or user API keys.
+  - **In GitHub CI:** Runs deterministic collision detection 100% free via standard GitHub Actions runner CPU ($0). Optional AI convergence patches connect to OpenRouter Free Tier, GitHub Copilot CLI (via `GITHUB_TOKEN` & `copilot-requests: write`), Microsoft Azure AI Foundry, or user API keys.
   - **On your laptop:** Connects to local offline models via Ollama or vLLM at zero API token cost.
 
 ```
@@ -274,20 +274,27 @@ GDSS can generate minimal conflict-free patches and plain-English risk assessmen
   export OPENROUTER_API_KEY="sk-or-..."
   gdss suggest --llm --provider openrouter --model anthropic/claude-3.5-sonnet --repo .
   ```
+- **GitHub Copilot CLI in CI (Copilot Business / Enterprise Organizations):**
+  ```bash
+  # In .gdss.yml: provider: "copilot", model: "gpt-4o"
+  # In workflow: permissions: copilot-requests: write; npm install -g @github/copilot
+  gdss suggest --llm --provider copilot --model gpt-4o --repo .
+  ```
+  GDSS runs Copilot CLI strictly with `--deny-tool='*' --silent --no-ask-user`. Copilot is completely forbidden from modifying repository files, acting purely as an inference engine whose `stdout` is captured and validated in GDSS's isolated worktree sandbox.
 - **Microsoft Azure AI Foundry / Azure OpenAI / Custom OpenAI-compatible:**
   ```bash
   export AZURE_OPENAI_API_KEY="your-azure-key"
   export OPENAI_BASE_URL="https://<resource>.openai.azure.com/openai/v1"
   gdss suggest --llm --provider openai --model gpt-4o --repo .
   ```
-  GDSS is completely provider-agnostic. Internally, GDSS routes all LLM calls through `OpenAICompatibleProvider`.
+  GDSS is completely provider-agnostic. Internally, GDSS routes LLM calls through `OpenAICompatibleProvider` (for HTTP endpoints) and `CopilotCLIProvider` (for GitHub Copilot CLI).
 
   **How It Works**
 
-  Rather than locking into proprietary SDKs, GDSS standardizes on the OpenAI Chat Completions protocol (`POST /v1/chat/completions`). Any provider, gateway, or self-hosted proxy conforming to this specification works out of the box with zero code changes:
+  For HTTP endpoints, rather than locking into proprietary SDKs, GDSS standardizes on the OpenAI Chat Completions protocol (`POST /v1/chat/completions`). Any provider, gateway, or self-hosted proxy conforming to this specification works out of the box with zero code changes:
 
   - **Commercial Clouds:** Microsoft Azure AI Foundry, OpenAI (`gpt-4o`, `o1`), DeepSeek (`deepseek-chat`), Groq (`llama-3.3-70b-versatile`), Mistral, Together AI, or OpenRouter.
-  - **CI ($0 Token Compute):** OpenRouter Free Tier (`qwen/qwen-2.5-coder-32b-instruct`) or Groq free tier in GitHub Actions, or 100% deterministic CPU analysis.
+  - **CI ($0 Token Compute):** OpenRouter Free Tier (`qwen/qwen-2.5-coder-32b-instruct`), GitHub Copilot CLI in Actions (via `copilot-requests: write`), Groq free tier, or 100% deterministic CPU analysis.
   - **Local / Air-Gapped:** LocalAI, LM Studio, Ollama, or vLLM running on developer laptops or private GPU clusters.
 
 ### 🛡️ Ephemeral Sandboxed Validation (Phase 6)
@@ -370,7 +377,7 @@ radar:
   model: "gpt-4o"
   # Explicit context window in tokens (MANDATORY BEST PRACTICE to prevent heuristic fallback)
   context_window: 128000
-  # Provider backend: "openrouter" (default), "openai", "azure", "ollama", "vllm"
+  # Provider backend: "openrouter" (default), "copilot" (GitHub Copilot CLI), "azure", "openai", "ollama", "vllm"
   provider: "openrouter"
   # Maximum agentic self-correction retries when sandbox validation fails
   max_refinements: 2
@@ -401,7 +408,7 @@ ast:
 ```
 
 > [!TIP]
-> 📖 **Configuration Reference:** See [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) for full provider recipes (Ollama, vLLM, OpenRouter, OpenAI, Azure AI Foundry) and details on why explicit `context_window` configuration is crucial over fallback heuristics. For cascading precedence rules, see [Repository Configuration in CONTRIBUTING.md](CONTRIBUTING.md#️-repository-configuration-gdssyml).
+> 📖 **Configuration Reference:** See [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) for full provider recipes (Ollama, vLLM, OpenRouter, Copilot CLI, OpenAI, Azure AI Foundry) and details on why explicit `context_window` configuration is crucial over fallback heuristics. For cascading precedence rules, see [Repository Configuration in CONTRIBUTING.md](CONTRIBUTING.md#️-repository-configuration-gdssyml).
 
 ---
 
@@ -485,7 +492,7 @@ This section tracks the roadmap. **Done** means the feature is implemented, test
 | **Phase 2 — Semantic Embeddings** | **Done** | Symbol encoders, FAISS vector index, assistive similarity search |
 | **Phase 3 — Continuous Drift** | **Done** | Trajectory integral $I(B_i)$, drift alerts, snapshot history, `gdss drift` |
 | **Phase 4 — PR Collision Radar** | **Done** | Interaction tensor $\Omega_{ij}$, non-commutative operators, optimal merge order |
-| **Phase 5 — AI Convergence Assistant** | **Done** | Multi-provider suggester (vLLM, Ollama, OpenRouter, Azure AI Foundry), topology explanations |
+| **Phase 5 — AI Convergence Assistant** | **Done** | Multi-provider suggester (vLLM, Ollama, OpenRouter, Copilot CLI, Azure AI Foundry), topology explanations |
 | **IDE Protocol — MCP Server** | **Done** | 8 deterministic tools for Cursor, Claude Code, Copilot ($0 token cost) |
 | **Visual Brain — Next.js Dashboard** | **Done** | Manifold view, collision radar matrix, React Flow graph |
 | **Phase 6 — Sandboxed Validation & Guarded Apply** | **Done** | Ephemeral Git worktrees for syntax/type validation + guarded local apply engine |

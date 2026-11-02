@@ -3,6 +3,35 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-02 - Parallel Conflict Drafting, Lossless Context Preservation & Release v1.0.3
+
+- **Topological Conflict Partitioning (`gdss/ai/partitioner.py`)**:
+  - Implemented `partition_conflicts()` clustering pairwise conflicts into independent, disjoint groups based on file paths and AST symbol dependency overlap.
+  - Added unit test suite in `tests/ai/test_partitioner.py` verifying disjoint conflict isolation.
+- **Parallel Drafting & Fast Local Refinement (`gdss/ai/orchestration.py`, `gdss/ai/suggester.py`)**:
+  - Wired `ThreadPoolExecutor` parallel drafting across independent clusters bounded by `concurrency_limit: int = 4`.
+  - Added fast local AST validation sub-loop inside worker threads for instant syntax self-correction without waiting for subsequent global passes.
+  - Added integration tests in `tests/ai/test_parallel_orchestration.py`.
+- **Lossless Context Policy & 1M/2M Token Window Discovery (`gdss/ai/condensation.py`, `gdss/ai/context_builder.py`)**:
+  - Added dynamic context window ceilings for Gemini 1.5/2.0 (`1000000` / `2000000` tokens) alongside Claude 3.5 Sonnet and GPT-4o.
+  - Replaced destructive string-halving cuts with lossless 100% AST symbol preservation when within model context capacity.
+  - Added `.gdss.yml` directives `radar.concurrency_limit` and `radar.condensation`.
+- **Documentation & Visual Architecture Assets**:
+  - Authored `assets/orchestration/parallel_pipeline.svg` and `assets/orchestration/context_lossless_architecture.svg`.
+  - Authored comprehensive guide `docs/PARALLEL_ORCHESTRATION_AND_CONTEXT_GUIDE.md`.
+  - Updated `README.md`, `docs/CONFIGURATION_GUIDE.md`, `docs/USER_GUIDE.md`, `gdss-radar/README.md`, and `gdss-radar/.gdss.yml.example`.
+- **Verification Evidence**:
+  - `bash harness/sensors/lint.sh`: OK (ruff clean).
+  - `bash harness/sensors/typecheck.sh`: OK (0 errors in 98 source files).
+  - `python harness/sensors/architecture_fitness.py`: OK.
+  - `python harness/sensors/dsa_fitness.py`: OK.
+  - `bash harness/sensors/run_tests.sh`: OK (353 passed in 51.14s).
+  - `bash harness/sensors/cli_smoke.sh` & `api_smoke.py`: OK.
+  - `bash harness/verify-frontend.sh`: OK (F1 static, F2 118 vitest tests, F3 size-limit all green).
+- **Release v1.0.3**:
+  - Created commit `21632bb` on `main`.
+  - Tagged `v1.0.3` and pushed both branch `main` and release tag `v1.0.3` to `origin`.
+
 ## 2026-11-01 - Approach C: Standalone Native Binary Distribution & IDE MCP Server (All OSes)
 
 - **Native Binary Packaging Engine (`packaging/pyinstaller/gdss.spec`)**:

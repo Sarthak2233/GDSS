@@ -48,7 +48,7 @@ radar:
   #   - "copilot" (GitHub Copilot CLI in CI via GITHUB_TOKEN & copilot-requests: write)
   #   - "ollama" / "vllm" (for self-hosted local setups)
   provider: "openrouter"
-  model: "qwen/qwen-2.5-coder-32b-instruct"
+  model: "openrouter/free"  # OpenRouter automated free router, or "gpt-4o-mini", "deepseek-chat"
 
   # Collision risk sensitivity threshold (0.0 to 1.0).
   # Collisions with severity >= risk_threshold will be flagged in the PR report.

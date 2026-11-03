@@ -111,3 +111,17 @@ def test_openai_compatible_provider_openrouter(
         assert call_kwargs["headers"]["Authorization"] == "Bearer sk-or-v1-testkey"
         assert call_kwargs["headers"]["HTTP-Referer"] == "https://github.com/Sarthak2233/GDSS"
         assert call_kwargs["headers"]["X-Title"] == "GDSS"
+
+
+def test_openai_compatible_provider_openrouter_default_free_model(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("OPENROUTER_MODEL", raising=False)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-testkey")
+
+    provider = OpenAICompatibleProvider(cache_dir=tmp_path)
+    assert provider.base_url == "https://openrouter.ai/api/v1"
+    assert provider.model == "openrouter/free"

@@ -298,7 +298,7 @@ GDSS can generate minimal conflict-free patches and plain-English risk assessmen
   For HTTP endpoints, rather than locking into proprietary SDKs, GDSS standardizes on the OpenAI Chat Completions protocol (`POST /v1/chat/completions`). Any provider, gateway, or self-hosted proxy conforming to this specification works out of the box with zero code changes:
 
   - **Commercial Clouds:** Microsoft Azure AI Foundry, OpenAI (`gpt-4o`, `o1`), DeepSeek (`deepseek-chat`), Groq (`llama-3.3-70b-versatile`), Mistral, Together AI, or OpenRouter.
-  - **CI ($0 Token Compute):** OpenRouter Free Tier (`qwen/qwen-2.5-coder-32b-instruct`), GitHub Copilot CLI in Actions (via `copilot-requests: write`), Groq free tier, or 100% deterministic CPU analysis.
+  - **CI ($0 Token Compute):** OpenRouter Free Tier (via meta-router `openrouter/free`), GitHub Copilot CLI in Actions (via `copilot-requests: write`), Groq free tier, or 100% deterministic CPU analysis.
   - **Local / Air-Gapped:** LocalAI, LM Studio, Ollama, or vLLM running on developer laptops or private GPU clusters.
 
 ### 🛡️ Ephemeral Sandboxed Validation (Phase 6)

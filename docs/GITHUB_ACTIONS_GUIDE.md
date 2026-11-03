@@ -87,15 +87,17 @@ jobs:
           fetch-depth: 0  # Required to resolve branch histories & merge-bases
 
       - name: Run GDSS PR Collision Radar
-        uses: sarthak2233/gdss-radar@v1
+        uses: sarthak2233/gdss-radar@v1.1.0  # Or @v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Optional inputs:
-          # threshold: "0.1"
-          # fail_on_collision: "false"
-          # provider: "github-models"
-          # model: "gpt-4o"
+        env:
+          # Optional: Bring Your Own Key for AI suggestions (omit for 100% deterministic $0 radar)
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # or OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 ```
+
+> [!IMPORTANT]
+> **Single Action Input (`token`)**: `token` is the only input accepted under `with:`. All radar tuning parameters (such as `risk_threshold`, `fail_on_collision`, `provider`, and `model`) belong in `.gdss.yml` at your repository root. Do not pass `threshold` or `provider` under `with:`.
 
 > [!NOTE]
 > **Deterministic Radar Requires Zero External Keys**: For collision radar auditing, interaction tensor ($\Omega_{ij}$) calculation, and optimal merge ordering, no third-party API keys or external secrets are required. The workflow runs 100% locally on runner CPU using GitHub's built-in `${{ secrets.GITHUB_TOKEN }}`.
@@ -143,7 +145,7 @@ You can customize the radar's behavior by placing a `.gdss.yml` (or `.gdss.yaml`
 
 radar:
   # AI model used for generating convergence patches
-  # Default: gpt-4o (Azure AI / OpenAI) or qwen/qwen-2.5-coder-32b-instruct (OpenRouter Free Tier)
+  # Default: gpt-4o (Azure AI / OpenAI) or openrouter/free (OpenRouter Free Tier)
   model: "gpt-4o"
 
   # Explicit context window size in tokens (HIGHLY RECOMMENDED)

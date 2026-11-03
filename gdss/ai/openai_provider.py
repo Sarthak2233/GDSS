@@ -61,7 +61,7 @@ class OpenAICompatibleProvider:
 
         # Model resolution
         if "openrouter.ai" in self.base_url:
-            default_model = "qwen/qwen-2.5-coder-32b-instruct"
+            default_model = "openrouter/free"
         elif "azure.com" in self.base_url or "openai.com" in self.base_url:
             default_model = "gpt-4o-mini"
         else:

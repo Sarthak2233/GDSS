@@ -569,7 +569,7 @@ Used in CI/CD secrets management, automated deployment containers, and personal 
 | `AZURE_OPENAI_API_KEY` | Microsoft Azure AI Foundry / Azure OpenAI key | API key for Azure AI Foundry model deployments |
 | `AZURE_OPENAI_ENDPOINT` | Azure AI Foundry endpoint | e.g. `https://<resource>.openai.azure.com/openai/v1` |
 | `GITHUB_TOKEN` | GitHub repository token | Exclusively for GitHub REST API (fetching PRs, posting sticky comments) |
-| `OPENROUTER_MODEL` | OpenRouter default model override | e.g. `qwen/qwen-2.5-coder-32b-instruct` |
+| `OPENROUTER_MODEL` | OpenRouter default model override | e.g. `openrouter/free`, `deepseek/deepseek-chat` |
 | `AZURE_OPENAI_MODEL` | Azure AI Foundry deployment name override | e.g. `gpt-4o`, `gpt-4o-mini`, `phi-4` |
 | `OPENAI_MODEL` | OpenAI / Custom endpoint model override | e.g. `deepseek-chat`, `gpt-4o` |
 | `GDSS_CONTEXT_WINDOW` | Explicit context window token capacity | e.g. `128000`, `64000` |
@@ -612,7 +612,7 @@ When GDSS resolves which model and endpoint to invoke, it follows a strict 4-tie
 │    The committed team baseline versioned in Git.                       │
 ├────────────────────────────────────────────────────────────────────────┤
 │ 4. Provider Default (Lowest Precedence)                                │
-│    OpenRouter: qwen/qwen-2.5-coder-32b-instruct                        │
+│    OpenRouter: openrouter/free                                         │
 │    Azure AI Foundry / OpenAI: gpt-4o-mini                              │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -626,7 +626,7 @@ graph TD
     C -- No --> D{.gdss.yml radar.model set?}
     D -- Yes --> R3[Use .gdss.yml radar.model]
     D -- No --> E{Provider Default}
-    E -->|OpenRouter| R4[qwen/qwen-2.5-coder-32b-instruct]
+    E -->|OpenRouter| R4[openrouter/free]
     E -->|GitHub / OpenAI| R5[gpt-4o-mini]
 ```
 
@@ -652,12 +652,12 @@ For $0-cost or ultra-low-cost CI collision radar and local development, use the 
          ▼                             ▼                             ▼
   [ OpenRouter Free Tier ]      [ Groq LPU / DeepSeek ]       [ Local Offline (Ollama) ]
   • Free coder models           • Sub-second inference        • 100% offline ($0 cost)
-  • qwen/qwen-2.5-coder-32b     • llama-3.3-70b / deepseek    • qwen2.5-coder:7b
+  • openrouter/free             • llama-3.3-70b / deepseek    • qwen2.5-coder:7b
   • OPENROUTER_API_KEY          • OPENAI_API_KEY / BASE_URL   • Zero cloud dependency
 ```
 
 #### A. Option 1: OpenRouter Free Tier (Recommended CI Default)
-OpenRouter provides free access to capable coder models (e.g. `qwen/qwen-2.5-coder-32b-instruct`):
+OpenRouter provides automated zero-cost routing to active free models via its meta-router (`openrouter/free`):
 
 1. **Sign Up**: Create an account at [OpenRouter.ai](https://openrouter.ai).
 2. **Generate API Key**: Create an API key under Account Settings.
@@ -665,10 +665,11 @@ OpenRouter provides free access to capable coder models (e.g. `qwen/qwen-2.5-cod
    ```yaml
    radar:
      provider: "openrouter"
-     model: "qwen/qwen-2.5-coder-32b-instruct"
+     model: "openrouter/free"   # Automatically routes to active free coding models
      context_window: 32768
      max_refinements: 2
    ```
+   *(Note: Endpoints without a `:free` suffix, such as `qwen/qwen-2.5-coder-32b-instruct`, are billed at standard token rates on OpenRouter.)*
 4. **In GitHub Actions CI (`.github/workflows/gdss-radar.yml`)**:
    Add `OPENROUTER_API_KEY` to repository secrets (**Settings ➔ Secrets and variables ➔ Actions**):
    ```yaml
@@ -776,7 +777,8 @@ Selecting the right model depends on your repository’s complexity, CI turnarou
 | **Flagship** | `gpt-4o` | `github` or `openai` | `128000` | 🚀 Fast (~5s) | ~ $0.015 | **Highest** | Complex cross-file refactors, architecture collisions |
 | **High Performance (Low Cost)** | `deepseek-chat` | DeepSeek Direct or OpenRouter | `64000` | 🚀 Fast (~4s) | < $0.002 | **Exceptional** | Complex code merges at 90% lower cost than frontier models |
 | **Ultra-Fast LPU** | `llama-3.3-70b-versatile` | Groq | `128000` | ⚡ Blazing (<2s) | Free / Minimal | **High** | Ultra-fast CI turnaround time, large repos |
-| **Advanced Open-Source (Free)** | `qwen/qwen-2.5-coder-32b-instruct` | OpenRouter | `32768` | 🚀 Fast (~4s) | $0.00 (Free tier) | **Very High** | Free CI pipelines, zero-budget open-source projects |
+| **Advanced Open-Source (Free)** | `openrouter/free` | OpenRouter | `32768` | 🚀 Fast (~4s) | $0.00 (Automated free router) | **High** | Free CI pipelines, zero-budget open-source projects |
+| **Advanced Open-Source (Paid)** | `qwen/qwen-2.5-coder-32b-instruct` | OpenRouter | `32768` | 🚀 Fast (~4s) | ~$0.002 ($0.66/1M) | **Very High** | High-precision coder model for small budgets |
 | **Reasoning / Logic** | `o1-mini` | `github` or `openai` | `128000` | ⏳ Moderate (~10s) | ~ $0.020 | **Exceptional** | Subtle algorithmic conflicts, complex invariants |
 | **Offline Developer Workstation** | `qwen2.5-coder:7b` | `ollama` or `lmstudio` | `32768` | 💻 Local GPU/CPU | $0.00 | **Moderate-High** | Air-gapped laptops, privacy-critical proprietary code |
 
@@ -889,7 +891,7 @@ Single API key for Claude 3.5 Sonnet, DeepSeek, and free open-source models:
 # .gdss.yml
 radar:
   provider: "openrouter"
-  model: "qwen/qwen-2.5-coder-32b-instruct"
+  model: "openrouter/free"   # Automated free router (or paid models like "deepseek/deepseek-chat")
   context_window: 32768
   max_refinements: 2
 ```
@@ -1015,7 +1017,7 @@ GDSS supports standard environment variables to override `.gdss.yml` settings, p
 | `OPENAI_BASE_URL` | `https://api.deepseek.com/v1`, etc. | High | Custom OpenAI-compatible REST endpoint URL. Overrides `.gdss.yml` `radar.base_url`. |
 | `OPENAI_MODEL` | e.g. `gpt-4o`, `deepseek-chat` | Tier 2 | Model override for OpenAI / OpenAI-compatible providers. |
 | `AZURE_OPENAI_MODEL` | e.g. `gpt-4o`, `phi-4` | Tier 2 | Deployment / model override for Azure AI Foundry. |
-| `OPENROUTER_MODEL` | e.g. `qwen/qwen-2.5-coder-32b-instruct` | Tier 2 | Model override when routing via OpenRouter. |
+| `OPENROUTER_MODEL` | e.g. `openrouter/free`, `deepseek/deepseek-chat` | Tier 2 | Model override when routing via OpenRouter. |
 | `GDSS_CONTEXT_WINDOW` | Integer (e.g. `128000`, `64000`) | Tier 1 | Overrides model context window token size. Precludes heuristic fallback guessing. |
 | `GDSS_SANDBOX_TIMEOUT` | Integer in seconds (e.g. `60`, `120`) | High | Overrides ephemeral worktree validation command timeout (`validation.timeout_seconds`). |
 | `GDSS_LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` | High | Centralized diagnostic logging verbosity across all GDSS subsystems. |

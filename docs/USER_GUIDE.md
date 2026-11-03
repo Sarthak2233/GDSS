@@ -99,7 +99,7 @@ bash harness/verify.sh
 
 ---
 
-### Mode 1: AI IDEs via Model Context Protocol (MCP) [Zero Token Cost]
+### Mode 1: AI IDEs via Model Context Protocol (MCP) [Deterministic Tools / 0 GDSS Tokens]
 
 This is the primary delivery interface for developers using **Cursor**, **Claude Code**, or **GitHub Copilot**. 
 

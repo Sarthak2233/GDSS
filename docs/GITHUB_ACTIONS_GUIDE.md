@@ -98,7 +98,9 @@ jobs:
 ```
 
 > [!NOTE]
-> No third-party API keys or external secrets are required. The workflow relies entirely on GitHub's built-in `${{ secrets.GITHUB_TOKEN }}`.
+> **Deterministic Radar Requires Zero External Keys**: For collision radar auditing, interaction tensor ($\Omega_{ij}$) calculation, and optimal merge ordering, no third-party API keys or external secrets are required. The workflow runs 100% locally on runner CPU using GitHub's built-in `${{ secrets.GITHUB_TOKEN }}`.
+>
+> **AI Convergence Suggestions (Strict BYOK)**: To generate natural-language conflict explanations and automated 1-click reconciliation patches, the repository maintainer provides their chosen provider key (e.g. `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, or `OPENROUTER_API_KEY`) as a GitHub Repository Secret. Developers opening PRs never need personal keys.
 
 ### Method 2: Custom / Self-Hosted Runner Workflow
 
@@ -426,16 +428,27 @@ gdss apply sug_a1b2c3d4e5f6 --dry-run
 
 ---
 
-## 🔐 Security, Permissions & Token Model
+## 🔐 Security, Permissions & Credential Architecture (BYOK / BYOC)
 
-### Bring Your Own Compute (Zero Token Cost to GDSS)
-GDSS operates on a Bring-Your-Own-Compute (BYOC) philosophy:
-- **Deterministic Core ($0 Tokens):** AST parsing, dependency graph building, and the collision interaction tensor ($\Omega_{ij}$) run locally inside the GitHub Actions runner. They consume **0 AI tokens**.
-- **Reconciliation Patching (OpenRouter / Copilot CLI / Azure AI Foundry):** If patch generation is needed, GDSS connects to OpenRouter Free Tier (via `OPENROUTER_API_KEY`), GitHub Copilot CLI (via `GITHUB_TOKEN` with `copilot-requests: write`), or Microsoft Azure AI Foundry. When using Copilot CLI, GDSS enforces `--deny-tool='*'` to ensure the AI cannot touch repository files directly—all patches are captured from `stdout` and validated inside GDSS's ephemeral worktree sandbox. Deterministic collision analysis runs at $0 cost on the runner CPU without any external AI keys. GDSS collects zero fees.
+### 1. Team Integration: Repository Secrets vs. Individual Developers
+A common question when integrating GDSS into an engineering team is: **"Does every engineer on the team need an API key configured in their GitHub account?"**
 
-### Handling Fork Pull Requests
+The answer is **No**:
+- **Single Setup by Repository Admin**: The repo maintainer configures the chosen AI secret (e.g. `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, or `OPENROUTER_API_KEY`) **once** in repository settings:  
+  `GitHub Repo ➔ Settings ➔ Secrets and variables ➔ Actions ➔ Repository secrets`.
+- **Automatic Execution on PRs**: Whenever any team member pushes commits or opens a PR, GitHub Actions securely injects the repository secret into the workflow runner. Individual developers never need to supply, manage, or leak personal keys.
+- **Zero-Key Deterministic Mode**: If your team chooses not to configure any AI key at all, GDSS still runs 100% of the deterministic collision radar, matrix tables, and optimal merge orders at **$0 and 0 tokens**.
+
+### 2. Bring Your Own Key / Compute (BYOK / BYOC)
+GDSS is not a paid AI middleman and does not charge or host token inference:
+- **Deterministic Core (0 Tokens):** AST parsing, dependency graph building, and the collision interaction tensor ($\Omega_{ij}$) run locally inside the GitHub Actions runner. They consume **literal 0 AI tokens** and require zero external secrets.
+- **Reconciliation Patching (BYOK):** If patch generation is requested, the runner connects directly to your team's provider: OpenRouter Free Tier (via `OPENROUTER_API_KEY`), OpenAI / DeepSeek (via `OPENAI_API_KEY`), GitHub Copilot CLI (via `GITHUB_TOKEN` with `copilot-requests: write`), or Microsoft Azure AI Foundry. When using Copilot CLI, GDSS enforces `--deny-tool='*'` so the model cannot touch repository files directly—all patches are captured from `stdout` and validated inside GDSS's ephemeral worktree sandbox. GDSS collects zero token markups.
+- **Direct Privacy**: Source code and ASTs are never routed through any GDSS proxy; network calls travel strictly between GitHub's runner and your configured AI provider.
+
+### 3. Handling Fork Pull Requests
 Pull requests submitted from external forks do not have write access to repository secrets by default. GDSS handles this safely:
-- If `GITHUB_TOKEN` has read-only permissions, GDSS still computes the collision radar and logs the Markdown report to the GitHub Actions workflow summary.
+- If `GITHUB_TOKEN` has read-only permissions, GDSS still computes the collision radar deterministically and logs the Markdown report to the GitHub Actions workflow summary.
+- The action **never crashes** if model access or comment permissions are restricted.
 - The action **never crashes** if model access or comment permissions are restricted.
 
 ---

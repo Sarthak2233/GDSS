@@ -556,7 +556,7 @@ In the exported graph:
 
 #### IDE MCP Server (`gdss mcp`):
 - Runs over standard I/O for IDEs like Cursor, Claude Code, and Copilot.
-- Zero Token Bleed: Serves deterministic graph and collision tools to the developer's IDE agent without calling external LLM APIs.
+- Deterministic Core (0 Tokens): Serves deterministic graph and collision tools to the developer's IDE agent without calling external LLM APIs.
 - Tools exposed: `gdss_find_collisions`, `gdss_validate_patch`, `gdss_explain_drift`.
 
 #### GitHub Actions CI/CD (`gdss audit-pr`):

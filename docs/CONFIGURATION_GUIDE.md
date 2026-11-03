@@ -527,15 +527,17 @@ Because of this universal standard, **any provider or server that supports the O
 
 Developers frequently ask where model credentials and API keys must be provided across GDSS's operational surfaces. The table below outlines how each deployment mode handles credentials and authentication:
 
-| Deployment Mode | Where Secrets Are Configured | Environment Variables / Headers | Needs Model API Key? | Token Cost to Project |
-| :--- | :--- | :--- | :---: | :---: |
-| **Mode 1: GitHub Actions CI** (`gdss audit-pr`) | GitHub Repository Secrets (`Settings ➔ Secrets and variables ➔ Actions`) | Passed into workflow step: `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}` (PR diffs/comments), optional `OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}` | **Optional** (Zero keys for deterministic radar; key needed for AI patches) | **$0** with OpenRouter Free Tier or Groq Free Tier |
-| **Mode 2: Local CLI & Shell** (`gdss suggest`, `gdss start`) | Local shell profile (`~/.bashrc`, `~/.zshrc`) or `.env` file | `export GITHUB_TOKEN="ghp_..."`<br>`export OPENAI_API_KEY="sk-..."` | **Yes** (only for `gdss suggest --validate` with LLM) | Developer account or local free model (Ollama/LM Studio) |
-| **Mode 3: IDE MCP Tool Server** (Cursor / Claude Code / Copilot) | **No secrets required** in MCP server config (`~/.cursor/mcp.json`) | None (runs via JSON-RPC stdio over local CLI) | **NO** (Zero keys needed) | **$0 Token Bleed** (powered by developer's IDE account) |
-| **Mode 4: Web Visual Dashboard & REST API** (`web/` & `gdss serve`) | Inherited by `gdss serve` daemon process from the host shell | `GITHUB_TOKEN` or `OPENAI_API_KEY` in server shell | **Optional** (Deterministic views need 0 keys) | **$0** for all radar, tensor, and drift views |
+| Deployment Mode | Where Secrets Are Configured | Environment Variables / Headers | Needs Model API Key? | Cost Model & Token Accounting |
+| :--- | :--- | :--- | :---: | :--- |
+| **Mode 1: GitHub Actions CI** (`gdss audit-pr`) | **Repository Secrets** (`Settings ➔ Secrets and variables ➔ Actions`) configured once by repo admin | Passed into workflow step: `token: ${{ secrets.GITHUB_TOKEN }}` (PR discovery/sticky comments), optional `OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}` | **Optional** (Zero keys for deterministic radar; key needed only for AI patches) | **BYOK**: Team maintains their own key; developers opening PRs need zero personal keys. Deterministic radar is 100% free ($0 & 0 tokens). |
+| **Mode 2: Local CLI & Shell** (`gdss suggest`, `gdss start`) | Local shell profile (`~/.bashrc`, `~/.zshrc`) or `.env` file | `export GITHUB_TOKEN="ghp_..."`<br>`export OPENAI_API_KEY="sk-..."` | **Yes** (only for `gdss suggest --validate` with LLM) | Developer supplies their own personal key or runs local free model (Ollama/LM Studio). |
+| **Mode 3: IDE MCP Tool Server** (Cursor / Claude Code / Copilot) | **No secrets required** in MCP server config (`~/.cursor/mcp.json`) | None (runs via JSON-RPC stdio over local CLI) | **NO** (Zero keys needed) | **0 GDSS Tokens**: GDSS provides deterministic tools; developer's existing IDE subscription powers the chat. |
+| **Mode 4: Web Visual Dashboard & REST API** (`web/` & `gdss serve`) | Inherited by `gdss serve` daemon process from the host shell | `GITHUB_TOKEN` or `OPENAI_API_KEY` in server shell | **Optional** (Deterministic views need 0 keys) | **$0** for all radar, tensor, and drift views. |
 
 > [!IMPORTANT]
-> **MCP Tool Server Zero Token Bleed Guarantee**: When using Cursor, Claude Code, or Copilot with `gdss mcp`, GDSS exposes purely deterministic analysis tools (`find_collisions`, `get_merge_order`, `inspect_symbol_impact`, `validate_patch`). The chat LLM is powered directly by your IDE subscription. GDSS runs 100% locally on CPU and **never requires an external LLM API key in MCP mode**.
+> **MCP Tool Server Zero-Inference Guarantee (Deterministic Core + BYOK)**: When using Cursor, Claude Code, or Copilot with `gdss mcp`, GDSS exposes purely deterministic analysis tools (`find_collisions`, `get_merge_order`, `inspect_symbol_impact`, `validate_patch`). The chat LLM is powered directly by your IDE subscription. GDSS runs 100% locally on CPU and **never requires an external LLM API key in MCP mode**.
+>
+> **Team CI Credential Isolation**: You do **not** need each developer on your team to create an API key or configure GitHub secrets. The repository maintainer adds the secret once to GitHub Actions Secrets. All incoming PRs from any team member leverage that secret automatically during CI runs. If no secret is provided, GDSS runs purely deterministically ($0 & 0 tokens).
 
 ---
 
@@ -1125,5 +1127,5 @@ gdss apply sug_8f2a91c3 --rollback
 ## 🔒 Absolute Guarantees
 
 1. **Zero Auto-Merge**: GDSS calculates, diagnoses, and proves; humans always make the decision to land code.
-2. **Zero Proprietary Token Cost**: Runs on native repository GitHub entitlements or local workstations.
+2. **Zero Proprietary Token Cost (Strict BYOK / BYOC)**: Deterministic radar runs on local CPU at 0 tokens. AI synthesis connects directly to user- or team-provided credentials with zero GDSS markups.
 3. **Zero Untracked State**: Ephemeral worktrees are cleanly erased upon completion.

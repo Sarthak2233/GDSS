@@ -5,7 +5,8 @@
 ![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![Harness](https://img.shields.io/badge/Harness-All%20Layers%20Verified-success.svg)
 ![Architecture](https://img.shields.io/badge/Architecture-10--Layer%20Two--Brain-blueviolet.svg)
-![MCP](https://img.shields.io/badge/MCP-Zero%20Token%20Bleed-orange.svg)
+![Core](https://img.shields.io/badge/Deterministic%20Core-0%20Tokens-brightgreen.svg)
+![Inference](https://img.shields.io/badge/AI%20Convergence-BYOK%20%2F%20BYOC-blue.svg)
 ![Frontend](https://img.shields.io/badge/Frontend-Next.js%2014-black.svg)
 ![License](https://img.shields.io/badge/License-Apache--2.0-green.svg)
 
@@ -127,15 +128,15 @@ When developers push code and open pull requests, GDSS turns blind merge conflic
 
 ---
 
-## 🔌 Model Context Protocol (MCP) & Compute Model (BYOC)
+## 🔌 Model Context Protocol (MCP) & Compute Model (BYOC / BYOK)
 
-GDSS operates on a transparent **Bring Your Own Compute (BYOC)** architecture with zero proprietary token markups:
+GDSS operates on a transparent **Deterministic Core (0 Tokens) + Bring Your Own Key / Compute (BYOK / BYOC)** architecture with zero proprietary token markups:
 
-- **100% Free Deterministic Core (0 Tokens):** AST parsing, dependency graphs, $\Omega_{ij}$ collision radar, drift tracking, and optimal merge order scheduling run **locally on CPU using Git, Tree-sitter, and linear algebra**. This deterministic layer costs **literal 0 tokens and $0 API fees** for everyone.
-- **Zero Middleman Markup on AI Synthesis:** GDSS does not act as a SaaS middleman or bill per-token fees. When patch synthesis is requested, it connects directly to compute you already own:
-  - **In your AI IDE:** Connects to Cursor, Claude Code, or Copilot via standard MCP (`gdss mcp`) using your existing IDE subscription.
-  - **In GitHub CI:** Runs deterministic collision detection 100% free via standard GitHub Actions runner CPU ($0). Optional AI convergence patches connect to OpenRouter Free Tier, GitHub Copilot CLI (via `GITHUB_TOKEN` & `copilot-requests: write`), Microsoft Azure AI Foundry, or user API keys.
-  - **On your laptop:** Connects to local offline models via Ollama or vLLM at zero API token cost.
+- **100% Free Deterministic Core (0 Tokens):** AST parsing, dependency graphs, $\Omega_{ij}$ collision radar, drift tracking, and optimal merge order scheduling run **locally on CPU using Git, Tree-sitter, and linear algebra**. This deterministic layer costs **literal 0 tokens and $0 API fees** for everyone and requires no API keys.
+- **Zero Middleman Markup on AI Synthesis (BYOK / BYOC):** GDSS is not a paid SaaS middleman and does not bill per-token fees. When patch synthesis is requested, it connects directly to compute you already own:
+  - **In your AI IDE:** Connects to Cursor, Claude Code, or Copilot via standard MCP (`gdss mcp`) using your existing IDE subscription. GDSS runs as a local tool provider over `stdio` ($0 token cost to GDSS).
+  - **In GitHub CI (Team Integration):** Runs deterministic collision detection 100% free via standard GitHub Actions runner CPU ($0). For AI patch generation, repository admins configure their team's secret (e.g. `OPENAI_API_KEY`, `OPENROUTER_API_KEY`) **once** in GitHub Repository Secrets; individual developers opening PRs do not need personal keys. Alternatively, teams can use GitHub Copilot CLI entitlements or run in 100% deterministic mode.
+  - **On your laptop:** Connects to local offline models via Ollama or vLLM at zero API token cost, or uses developer-supplied environment variables.
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -151,6 +152,9 @@ GDSS operates on a transparent **Bring Your Own Compute (BYOC)** architecture wi
 ```
 
 The MCP server runs entirely on your local machine using the deterministic brain. It collects **$0 platform fees** and sends zero private code to third parties.
+
+> [!TIP]
+> **Team CI Credential Setup:** In GitHub Actions, only the repository administrator needs to set `OPENAI_API_KEY` or `OPENROUTER_API_KEY` under `Settings ➔ Secrets and variables ➔ Actions`. Team members submitting PRs never need to configure personal credentials. Without keys, GDSS still outputs the complete collision radar and merge order matrix deterministically for free.
 
 ### Setup in Cursor (`~/.cursor/mcp.json`)
 ```json
@@ -185,7 +189,7 @@ claude mcp add gdss -- gdss mcp
 
 ### 🛠 Installation
 
-GDSS is designed to run locally on developer hardware at $0 token cost. Choose the installation method that fits your workflow:
+GDSS's deterministic core is designed to run locally on developer hardware at $0 cost and 0 tokens. Choose the installation method that fits your workflow:
 
 ```bash
 # Option 1: Standalone binary (Linux, macOS, Windows) — Recommended for CLI & IDE MCP

@@ -24,7 +24,7 @@ Machine-readable queue: [`harness/state/feature_list.json`](../harness/state/fea
 
 ## Known Honesty Rules
 
-- MCP tools do not make hidden LLM calls; the calling agent powers the conversation ($0 token bleed).
+- MCP tools do not make hidden LLM calls; the calling agent powers the conversation ($0 tokens to GDSS).
 - Deterministic analysis works 100% offline without any API keys or models.
 - Sandboxed validation tests candidate patches in temporary worktrees before showing them to humans; never auto-merges.
 - User-facing surfaces use pragmatic terminology (Collision Radar, Merge Order, Affected Symbols), not alienating geometric jargon.

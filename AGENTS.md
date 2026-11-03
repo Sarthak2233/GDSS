@@ -26,14 +26,21 @@ Canonical specification: [`PRODUCT_SPEC.md`](PRODUCT_SPEC.md).
 Implementation gap: [`docs/IMPLEMENTATION_GAP.md`](docs/IMPLEMENTATION_GAP.md).  
 Product intent: [`docs/PRODUCT_INTENT.md`](docs/PRODUCT_INTENT.md).
 
-### Deployment & Inference Architecture (Zero Token Bleed)
-1. **MCP Tool Server (IDE First):** Exposes deterministic analysis tools to Cursor, Claude Code,
-   and Copilot. The developer's AI client powers the chat conversation using their own account.
-   GDSS incurs $0 token cost.
-2. **GitHub Actions (PR Automation):** Audits incoming PRs, posts collision radar reports, and
-   uses repo-entitled Copilot CLI/Models or user API keys.
-3. **Local CLI Agent:** Runs completely offline on developer laptops with optional Ollama/vLLM.
-4. **Hosted / Enterprise:** Future managed service for centralized organization policies.
+### Deployment & Inference Architecture (Deterministic Core + BYOK)
+GDSS operates on a strict **Deterministic Core (0 Tokens) + Bring Your Own Key (BYOK)** model:
+1. **Deterministic Core (100% Free & Algorithmic, 0 Tokens):** AST parsing, dependency graphs,
+   $\Omega_{ij}$ collision tensors, and merge ordering run entirely on local CPU. GDSS charges $0 and
+   requires zero LLM tokens or API keys for core collision analysis.
+2. **AI Convergence Assistant (Strict BYOK / BYOC):** GDSS does not sell or host paid LLM inference.
+   Users and teams bring their own compute/credentials:
+   - **MCP Tool Server (IDE First):** Exposes deterministic analysis tools to Cursor, Claude Code,
+     and Copilot over stdio. The developer's own IDE subscription/account powers the chat conversation.
+   - **GitHub Actions (PR Automation):** Audits incoming PRs deterministically ($0 tokens). For AI patch
+     synthesis, repository maintainers configure their team's key (e.g. `OPENAI_API_KEY`, `OPENROUTER_API_KEY`)
+     once in GitHub Repository Secrets, or use repo-entitled Copilot CLI. Individual developers opening
+     PRs do not need personal keys.
+   - **Local CLI Agent:** Runs completely offline on developer laptops with optional Ollama/vLLM or personal keys.
+   - **Hosted / Enterprise:** Future managed service for centralized organization policies.
 
 ## What GDSS is NOT
 

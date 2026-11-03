@@ -16,7 +16,7 @@
   - [VS Code / GitHub Copilot Setup](#vs-code--github-copilot-setup)
 - [🛠️ The 6 Native MCP Tools Available to AI](#️-the-6-native-mcp-tools-available-to-ai)
 - [💻 Local CLI Offline Workflows](#-local-cli-offline-workflows)
-- [🛡️ Privacy & Zero Token Bleed ($0 Cost)](#️-privacy--zero-token-bleed-0-cost)
+- [🛡️ Privacy, Deterministic Core ($0 Tokens) & BYOK Model](#️-privacy-deterministic-core-0-tokens--byok-model)
 
 ---
 
@@ -193,9 +193,10 @@ gdss apply sug_8f2a91c3
 
 ---
 
-## 🛡️ Privacy & Zero Token Bleed ($0 Cost)
+## 🛡️ Privacy, Deterministic Core ($0 Tokens) & BYOK Model
 
-- **$0 Token Cost to GDSS**: The developer's own Cursor or Claude Code subscription powers the natural language reasoning.
-- **100% Deterministic Core**: AST parsing, dependency mapping, caller/callee graphs, and collision tensors run locally on developer CPU.
-- **Zero Cloud Telemetry**: Your source code stays on your laptop. No code is transmitted to external GDSS servers.
+- **100% Free Deterministic Core (0 Tokens)**: AST parsing, dependency mapping, caller/callee graphs, and collision tensors run locally on developer CPU. They cost $0 and require 0 external AI tokens.
+- **Zero-Inference MCP Tool Server**: GDSS acts purely as a deterministic tool provider over `stdio`. The developer's own Cursor, Claude Code, or Copilot subscription powers the chat conversation. GDSS collects zero token fees and incurs zero LLM liability.
+- **Strict BYOK for CLI AI Features**: If you choose to run `gdss suggest --llm` from your terminal, you bring your own key (`export OPENAI_API_KEY=...`) or connect to free local compute (Ollama/vLLM).
+- **Zero Cloud Telemetry**: Your source code stays on your laptop. No code or metadata is transmitted to external GDSS servers.
 

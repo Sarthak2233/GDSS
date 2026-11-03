@@ -21,7 +21,7 @@
   - [Interface A: Local CLI Guarded Apply (`gdss apply`)](#interface-a-local-cli-guarded-apply-gdss-apply)
   - [Interface B: GitHub Actions 1-Click "Commit Suggestion" Button](#interface-b-github-actions-1-click-commit-suggestion-button)
 - [Recent Implementations (Phase 5a & Phase 6)](#-recent-implementations-phase-5a--phase-6)
-- [Zero Token Bleed & Security Invariants](#-zero-token-bleed--security-invariants)
+- [Deterministic Core, BYOK & Security Invariants](#-deterministic-core-byok--security-invariants)
 
 ---
 
@@ -281,9 +281,9 @@ For developers reviewing PRs on GitHub.com or mobile:
 
 ---
 
-## 🔐 Zero Token Bleed & Security Invariants
+## 🔐 Deterministic Core, BYOK & Security Invariants
 
 1. **Two-Brain Purity:** Deterministic modules (`core`, `graph`, `conflict`, `watcher`, `mcp`) never import probabilistic AI modules.
-2. **Zero Proprietary API Billing:** GDSS does not host a token-billing proxy. IDE agents consume developer subscriptions; GitHub Actions runs on native repository entitlements.
+2. **Strict BYOK / BYOC Model:** GDSS does not host a token-billing proxy or sell paid LLM inference. Deterministic collision analysis runs at literal $0 and 0 tokens on local CPU. AI synthesis connects directly to user- or team-supplied provider keys (repository secrets in Actions, IDE subscriptions in MCP, or local Ollama).
 3. **Zero Source Code Leaks:** In model-free and IDE MCP modes, zero private source code is sent to external cloud APIs.
 4. **Never Auto-Merge:** GDSS calculates, diagnoses, and proves; humans always make the decision to land code.

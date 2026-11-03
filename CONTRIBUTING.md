@@ -135,16 +135,16 @@ Dependencies flow strictly downward. Higher numbered layers may import lower lay
 ### The Golden Invariants
 1. **Two-Brain Purity**: The deterministic brain (`core`, `graph`, `watcher`, `conflict`, `drift`, `mcp`) must **never import** the probabilistic brain (`ai`, `embeddings`). Enforced statically by `python harness/sensors/architecture_fitness.py`.
 2. **Layer Direction**: Dependencies strictly flow downward; lower layers never import higher layers.
-3. **Zero Token Bleed**: The MCP server never makes server-side LLM calls or consumes token budgets.
+3. **Zero Token Bleed to Server (Deterministic Core + BYOK)**: The deterministic core and MCP server never make proprietary server-side LLM calls or consume token budgets. AI synthesis uses Bring Your Own Key / Compute (BYOK/BYOC).
 4. **Never Auto-Merge**: GDSS calculates, diagnoses, and proves; humans always make the decision to merge code.
 
 ---
 
 ## 🔍 Key Architectural Decisions
 
-### 1. Zero Token Cost Deterministic Core ($0 Token Bleed)
-- **Problem**: Running LLMs inside local analysis or MCP tool servers causes double-token billing and high latency.
-- **Resolution**: All collision detection, commutativity equations, dependency impact tracing, and merge order scheduling run deterministically on local CPU. The MCP server incurs **literal 0 tokens and $0 API fees**. When AI synthesis is requested, the user's IDE model or CI runner supplies the compute.
+### 1. Deterministic Core (0 Tokens) & Bring Your Own Key (BYOK)
+- **Problem**: Running proprietary LLMs inside local analysis or MCP tool servers causes double-token billing, latency, and confusion over who pays for inference.
+- **Resolution**: All collision detection, commutativity equations, dependency impact tracing, and merge order scheduling run deterministically on local CPU at **literal 0 tokens and $0 API fees**. When AI convergence synthesis is requested, the user or team brings their own compute: repository secrets in GitHub Actions, developer IDE subscriptions in MCP mode, or local Ollama/API keys in CLI mode. GDSS acts as an intelligent orchestration layer, not a paid token broker.
 
 ### 2. Concrete AST Ground Truth in Radar Tools
 - **Resolution**: [`gdss_find_collisions`](gdss/mcp/tools.py) returns exact structural facts:

@@ -115,15 +115,20 @@ If a project uses non-standard, custom, or nested folder paths (e.g. `src/module
 ## Domain Reducers
 
 ### 1. Migration DAG Reducer (`gdss/reducers/migration_reducer.py`)
-Tracks database migration dependencies and sequence DAGs:
-- **Frameworks Supported**:
-  - **Alembic**: Inspects `down_revision` parent strings.
-  - **Django**: Inspects `dependencies` list tuples `('app_name', '0001_initial')`.
-  - **Prisma**: Tracks timestamp directory ordering under `prisma/migrations/`.
-  - **Drizzle**: Parses `_journal.json` index sequences (`idx`) and meta snapshots.
-  - **Flyway & Rails**: Extracts sequential version prefixes (`V1__...`, `20241028120000_...`).
-- **Operator Generation**: Emits `OperatorType.MIGRATION_STEP` with target name `migration_parent::<parent_id>`.
-- **Collision Behavior**: If two concurrent branches branch from the same parent, GDSS assigns $\Omega_{ij} = 1.0$ (Critical) with badge `🗄️ Split-Head Hazard` and recommends a re-parenting command.
+Tracks database migration dependencies and sequence DAGs across all major web frameworks and database migration stacks:
+- **Universal Multi-Stack Coverage**:
+  - **Python**: **Alembic** (`down_revision` parent strings) and **Django** (`dependencies = [('app', '0001_initial')]`).
+  - **Node / TypeScript**: **Prisma** (timestamp directory ordering under `prisma/migrations/`), **Drizzle** (`_journal.json` index sequences `idx` and meta snapshots), **Knex**, **TypeORM**, and **Sequelize**.
+  - **Go**: **Goose** and **Golang-migrate** (sequential version prefixes and Unix/compact timestamps).
+  - **Ruby**: **Rails Active Record** (`db/migrate/YYYYMMDDHHMMSS_...`).
+  - **Java / JVM**: **Flyway** (`V1__...`, `V2__...`) and **Liquibase**.
+  - **Declarative & Custom**: **Atlas** and generic timestamped/sequenced raw SQL migrations.
+- **Universal Pattern Matching & Fallback**:
+  - **Timestamp Extraction**: Regex matching compact timestamps `\d{10,14}` across directory names and filenames.
+  - **Sequence Extraction**: Regex matching integer sequences `[vV]?\d+`.
+  - **Universal Stem Fallback**: If no explicit parent revision is parsed, GDSS constructs a canonical stem operator `migration::step::{stem}`. This guarantees that **any** simultaneous additions to migration folders trigger collision alerts.
+- **Operator Generation**: Emits `OperatorType.MIGRATION_STEP` with target name `migration_parent::<parent_id>` or `migration_step::<step>`.
+- **Collision Behavior**: If two concurrent branches branch from the same parent or append competing migration steps, GDSS assigns $\Omega_{ij} = 1.0$ (Critical) with badge `🗄️ Split-Head Hazard` and recommends a re-parenting command.
 
 ### 2. Manifest Reducer (`gdss/reducers/manifest_reducer.py`)
 Parses `package.json`, `Cargo.toml`, and `pyproject.toml`:
@@ -198,6 +203,8 @@ This guarantees that tests run against reproducible, validated lockfiles without
 GDSS auto-discovers all project migrations, manifests, and SQL assets autonomously with zero manual path registration needed (see [Stage A & B Autonomous Router](#dual-stage-autonomous-router)). Standard `.gdss.yml` controls collision sensitivity and branch filtering:
 
 ```yaml
+version: 1
+
 radar:
   risk_threshold: 0.1
   fail_on_collision: false
@@ -209,4 +216,14 @@ hierarchy:
     - "fix/*"
   exclude:
     - "dependabot/*"
+
+migrations:
+  # Optional framework hint (e.g. alembic, django, prisma, drizzle, flyway, rails, knex, typeorm, goose, atlas)
+  # When omitted, GDSS automatically applies universal timestamp and sequence matching.
+  framework: "alembic"
+  paths:
+    - "migrations/**"
+    - "alembic/versions/**"
+    - "db/migrate/**"
+    - "prisma/migrations/**"
 ```

@@ -72,7 +72,7 @@ gdss --help
 ```yaml
 # In .github/workflows/gdss-radar.yml
 - name: Run GDSS PR Collision Radar
-  uses: sarthak2233/gdss-radar@v1
+  uses: sarthak2233/gdss-radar@v1.1.1  # Or @v1
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -367,7 +367,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run GDSS PR Collision Radar
-        uses: sarthak2233/gdss-radar@v1
+        uses: sarthak2233/gdss-radar@v1.1.1  # Or @v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
         env:
@@ -375,7 +375,7 @@ jobs:
 ```
 
 > [!TIP]
-> **Zero Python Setup Required:** `sarthak2233/gdss-radar@v1` runs a pre-compiled container (`ghcr.io/sarthak2233/gdss-runner:v1`) directly on GitHub's runner, so you don't need `setup-python` or `pip install`.
+> **Zero Python Setup Required:** `sarthak2233/gdss-radar@v1.1.1` (or `@v1`) runs a pre-compiled container (`ghcr.io/sarthak2233/gdss-runner:v1`) directly on GitHub's runner, so you don't need `setup-python` or `pip install`.
 >
 > 📖 **Full CI/CD Guide:** See [`docs/GITHUB_ACTIONS_GUIDE.md`](GITHUB_ACTIONS_GUIDE.md) for custom container runners, blocking vs. informational modes, fork handling, and configuration options.
 
@@ -439,6 +439,25 @@ gdss apply sug_8f2a91c3 --rollback
 3. **AST Symbol Verification:** Confirms target symbol is still present and matches expected boundaries before touching disk.
 4. **Self-Healing Rollback:** Snapshots original file content to `.gdss/rollback/<id>.json`. If post-apply multi-language AST syntax validation fails, GDSS **automatically rolls back disk changes** immediately.
 5. **Zero Git State Mutation:** Modifies only the target working tree file. GDSS **never** executes `git merge`, `git rebase`, `git add`, `git commit`, or `git push`.
+
+---
+
+## 🏗️ Monorepo & Worktree Sandboxing Architecture
+
+GDSS is engineered to handle complex, multi-package enterprise monorepos and polyglot codebases:
+
+### 1. Monorepo Multi-Package Discovery & Isolated Execution
+In monorepos containing multiple independent subpackages (e.g. `web/` using TypeScript/Next.js and `backend/` using Python/FastAPI):
+- **Autonomous Root Anchoring**: GDSS traverses upward from each changed file to find the nearest project descriptor (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `mypy.ini`, `pytest.ini`).
+- **Isolated `cwd` Subprocess Dispatch**: When running typechecks or tests, GDSS groups changed files by subpackage and executes the appropriate tool directly within that directory (`cwd=pkg_root`).
+- **Path-Relative Substitution**: The `{file}` and `{test_file}` placeholders are automatically relativized to the subpackage root rather than passing repository-root paths that confuse local compilers.
+- **Cross-Package Result Aggregation**: Test counts, execution times, tools, and error traces across all affected subpackages are unified into a single report.
+
+### 2. Worktree Dependency Symlinking & Lifecycle
+When candidate reconciliation patches are synthesized, GDSS compiles and validates them in detached ephemeral Git worktrees:
+- **`symlink_dependencies: true`**: Automatically symlinks root and subpackage dependency directories (`node_modules`, `.venv`, `vendor`) from the parent repository into the ephemeral sandbox worktree if package manifests are unmodified. This avoids re-installing thousands of dependencies on every validation check.
+- **`install_command`**: If package manifests are modified by a patch, GDSS runs the configured installation command (e.g. `npm ci` or `poetry install`) inside the ephemeral worktree before typechecking or running tests.
+- **`mode: "targeted"` vs `"full_suite"`**: By default (`targeted`), GDSS filters tests and typechecking strictly to changed files and their targeted test counterparts. In `full_suite` mode, GDSS executes the full unconstrained test suite.
 
 ---
 

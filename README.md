@@ -28,6 +28,48 @@
 
 ---
 
+### 🤖 1-Prompt Integration for AI Agents (Cursor, Claude Code, Copilot, Antigravity)
+
+Copy and paste this directive to your AI coding assistant to autonomously configure and integrate GDSS PR Collision Radar into your repository:
+
+```text
+Integrate GDSS PR Collision Radar into this repository using the authoritative sources from https://github.com/sarthak2233/gdss-radar:
+
+1. Repository Inspection:
+   - Identify our build descriptors, package managers (npm, pnpm, yarn, cargo, poetry, pip, go), test frameworks (pytest, vitest, jest, cargo test, go test), static typecheckers (mypy, tsc), and database migration directories (alembic, prisma, django, drizzle, rails, flyway).
+   - Identify our primary landing branch (main or develop).
+
+2. Fetch Reference Specs & Schemas:
+   - Consult the official configuration guide and examples at:
+     https://raw.githubusercontent.com/sarthak2233/gdss-radar/main/.gdss.yml.example
+     https://raw.githubusercontent.com/sarthak2233/gdss-radar/main/docs/CONFIGURATION_GUIDE.md
+
+3. Create Repository Configuration (.gdss.yml):
+   - Create .gdss.yml in the repository root with `version: 1`.
+   - Configure `validation:` section with:
+     * `mode: "targeted"`
+     * `symlink_dependencies: true`
+     * Tailored `test_command` (using {test_file} or {file} placeholder)
+     * Tailored `typecheck_command` (if static typechecker is present)
+     * Optional `install_command` if needed for ephemeral worktrees.
+   - If database migrations exist, configure `migrations:` section with framework hint and paths.
+   - Configure `hierarchy:` with `reference_branch` matching our default branch and `same_base_only: true`.
+   - Configure `ast:` with appropriate `exclude_patterns`.
+
+4. Create GitHub Actions CI Workflow:
+   - Create `.github/workflows/gdss-radar.yml` triggering on `pull_request: [opened, synchronize, reopened]`.
+   - Use `actions/checkout@v4` with `fetch-depth: 0` (mandatory for Git DAG merge-base resolution).
+   - Invoke `sarthak2233/gdss-radar@v1.1.1` (or `@v1`) with `token: ${{ secrets.GITHUB_TOKEN }}`.
+   - Set concurrency group `gdss-radar-${{ github.event.pull_request.number }}` with `cancel-in-progress: true`.
+   - Add permissions: `contents: read`, `pull-requests: write`, `issues: write`.
+
+5. Verification:
+   - Verify that .gdss.yml is valid YAML and the workflow syntax is clean.
+   - Do NOT modify any existing application code or logic.
+```
+
+---
+
 ## 📖 Project Overview
 
 ### The Philosophy: Beyond String Diffs to PR Collision Radar
@@ -455,13 +497,13 @@ jobs:
           fetch-depth: 0
 
       - name: Run GDSS PR Collision Radar
-        uses: sarthak2233/gdss-radar@v1
+        uses: sarthak2233/gdss-radar@v1.1.1  # Or @v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 > [!TIP]
-> `sarthak2233/gdss-radar@v1` runs a pre-compiled container (`ghcr.io/sarthak2233/gdss-runner:v1`) directly on GitHub's runner with **zero Python setup required**.
+> `sarthak2233/gdss-radar@v1.1.1` (or `@v1`) runs a pre-compiled container (`ghcr.io/sarthak2233/gdss-runner:v1`) directly on GitHub's runner with **zero Python setup required**.
 
 > 📖 **Full User & Setup Guide:** See [`docs/GITHUB_ACTIONS_GUIDE.md`](docs/GITHUB_ACTIONS_GUIDE.md) for blocking vs. informational modes, `.gdss.yml` configuration schema, and fork security.
 

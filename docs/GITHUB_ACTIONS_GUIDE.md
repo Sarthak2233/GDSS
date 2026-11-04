@@ -87,7 +87,7 @@ jobs:
           fetch-depth: 0  # Required to resolve branch histories & merge-bases
 
       - name: Run GDSS PR Collision Radar
-        uses: sarthak2233/gdss-radar@v1.1.0  # Or @v1
+        uses: sarthak2233/gdss-radar@v1.1.1  # Or @v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
         env:

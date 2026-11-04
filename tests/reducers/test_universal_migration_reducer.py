@@ -55,3 +55,4 @@ def test_migration_reducer_custom_path_universal_stem_fallback() -> None:
     assert len(ops) == 1
     assert ops[0].operator == OperatorType.MIGRATION_STEP
     assert "add_search_index" in ops[0].symbol_id
+

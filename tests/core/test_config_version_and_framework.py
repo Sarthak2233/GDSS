@@ -69,3 +69,4 @@ version: "invalid_string"
         cfg = load_gdss_config(tmp_path)
     assert cfg.version == 1
     assert any("Invalid 'version' value" in r.message for r in caplog.records)
+

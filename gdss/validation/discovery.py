@@ -78,13 +78,14 @@ def find_project_root_for_file(file_path: Path, repo_root: Path) -> Path:
     return repo_root
 
 
-def load_validation_config(repo_root: Path) -> ValidationConfig:
+def load_validation_config(repo_root: Path | str) -> ValidationConfig:
     """Load configuration from .gdss.yml or .gdss.yaml in repo_root if present."""
     default_config = ValidationConfig()
-    config_file = repo_root / ".gdss.yml"
+    root_path = Path(repo_root)
+    config_file = root_path / ".gdss.yml"
     has_config = config_file.is_file()
     if not has_config:
-        config_file = repo_root / ".gdss.yaml"
+        config_file = root_path / ".gdss.yaml"
         has_config = config_file.is_file()  # dsa:ignore
 
     if not has_config:

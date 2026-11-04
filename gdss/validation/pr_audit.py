@@ -164,6 +164,8 @@ def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
         "include": [],
         "exclude": [],
         "target_bases": [],
+        "concurrency_limit": 4,
+        "condensation": "lossless",
     }
 
     config_file = repo_root / ".gdss.yml"
@@ -209,6 +211,13 @@ def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
     exclude = hierarchy_data.get("exclude") or radar_data.get("exclude") or []
     target_bases = hierarchy_data.get("target_bases") or radar_data.get("target_bases") or []
 
+    try:
+        concurrency_limit = int(radar_data.get("concurrency_limit", default_config["concurrency_limit"]))
+    except (TypeError, ValueError):
+        concurrency_limit = default_config["concurrency_limit"]
+
+    condensation = str(radar_data.get("condensation", default_config["condensation"]))
+
     return {
         "fail_on_collision": bool(
             radar_data.get("fail_on_collision", default_config["fail_on_collision"])
@@ -223,6 +232,8 @@ def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
         "include": list(include) if isinstance(include, list) else [],
         "exclude": list(exclude) if isinstance(exclude, list) else [],
         "target_bases": list(target_bases) if isinstance(target_bases, list) else [],
+        "concurrency_limit": concurrency_limit,
+        "condensation": condensation,
     }
 
 
@@ -671,6 +682,8 @@ def audit_pr_collisions(
                         config.get("model") if config else "default",
                         max_ref,
                     )
+                    concurrency_lim = int(config.get("concurrency_limit", 4)) if config else 4
+                    condensation_mode = str(config.get("condensation", "lossless")) if config else "lossless"
                     state = ConvergenceState(
                         repo_path=repo_root_str,
                         reference_branch=context.base_ref,
@@ -680,6 +693,8 @@ def audit_pr_collisions(
                         target_commit=current_head,
                         analysis_context=analysis_ctx,
                         max_refinements=max_ref,
+                        concurrency_limit=concurrency_lim,
+                        condensation_mode=condensation_mode,
                     )
                     orchestrated_state = run_convergence_pipeline(state)
 

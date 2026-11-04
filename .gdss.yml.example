@@ -12,15 +12,26 @@
 # 1. AI Convergence & PR Collision Radar
 # ------------------------------------------------------------------------------
 radar:
-  # The LLM used for semantic patch reconciliation & contract synthesis.
+  # LLM Provider:
+  #   - "openrouter" (Recommended free tier & multi-model gateway via OPENROUTER_API_KEY)
+  #   - "openai" (uses OPENAI_API_KEY)
+  #   - "deepseek" (uses DEEPSEEK_API_KEY)
+  #   - "copilot" (GitHub Copilot CLI in CI via GITHUB_TOKEN & copilot-requests: write)
+  #   - "ollama" / "vllm" (for self-hosted local setups)
+  provider: "openrouter"
+
+  # The LLM model used for semantic patch reconciliation & contract synthesis.
   # Popular options:
-  #   - "gpt-4o" (Microsoft Azure AI Foundry, OpenAI)
-  #   - "gpt-4o-mini" (Fast, lightweight, low-cost)
+  #   - "openrouter/free" (OpenRouter automated zero-cost router - default)
+  #   - "gpt-4o-mini" / "gpt-4o" (Microsoft Azure AI Foundry, OpenAI)
   #   - "deepseek-chat" (DeepSeek V3 / R1)
   #   - "claude-3-5-sonnet-20241022" (OpenRouter / Anthropic)
   #   - "llama-3.3-70b-versatile" (Groq / OpenRouter)
   #   - "qwen2.5-coder:7b" (Local Ollama / vLLM)
-  model: "gpt-4o"
+  model: "openrouter/free"
+
+  # Custom API base URL (optional, for self-hosted LLM endpoints or OpenAI-compatible proxies):
+  # base_url: "https://openrouter.ai/api/v1"
 
   # [RECOMMENDED BEST PRACTICE] Explicit Context Window (in tokens)
   # ----------------------------------------------------------------------------
@@ -40,15 +51,6 @@ radar:
   #   llama-3.3-70b: 128000
   #   deepseek-chat: 64000
   context_window: 128000
-
-  # LLM Provider:
-  #   - "openrouter" (Recommended free tier & multi-model gateway via OPENROUTER_API_KEY)
-  #   - "openai" (uses OPENAI_API_KEY)
-  #   - "deepseek" (uses DEEPSEEK_API_KEY)
-  #   - "copilot" (GitHub Copilot CLI in CI via GITHUB_TOKEN & copilot-requests: write)
-  #   - "ollama" / "vllm" (for self-hosted local setups)
-  provider: "openrouter"
-  model: "openrouter/free"  # OpenRouter automated free router, or "gpt-4o-mini", "deepseek-chat"
 
   # Collision risk sensitivity threshold (0.0 to 1.0).
   # Collisions with severity >= risk_threshold will be flagged in the PR report.
@@ -85,6 +87,15 @@ radar:
 # GDSS validates candidate reconciliation patches in isolated temporary Git
 # worktrees before human review. Configure your project's validation commands:
 validation:
+  # Multi-language syntax compilation or fast syntax linter command (Gate 1).
+  # Use {file} placeholder for targeted changed files.
+  # If omitted, GDSS runs in-process Tree-sitter AST validation across 9+ languages.
+  # Examples:
+  #   Python:        "python3 -m py_compile {file}"
+  #   TypeScript/JS: "npx eslint --no-ignore {file}"
+  #   Go:            "go vet {file}"
+  # syntax_command: "python3 -m py_compile {file}"
+
   # Targeted test runner command.
   # Use {test_file} placeholder for targeted test execution.
   # Examples:

@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 from gdss.logger import get_logger
+from gdss.validation.discovery import load_validation_config
 from gdss.validation.syntax import validate_file_syntax
 from gdss.validation.test_runner import run_targeted_tests
 from gdss.validation.typechecker import run_targeted_typecheck
@@ -98,7 +99,64 @@ class ValidationSandbox:
 
             logger.debug("Sandbox patch applied cleanly. Changed files: %s", changed_files)
 
-            # 3. Gate 1: Multi-language AST Syntax Check
+            val_config = load_validation_config(wt_path)
+            effective_timeout = timeout_seconds if timeout_seconds is not None else float(val_config.timeout_seconds)
+
+            # 3. Gate 1: Syntax Check
+            # 3a. Custom syntax command from .gdss.yml if configured
+            if val_config.syntax_command and val_config.syntax_command.strip():
+                raw_syntax_cmd = val_config.syntax_command.strip()
+                if "{file}" in raw_syntax_cmd:
+                    files_arg = " ".join(f'"{f}"' for f in changed_files) if changed_files else "."
+                    cmd_to_run = raw_syntax_cmd.replace("{file}", files_arg)
+                else:
+                    cmd_to_run = raw_syntax_cmd
+
+                logger.debug("Executing custom syntax_command: %s", cmd_to_run)
+                try:
+                    syntax_proc = subprocess.run(
+                        cmd_to_run,
+                        shell=True,
+                        cwd=wt_str,
+                        capture_output=True,
+                        text=True,
+                        timeout=effective_timeout,
+                    )
+                    if syntax_proc.returncode != 0:
+                        err_out = (syntax_proc.stderr or syntax_proc.stdout or "").strip()
+                        logger.warning("Gate 1 Custom syntax check failed: %s", err_out)
+                        return ValidationReport(
+                            status=ValidationStatus.FAILED_SYNTAX,
+                            patch_applied=True,
+                            syntax=SyntaxCheckResult(
+                                valid=False,
+                                language="custom",
+                                error_message=err_out or "Syntax command exited non-zero",
+                            ),
+                            types=empty_types,
+                            tests=empty_tests,
+                            worktree_path=wt_str,
+                            duration_ms=elapsed_ms(),  # dsa:ignore
+                            error_summary=f"Syntax command failed: {err_out or 'Non-zero exit'}",
+                        )
+                except subprocess.TimeoutExpired:
+                    logger.warning("Gate 1 Custom syntax check timed out after %.1fs", effective_timeout)
+                    return ValidationReport(
+                        status=ValidationStatus.FAILED_SYNTAX,
+                        patch_applied=True,
+                        syntax=SyntaxCheckResult(
+                            valid=False,
+                            language="custom",
+                            error_message=f"Syntax command timed out after {effective_timeout}s",
+                        ),
+                        types=empty_types,
+                        tests=empty_tests,
+                        worktree_path=wt_str,
+                        duration_ms=elapsed_ms(),  # dsa:ignore
+                        error_summary=f"Syntax command timed out after {effective_timeout}s",
+                    )
+
+            # 3b. Multi-language AST Syntax Check (Tree-sitter)
             for f in changed_files:
                 target_file = wt_path / f
                 if target_file.is_file():

@@ -3,6 +3,33 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-04 - Phase 1 Remediation: Validation Sandbox & Configuration Engine
+
+- **Validation Sandbox Custom Syntax Command Execution (`gdss/validation/sandbox.py`)**:
+  - Wired Gate 1 to execute `validation.syntax_command` from `.gdss.yml` in ephemeral Git worktrees when configured.
+  - Formatted `{file}` placeholder with changed files (or `.` if empty) and applied worktree execution context with timeout guards.
+  - Maintained subsequent in-process Tree-sitter AST syntax validation for all changed files.
+- **Typechecker & Test Runner Placeholder & Exit Code Fixes (`gdss/validation/typechecker.py`, `gdss/validation/test_runner.py`)**:
+  - Replaced `{file}` placeholder with formatted changed file paths instead of passing literal string `{file}` to CLI compilers (mypy, javac, gcc).
+  - Validated that commands are non-whitespace before launching subprocesses.
+  - Handled Pytest exit code 5 (no tests collected) as a passing test execution result rather than an error that rejects valid candidate patches.
+- **Radar Config Plumber & Suggester CLI Timeout (`gdss/validation/pr_audit.py`, `gdss/cli/main.py`, `gdss/validation/discovery.py`)**:
+  - Parsed `concurrency_limit` and `condensation` from `.gdss.yml` in `load_radar_config` and forwarded them to `ConvergenceState`.
+  - Fixed CLI timeout shadowing in `gdss suggest`: changed `--sandbox-timeout` default to `None` and resolved timeout using `get_sandbox_timeout` (CLI flag -> env var `GDSS_SANDBOX_TIMEOUT` -> `.gdss.yml` `timeout_seconds` -> default 30s).
+  - Made `load_validation_config` accept `Path | str` for broader API ergonomics.
+- **Example & Documentation Cleanliness (`.gdss.yml.example`, `docs/CONFIGURATION_VALIDATION_AUDIT_REPORT.md`)**:
+  - Removed duplicate `model:` key from `.gdss.yml.example` across both GDSS and gdss-radar repositories.
+  - Added commented reference examples for `syntax_command` and `base_url`.
+  - Persisted the comprehensive audit findings in `docs/CONFIGURATION_VALIDATION_AUDIT_REPORT.md`.
+- **TDD Test Suite (`tests/validation/test_validation_config_remediation.py`)**:
+  - Authored 6 unit tests covering `{file}` replacement in typechecker and test runner, pytest exit code 5 handling, radar concurrency and condensation loading, sandbox syntax command failure/success execution, and timeout precedence.
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Python tests: 369 passed, 3 skipped, 1 warning in 51.03s.
+  - Frontend tests: 35 files, 118 passed.
+  - Size limit: 52.78 kB brotlied (app route), button 1.17 kB, metric card 1.26 kB.
+
+
 ## 2026-11-02 - Documentation Synchronization & Plan Persistence (GDSS + gdss-radar)
 
 - **Root & Action Documentation Audit (`README.md`, `gdss-radar/README.md`)**:

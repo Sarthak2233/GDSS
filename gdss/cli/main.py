@@ -252,8 +252,10 @@ def suggest(
     validate: bool = typer.Option(
         False, "--validate", help="Validate candidate patches in ephemeral sandbox"
     ),
-    sandbox_timeout: int = typer.Option(
-        30, "--sandbox-timeout", help="Timeout in seconds for sandbox validation"
+    sandbox_timeout: int | None = typer.Option(
+        None,
+        "--sandbox-timeout",
+        help="Timeout in seconds for sandbox validation (defaults to .gdss.yml timeout_seconds or 30s)",
     ),
     context_window: int | None = typer.Option(
         None, "--context-window", help="Explicit LLM context window size override in tokens"
@@ -315,6 +317,13 @@ def suggest(
         orchestrated_state = None
         if validate or (llm and not as_prompt):
             from gdss.ai.orchestration import ConvergenceState, run_convergence_pipeline
+            from gdss.validation.discovery import get_sandbox_timeout, load_validation_config
+
+            val_cfg = load_validation_config(repo)
+            resolved_timeout = get_sandbox_timeout(
+                config_timeout=val_cfg.timeout_seconds,
+                cli_timeout=sandbox_timeout,
+            )
 
             state = ConvergenceState(
                 repo_path=repo,
@@ -325,7 +334,7 @@ def suggest(
                 validate=validate,
                 combos=combos,
                 max_candidates=max_candidates,
-                sandbox_timeout=float(sandbox_timeout),
+                sandbox_timeout=float(resolved_timeout),
                 provider=provider,
                 max_refinements=max_refinements,
                 concurrency_limit=concurrency,

@@ -170,7 +170,7 @@ def run_targeted_tests(
     if not cmd:
         cmd, tool_name = detect_test_command(root, changed_files)
 
-    if not cmd:
+    if not cmd or not cmd.strip():
         logger.debug("No automated test framework detected for %s", root)
         return TestExecutionResult(
             executed=False,
@@ -178,6 +178,14 @@ def run_targeted_tests(
             tool="none",
             output="No test runner detected",
         )
+
+    # If changed files are provided, format {file} if placeholder exists
+    if "{file}" in cmd:
+        if changed_files:
+            file_args = " ".join(f'"{f}"' for f in changed_files)
+            cmd = cmd.replace("{file}", file_args)
+        else:
+            cmd = cmd.replace("{file}", ".").strip()
 
     # If changed files are provided, format {test_file} if placeholder exists
     if "{test_file}" in cmd:
@@ -211,7 +219,13 @@ def run_targeted_tests(
             timeout=resolved_timeout,
         )
         output = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
-        passed = proc.returncode == 0
+        # Pytest exit code 5 means 0 tests collected; treat as passed with notice
+        is_pytest_zero_tests = proc.returncode == 5 and (
+            "pytest" in cmd.lower() or tool_name == "pytest"
+        )
+        passed = proc.returncode == 0 or is_pytest_zero_tests
+        if is_pytest_zero_tests and not output.strip():
+            output = "No tests collected (pytest exit code 5)"
 
         # Basic parse of test results
         tests_passed = 0

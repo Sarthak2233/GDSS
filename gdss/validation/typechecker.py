@@ -65,7 +65,7 @@ def run_targeted_typecheck(
     if not cmd:
         cmd, tool_name = detect_typecheck_command(root, changed_files)
 
-    if not cmd:
+    if not cmd or not cmd.strip():
         logger.debug("No static typechecker detected for %s", root)
         return TypeCheckResult(
             checked=False,
@@ -73,6 +73,14 @@ def run_targeted_typecheck(
             tool="none",
             output="No typechecker detected",
         )
+
+    # Format {file} placeholder with changed file paths
+    if "{file}" in cmd:
+        if changed_files:
+            file_args = " ".join(f'"{f}"' for f in changed_files)
+            cmd = cmd.replace("{file}", file_args)
+        else:
+            cmd = cmd.replace("{file}", ".").strip()
 
     env = dict(os.environ)
     env["CI"] = "true"

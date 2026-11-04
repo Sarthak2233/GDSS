@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from gdss.core.ast_parser import SOURCE_EXTENSIONS
 from gdss.reducers.base import DomainReducer
 from gdss.reducers.lexical_reducer import UniversalLexicalReducer
@@ -14,9 +16,9 @@ from gdss.reducers.sql_reducer import SQLSchemaReducer
 class DomainReducerRegistry:
     """Registry resolving file paths and contents to appropriate domain reducers."""
 
-    def __init__(self) -> None:
+    def __init__(self, migration_paths: Sequence[str] | None = None) -> None:
         self.manifest_reducer = ManifestReducer()
-        self.migration_reducer = MigrationDAGReducer()
+        self.migration_reducer = MigrationDAGReducer(custom_paths=migration_paths)
         self.sql_reducer = SQLSchemaReducer()
         self.markdown_reducer = MarkdownSectionReducer()
         self.lexical_reducer = UniversalLexicalReducer()

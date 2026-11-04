@@ -21,8 +21,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from gdss.core.transform_types import OperatorType, SemanticOperator
 from gdss.logger import ci_group, get_logger
 from gdss.runtime.hierarchy import matches_any_pattern
@@ -151,50 +149,12 @@ def parse_github_env(event_path: str | None = None) -> PRAuditContext | None:
 
 def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
     """Load radar and hierarchy configuration from .gdss.yml or return defaults."""
-    repo_root = Path(repo_path)
-    default_config: dict[str, Any] = {
-        "fail_on_collision": False,
-        "risk_threshold": 0.8,
-        "model": "gpt-4o-mini",
-        "provider": "openrouter",
-        "base_url": None,
-        "context_window": None,
-        "max_refinements": 2,
-        "same_base_only": True,
-        "include": [],
-        "exclude": [],
-        "target_bases": [],
-        "concurrency_limit": 4,
-        "condensation": "lossless",
-    }
+    from gdss.core.config import load_gdss_config
 
-    config_file = repo_root / ".gdss.yml"
-    has_config = config_file.is_file()
-    if not has_config:
-        config_file = repo_root / ".gdss.yaml"
-        has_config = config_file.is_file()  # dsa:ignore
+    cfg = load_gdss_config(repo_path)
+    has_custom = bool(cfg.raw_data)
 
-    if not has_config:
-        return default_config
-
-    try:
-        data = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
-    except Exception:
-        return default_config
-
-    radar_data = data.get("radar", {})
-    if not isinstance(radar_data, dict):
-        radar_data = {}
-
-    hierarchy_data = data.get("hierarchy", {})
-    if not isinstance(hierarchy_data, dict):
-        hierarchy_data = {}
-
-    raw_ctx = radar_data.get("context_window")
-    ctx_win = int(raw_ctx) if raw_ctx is not None and str(raw_ctx).isdigit() else None
-    max_ref = int(radar_data.get("max_refinements", 2))
-    base_url = radar_data.get("base_url") or os.environ.get("OPENAI_BASE_URL")
-    provider_name = str(radar_data.get("provider", default_config["provider"]))
+    provider_name = cfg.radar.provider
     if provider_name == "github":
         logger.warning(
             "Configured provider 'github' (GitHub Models) was retired on July 30, 2026. "
@@ -203,37 +163,35 @@ def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
         )
         provider_name = "openrouter"
 
-    same_base = hierarchy_data.get("same_base_only")
-    if same_base is None:
-        same_base = radar_data.get("same_base_only", default_config["same_base_only"])
-
-    include = hierarchy_data.get("include") or radar_data.get("include") or []
-    exclude = hierarchy_data.get("exclude") or radar_data.get("exclude") or []
-    target_bases = hierarchy_data.get("target_bases") or radar_data.get("target_bases") or []
-
-    try:
-        concurrency_limit = int(radar_data.get("concurrency_limit", default_config["concurrency_limit"]))
-    except (TypeError, ValueError):
-        concurrency_limit = default_config["concurrency_limit"]
-
-    condensation = str(radar_data.get("condensation", default_config["condensation"]))
+    base_url = cfg.radar.base_url or os.environ.get("OPENAI_BASE_URL")
+    ctx_win = (
+        cfg.radar.context_window
+        if has_custom and "context_window" in cfg.raw_data.get("radar", {})
+        else None
+    )
 
     return {
-        "fail_on_collision": bool(
-            radar_data.get("fail_on_collision", default_config["fail_on_collision"])
+        "fail_on_collision": cfg.radar.fail_on_collision,
+        "risk_threshold": (
+            cfg.radar.risk_threshold
+            if has_custom and "risk_threshold" in cfg.raw_data.get("radar", {})
+            else (cfg.radar.risk_threshold if has_custom else 0.8)
         ),
-        "risk_threshold": float(radar_data.get("risk_threshold", default_config["risk_threshold"])),
-        "model": str(radar_data.get("model", default_config["model"])),
+        "model": (
+            cfg.radar.model
+            if has_custom and "model" in cfg.raw_data.get("radar", {})
+            else (cfg.radar.model if has_custom else "gpt-4o-mini")
+        ),
         "provider": provider_name,
         "base_url": str(base_url).strip() if base_url else None,
         "context_window": ctx_win,
-        "max_refinements": max_ref,
-        "same_base_only": bool(same_base),
-        "include": list(include) if isinstance(include, list) else [],
-        "exclude": list(exclude) if isinstance(exclude, list) else [],
-        "target_bases": list(target_bases) if isinstance(target_bases, list) else [],
-        "concurrency_limit": concurrency_limit,
-        "condensation": condensation,
+        "max_refinements": cfg.radar.max_refinements,
+        "same_base_only": cfg.radar.same_base_only,
+        "include": list(cfg.radar.include),
+        "exclude": list(cfg.radar.exclude),
+        "target_bases": list(cfg.radar.target_bases),
+        "concurrency_limit": cfg.radar.concurrency_limit,
+        "condensation": cfg.radar.condensation,
     }
 
 

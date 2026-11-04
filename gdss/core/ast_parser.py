@@ -135,33 +135,14 @@ SOURCE_EXTENSIONS: tuple[str, ...] = DEFAULT_SOURCE_EXTENSIONS
 
 def get_source_extensions(repo_root: Path | str | None = None) -> tuple[str, ...]:
     """Return all source extensions tracked by GDSS, merged with any .gdss.yml config."""
-    custom_exts: list[str] = []
+    custom_exts: tuple[str, ...] = ()
     if repo_root is not None:
-        p = Path(repo_root)
-        config_file = p / ".gdss.yml"
-        has_config = config_file.is_file()
-        if not has_config:
-            config_file = p / ".gdss.yaml"
-            has_config = config_file.is_file()  # dsa:ignore
-        if has_config:
-            try:
-                import yaml
+        from gdss.core.config import load_gdss_config
 
-                data = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
-                ast_cfg = data.get("ast", {})
-                if isinstance(ast_cfg, dict):
-                    raw_exts = ast_cfg.get("additional_extensions", [])
-                    if isinstance(raw_exts, list):
-                        for e in raw_exts:
-                            e_norm = str(e).lower().strip()
-                            if e_norm and not e_norm.startswith("."):
-                                e_norm = f".{e_norm}"
-                            if e_norm:
-                                custom_exts.append(e_norm)
-            except Exception:
-                pass
+        cfg = load_gdss_config(repo_root)
+        custom_exts = cfg.ast.additional_extensions
 
-    all_exts = list(DEFAULT_SOURCE_EXTENSIONS) + list(LANGUAGE_REGISTRY.keys()) + custom_exts
+    all_exts = list(DEFAULT_SOURCE_EXTENSIONS) + list(LANGUAGE_REGISTRY.keys()) + list(custom_exts)
     seen: set[str] = set()
     result: list[str] = []
     for ext in all_exts:

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Sequence
 from pathlib import PurePosixPath
 from typing import Any
 
+from gdss.core.config import is_path_excluded
 from gdss.core.transform_types import OperatorType, SemanticOperator
 from gdss.logger import get_logger
 
@@ -27,9 +29,16 @@ _RAILS_TIMESTAMP_RE = re.compile(r"(?:^|/)(\d{14})_[^/]+\.rb$")
 class MigrationDAGReducer:
     """Extracts DAG sequencing and revision operators from database migration files."""
 
+    def __init__(self, custom_paths: Sequence[str] | None = None) -> None:
+        self.custom_paths: tuple[str, ...] = tuple(custom_paths) if custom_paths else ()
+
     def can_handle(self, file_path: str, content: str | None = None) -> bool:
         norm = PurePosixPath(file_path)
         parts = {p.lower() for p in norm.parts}
+
+        # 0. Custom configured migration paths
+        if self.custom_paths and is_path_excluded(file_path, self.custom_paths):
+            return True
 
         # 1. Directory pattern check
         if parts & _MIGRATION_DIR_SEGMENTS:

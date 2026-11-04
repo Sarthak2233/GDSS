@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 from gdss.core.ast_parser import ASTParser, get_source_extensions
+from gdss.core.config import is_path_excluded, load_gdss_config
 from gdss.graph.code_graph import CodeGraph
 from gdss.logger import get_logger
 
@@ -49,6 +50,9 @@ def build_code_graph_from_repo(
     file_list = []
     skipped_unsupported: dict[str, int] = {}
     valid_exts = set(get_source_extensions(root_path))
+    cfg = load_gdss_config(root_path)
+    exclude_patterns = cfg.ast.exclude_patterns
+
     for root, dirs, files in os.walk(root_path):
         dirs[:] = [
             name
@@ -56,8 +60,14 @@ def build_code_graph_from_repo(
             if name not in SKIP_DIR_NAMES
             and not name.startswith(".")
             and not name.endswith(".egg-info")
+            and not is_path_excluded(
+                os.path.relpath(os.path.join(root, name), root_path), exclude_patterns
+            )
         ]
         for filename in files:
+            rel_file = os.path.relpath(os.path.join(root, filename), root_path)
+            if is_path_excluded(rel_file, exclude_patterns):
+                continue
             if (
                 filename.endswith(".min.js")
                 or filename.endswith(".min.css")

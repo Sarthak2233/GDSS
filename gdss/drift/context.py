@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 from gdss.conflict.tensor import ConflictTensor, TensorEngine, TensorEntry
@@ -23,24 +22,18 @@ logger = get_logger("gdss.drift.context")
 
 def _load_repo_hierarchy_config(repo_path: str) -> dict[str, Any]:
     """Safely load hierarchy configuration block from .gdss.yml or .gdss.yaml."""
-    repo_root = Path(repo_path)
-    config_file = repo_root / ".gdss.yml"
-    has_config = config_file.is_file()
-    if not has_config:
-        config_file = repo_root / ".gdss.yaml"
-        has_config = config_file.is_file()  # dsa:ignore
-    if not has_config:
-        return {}
-    try:
-        import yaml
+    from gdss.core.config import load_gdss_config
 
-        data = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
-        hierarchy = data.get("hierarchy", {})
-        if isinstance(hierarchy, dict):
-            return hierarchy
-        return {}
-    except Exception:
-        return {}
+    cfg = load_gdss_config(repo_path)
+    h = cfg.hierarchy
+    return {
+        "reference_branch": h.reference_branch,
+        "priority_chain": list(h.priority_chain),
+        "same_base_only": h.same_base_only,
+        "include": list(h.include),
+        "exclude": list(h.exclude),
+        "target_bases": list(h.target_bases),
+    }
 
 
 class AnalysisContextError(ValueError):

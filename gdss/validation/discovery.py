@@ -9,9 +9,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
-
-import yaml
 
 # Standard project descriptor files across major ecosystems
 PROJECT_DESCRIPTORS = {
@@ -80,31 +77,14 @@ def find_project_root_for_file(file_path: Path, repo_root: Path) -> Path:
 
 def load_validation_config(repo_root: Path | str) -> ValidationConfig:
     """Load configuration from .gdss.yml or .gdss.yaml in repo_root if present."""
-    default_config = ValidationConfig()
-    root_path = Path(repo_root)
-    config_file = root_path / ".gdss.yml"
-    has_config = config_file.is_file()
-    if not has_config:
-        config_file = root_path / ".gdss.yaml"
-        has_config = config_file.is_file()  # dsa:ignore
+    from gdss.core.config import load_gdss_config
 
-    if not has_config:
-        return default_config
-
-    try:
-        data = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
-    except Exception:
-        return default_config
-
-    val_data: dict[str, Any] = data.get("validation", {})
-    if not isinstance(val_data, dict):
-        val_data = {}
-
+    cfg = load_gdss_config(repo_root)
     return ValidationConfig(
-        test_command=val_data.get("test_command"),
-        typecheck_command=val_data.get("typecheck_command"),
-        syntax_command=val_data.get("syntax_command"),
-        timeout_seconds=int(val_data.get("timeout_seconds", 30)),
+        test_command=cfg.validation.test_command,
+        typecheck_command=cfg.validation.typecheck_command,
+        syntax_command=cfg.validation.syntax_command,
+        timeout_seconds=cfg.validation.timeout_seconds,
     )
 
 

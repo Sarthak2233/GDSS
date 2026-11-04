@@ -1,12 +1,4 @@
 {
-  "gdss/ai/orchestration.py": [
-    {
-      "lineno": 110,
-      "what": "Repeated function call 'len(st.suggestions)' in function 'analyze_step'",
-      "why": "Calling 'len(st.suggestions)' multiple times in the same function computes the same result repeatedly.",
-      "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
-    }
-  ],
   "gdss/api/service.py": [
     {
       "lineno": 442,
@@ -23,13 +15,13 @@
   ],
   "gdss/core/ast_parser.py": [
     {
-      "lineno": 533,
+      "lineno": 514,
       "what": "Repeated function call 'self._append_symbol(symbols, sym, chart_location)' in function '_parse_python'",
       "why": "Calling 'self._append_symbol(symbols, sym, chart_location)' multiple times in the same function computes the same result repeatedly.",
       "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."
     },
     {
-      "lineno": 707,
+      "lineno": 688,
       "what": "Repeated function call 'self._append_symbol(symbols, sym, chart_location)' in function '_parse_js_ts'",
       "why": "Calling 'self._append_symbol(symbols, sym, chart_location)' multiple times in the same function computes the same result repeatedly.",
       "fix": "Assign the result to a local variable or cache it using '@functools.lru_cache'."

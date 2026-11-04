@@ -3,6 +3,29 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-04 - Phase 2: Schema Unification & Loader Consolidation (P1)
+
+- **Centralized Configuration Architecture (`gdss/core/config.py`)**:
+  - Implemented authoritative, immutable dataclasses: `RadarConfig`, `ValidationConfig`, `HierarchyConfig`, `ASTConfig`, `MigrationsConfig`, and `GDSSConfig`.
+  - Implemented single authoritative loader `load_gdss_config(repo_root)` in Layer 4 (pure deterministic core), safely parsing `.gdss.yml` and `.gdss.yaml` with normalization and clean fallbacks.
+  - Implemented `is_path_excluded(rel_path, exclude_patterns)` with fnmatch and glob prefix matching.
+- **Backward-Compatible Loader Delegation**:
+  - Refactored `gdss/core/ast_parser.py` (`get_source_extensions`), `gdss/drift/context.py` (`_load_repo_hierarchy_config`), `gdss/validation/discovery.py` (`load_validation_config`), and `gdss/validation/pr_audit.py` (`load_radar_config`) to delegate directly to `load_gdss_config`, eliminating duplicate `yaml.safe_load` logic.
+- **Wired Dormant Settings (`ast.exclude_patterns`, `migrations.paths`)**:
+  - Connected `ast.exclude_patterns` to `gdss/core/trajectory.py` (`extract_trajectory_operators`) and `gdss/graph/graph_builder.py` (`build_code_graph`), skipping excluded paths (e.g., `dist/**`, `node_modules/**`, `*.min.js`) from operator extraction and graph node construction.
+  - Added `custom_paths` to `MigrationDAGReducer` and `DomainReducerRegistry`, allowing custom migration directories to participate in split-head collision detection.
+- **Hierarchy Defaults & CLI Cascades (`gdss/cli/start.py`)**:
+  - Cascaded candidate branch filtering: CLI flags -> runtime DB -> `.gdss.yml` hierarchy defaults -> fallback.
+- **TDD Test Suite (`tests/core/test_config.py`)**:
+  - Authored 6 unit tests covering default config, YAML parsing, path exclusion matching, backward-compatibility loader delegation, migration custom paths, and trajectory exclude pattern filtering.
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Layer 1 (lint, mypy 100 source files, architecture fitness, DSA fitness): OK.
+  - Layer 2 (pytest 375 passed, 3 skipped, 1 warning in 51.48s): OK.
+  - Layer 3 (CLI smoke, API smoke): OK.
+  - Frontend gate (eslint, tsc, token fitness, vitest 118 passed across 35 files, size-limit): OK.
+
+
 ## 2026-11-04 - Phase 1 Remediation: Validation Sandbox & Configuration Engine
 
 - **Validation Sandbox Custom Syntax Command Execution (`gdss/validation/sandbox.py`)**:

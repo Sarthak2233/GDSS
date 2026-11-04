@@ -234,6 +234,12 @@ class GDSSShell(cmd.Cmd):
         repo_id = self.daemon.repo_id if hasattr(self, "daemon") and self.daemon else 1
         db_inc, db_exc = self.hierarchy.get_branch_filters(repo_id)
 
+        from gdss.core.config import load_gdss_config
+
+        cfg = load_gdss_config(self.repo_path)
+        cfg_inc = list(cfg.hierarchy.include) if cfg.hierarchy.include else []
+        cfg_exc = list(cfg.hierarchy.exclude) if cfg.hierarchy.exclude else []
+
         tokens = arg_text.split() if arg_text else []
         cli_inc: list[str] = []
         cli_exc: list[str] = []
@@ -251,8 +257,8 @@ class GDSSShell(cmd.Cmd):
             else:
                 idx += 1
 
-        inc = cli_inc or db_inc or None
-        exc = cli_exc or db_exc or None
+        inc = cli_inc or db_inc or cfg_inc or None
+        exc = cli_exc or db_exc or cfg_exc or None
         return filter_branches(local_branches, include=inc, exclude=exc, reference_branch=ref)
 
     def _extract_uncommitted_operators(self) -> list[SemanticOperator]:

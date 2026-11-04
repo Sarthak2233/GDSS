@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from gdss.core.ast_parser import SOURCE_EXTENSIONS, ASTParser
+from gdss.core.config import is_path_excluded, load_gdss_config
 from gdss.core.transform_extractor import TransformExtractor
 from gdss.core.transform_types import SemanticOperator
 from gdss.reducers.registry import DomainReducerRegistry
@@ -19,6 +20,7 @@ def extract_trajectory_operators(
     head: str = "HEAD",
     extensions: Sequence[str] = SOURCE_EXTENSIONS,
     reducer_registry: DomainReducerRegistry | None = None,
+    exclude_patterns: Sequence[str] = (),
 ) -> list[SemanticOperator]:
     """
     Aggregate symbol-level SemanticOperators across committed divergence
@@ -46,9 +48,22 @@ def extract_trajectory_operators(
     changes = observer.get_file_diffs_between_commits(merge_base, head_commit.hexsha)
     operators: list[SemanticOperator] = []
     ext_tuple = tuple(extensions)
-    registry = reducer_registry or DomainReducerRegistry()
+
+    repo_dir = (
+        observer.repo.working_dir
+        if observer.repo and hasattr(observer.repo, "working_dir")
+        else None
+    )
+    cfg = load_gdss_config(repo_dir) if repo_dir else None
+
+    effective_exclude = exclude_patterns or (cfg.ast.exclude_patterns if cfg else ())
+    registry = reducer_registry or DomainReducerRegistry(
+        migration_paths=cfg.migrations.paths if cfg else None
+    )
 
     for path in changes.get("modified", []):
+        if is_path_excluded(path, effective_exclude):  # dsa:ignore
+            continue
         old_content = observer.get_file_content_at_commit(merge_base, path)  # dsa:ignore
         new_content = observer.get_file_content_at_commit(head_commit.hexsha, path)  # dsa:ignore
         if old_content is None and new_content is None:
@@ -68,6 +83,8 @@ def extract_trajectory_operators(
             )
 
     for path in changes.get("added", []):
+        if is_path_excluded(path, effective_exclude):  # dsa:ignore
+            continue
         new_content = observer.get_file_content_at_commit(head_commit.hexsha, path)  # dsa:ignore
         if new_content is None:
             continue
@@ -85,6 +102,8 @@ def extract_trajectory_operators(
             )
 
     for path in changes.get("deleted", []):
+        if is_path_excluded(path, effective_exclude):  # dsa:ignore
+            continue
         old_content = observer.get_file_content_at_commit(merge_base, path)  # dsa:ignore
         if old_content is None:
             continue

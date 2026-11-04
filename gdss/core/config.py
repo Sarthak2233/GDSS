@@ -1,0 +1,281 @@
+"""Unified repository configuration loader for GDSS (.gdss.yml / .gdss.yaml).
+
+Provides typed, immutable schema dataclasses and a single authoritative
+loader for the deterministic core, collision radar, and validation sandbox.
+"""
+
+from __future__ import annotations
+
+import fnmatch
+import os
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+from pathlib import Path, PurePosixPath
+from typing import Any
+
+import yaml
+
+from gdss.logger import get_logger
+
+logger = get_logger("gdss.core.config")
+
+
+@dataclass(frozen=True)
+class RadarConfig:
+    """Configuration for PR collision radar and AI convergence."""
+
+    provider: str = "openrouter"
+    model: str = "openrouter/free"
+    base_url: str | None = None
+    context_window: int = 128_000
+    risk_threshold: float = 0.1
+    max_refinements: int = 2
+    concurrency_limit: int = 4
+    condensation: str = "lossless"
+    fail_on_collision: bool = False
+    same_base_only: bool = True
+    include: tuple[str, ...] = ()
+    exclude: tuple[str, ...] = ()
+    target_bases: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ValidationConfig:
+    """Configuration for ephemeral sandbox validation."""
+
+    test_command: str | None = None
+    typecheck_command: str | None = None
+    syntax_command: str | None = None
+    install_command: str | None = None
+    timeout_seconds: int = 30
+
+
+@dataclass(frozen=True)
+class HierarchyConfig:
+    """Configuration for branch hierarchies and landing precedence."""
+
+    reference_branch: str = "main"
+    priority_chain: tuple[str, ...] = ("main", "develop")
+    same_base_only: bool = True
+    include: tuple[str, ...] = ()
+    exclude: tuple[str, ...] = ()
+    target_bases: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ASTConfig:
+    """Configuration for multi-language AST scanning and path filtering."""
+
+    additional_extensions: tuple[str, ...] = ()
+    exclude_patterns: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class MigrationsConfig:
+    """Configuration for database migration directories and DAG tracking."""
+
+    paths: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class GDSSConfig:
+    """Top-level unified GDSS repository configuration."""
+
+    radar: RadarConfig = field(default_factory=RadarConfig)
+    validation: ValidationConfig = field(default_factory=ValidationConfig)
+    hierarchy: HierarchyConfig = field(default_factory=HierarchyConfig)
+    ast: ASTConfig = field(default_factory=ASTConfig)
+    migrations: MigrationsConfig = field(default_factory=MigrationsConfig)
+    raw_data: dict[str, Any] = field(default_factory=dict)
+
+
+def is_path_excluded(rel_path: str, exclude_patterns: Sequence[str]) -> bool:
+    """Check if a relative path matches any exclusion pattern."""
+    if not exclude_patterns:
+        return False
+    norm_path = rel_path.replace("\\", "/").strip("/")
+    p = PurePosixPath(norm_path)
+    for pattern in exclude_patterns:
+        pat = pattern.replace("\\", "/").strip("/")
+        if not pat:
+            continue
+        # 1. Direct fnmatch against full path
+        if fnmatch.fnmatch(norm_path, pat):
+            return True
+        # 2. Match basename
+        if fnmatch.fnmatch(p.name, pat):
+            return True
+        # 3. Path match (e.g. dist/** or node_modules/**)
+        try:
+            if p.match(pat):
+                return True
+        except Exception:
+            pass
+        # 4. Handle dir/** or dir/* prefix pattern
+        if pat.endswith("/**"):
+            dir_prefix = pat[:-3]
+            if norm_path == dir_prefix or norm_path.startswith(dir_prefix + "/"):
+                return True
+        elif pat.endswith("/*"):
+            dir_prefix = pat[:-2]
+            if norm_path == dir_prefix or norm_path.startswith(dir_prefix + "/"):
+                return True
+        elif norm_path == pat or norm_path.startswith(pat + "/"):
+            return True
+    return False
+
+
+def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> GDSSConfig:
+    """Load and normalize .gdss.yml or .gdss.yaml from repo_root if present."""
+    empty_cfg = GDSSConfig()
+    if repo_root is None:
+        return empty_cfg
+
+    root_path = Path(repo_root).resolve()
+    config_file = root_path / ".gdss.yml"
+    has_config = config_file.is_file()
+    if not has_config:
+        config_file = root_path / ".gdss.yaml"
+        has_config = config_file.is_file()  # dsa:ignore
+
+    if not has_config:
+        return empty_cfg
+
+    try:
+        data = yaml.safe_load(config_file.read_text(encoding="utf-8")) or {}
+        if not isinstance(data, dict):
+            return empty_cfg
+    except Exception as exc:
+        logger.warning("Failed to parse %s: %s", config_file, exc)
+        return empty_cfg
+
+    def _to_clean_tuple(raw_items: Any) -> tuple[str, ...]:
+        if not isinstance(raw_items, (list, tuple)):
+            return ()
+        out: list[str] = []
+        for item in raw_items:
+            clean = str(item).strip()
+            if clean:
+                out.append(clean)
+        return tuple(out)
+
+    # 1. Parse hierarchy block
+    h_data = data.get("hierarchy", {})
+    if not isinstance(h_data, dict):
+        h_data = {}
+
+    h_ref = str(h_data.get("reference_branch", "main")).strip() or "main"
+    h_chain = _to_clean_tuple(h_data.get("priority_chain", ["main", "develop"])) or ("main", "develop")
+    h_same_base = bool(h_data.get("same_base_only", True))
+    h_inc = _to_clean_tuple(h_data.get("include", ()))
+    h_exc = _to_clean_tuple(h_data.get("exclude", ()))
+    h_targets = _to_clean_tuple(h_data.get("target_bases", ()))
+
+    hierarchy_cfg = HierarchyConfig(
+        reference_branch=h_ref,
+        priority_chain=h_chain,
+        same_base_only=h_same_base,
+        include=h_inc,
+        exclude=h_exc,
+        target_bases=h_targets,
+    )
+
+    # 2. Parse radar block
+    r_data = data.get("radar", {})
+    if not isinstance(r_data, dict):
+        r_data = {}
+
+    # Support fallback of branch filtering keys under radar or hierarchy
+    r_same_base = bool(r_data.get("same_base_only", h_same_base))
+    r_inc = _to_clean_tuple(r_data.get("include", h_inc))
+    r_exc = _to_clean_tuple(r_data.get("exclude", h_exc))
+    r_targets = _to_clean_tuple(r_data.get("target_bases", h_targets))
+
+    base_url_raw = r_data.get("base_url")
+    base_url = str(base_url_raw).strip() if base_url_raw else None
+
+    radar_cfg = RadarConfig(
+        provider=str(r_data.get("provider", "openrouter")).strip() or "openrouter",
+        model=str(r_data.get("model", "openrouter/free")).strip() or "openrouter/free",
+        base_url=base_url,
+        context_window=int(r_data.get("context_window", 128_000)),
+        risk_threshold=float(r_data.get("risk_threshold", 0.1)),
+        max_refinements=int(r_data.get("max_refinements", 2)),
+        concurrency_limit=int(r_data.get("concurrency_limit", 4)),
+        condensation=str(r_data.get("condensation", "lossless")).strip() or "lossless",
+        fail_on_collision=bool(r_data.get("fail_on_collision", False)),
+        same_base_only=r_same_base,
+        include=r_inc,
+        exclude=r_exc,
+        target_bases=r_targets,
+    )
+
+    # 3. Parse validation block
+    v_data = data.get("validation", {})
+    if not isinstance(v_data, dict):
+        v_data = {}
+
+    test_cmd = str(v_data.get("test_command") or "").strip() or None
+    type_cmd = str(v_data.get("typecheck_command") or "").strip() or None
+    syntax_cmd = str(v_data.get("syntax_command") or "").strip() or None
+    install_cmd = str(v_data.get("install_command") or "").strip() or None
+
+    validation_cfg = ValidationConfig(
+        test_command=test_cmd,
+        typecheck_command=type_cmd,
+        syntax_command=syntax_cmd,
+        install_command=install_cmd,
+        timeout_seconds=int(v_data.get("timeout_seconds", 30)),
+    )
+
+    # 4. Parse AST block
+    a_data = data.get("ast", {})
+    if not isinstance(a_data, dict):
+        a_data = {}
+
+    raw_exts = a_data.get("additional_extensions", ())
+    norm_exts: list[str] = []
+    if isinstance(raw_exts, (list, tuple)):
+        for e in raw_exts:
+            e_str = str(e).lower().strip()
+            if e_str and not e_str.startswith("."):
+                e_str = f".{e_str}"
+            if e_str and e_str not in norm_exts:
+                norm_exts.append(e_str)
+
+    raw_excl = a_data.get("exclude_patterns", ())
+    norm_excl: list[str] = []
+    if isinstance(raw_excl, (list, tuple)):
+        for pat in raw_excl:
+            p_str = str(pat).strip()
+            if p_str and p_str not in norm_excl:
+                norm_excl.append(p_str)
+
+    ast_cfg = ASTConfig(
+        additional_extensions=tuple(norm_exts),
+        exclude_patterns=tuple(norm_excl),
+    )
+
+    # 5. Parse migrations block
+    m_data = data.get("migrations", {})
+    if not isinstance(m_data, dict):
+        m_data = {}
+
+    raw_paths = m_data.get("paths", ())
+    norm_paths: list[str] = []
+    if isinstance(raw_paths, (list, tuple)):
+        for p in raw_paths:
+            p_str = str(p).strip()
+            if p_str and p_str not in norm_paths:
+                norm_paths.append(p_str)
+
+    migrations_cfg = MigrationsConfig(paths=tuple(norm_paths))
+
+    return GDSSConfig(
+        radar=radar_cfg,
+        validation=validation_cfg,
+        hierarchy=hierarchy_cfg,
+        ast=ast_cfg,
+        migrations=migrations_cfg,
+        raw_data=data,
+    )

@@ -180,6 +180,16 @@ ast:
     - .sol
     - .zig
 
+  # File paths to exclude from AST symbol parsing and collision analysis
+  exclude_patterns:
+    - "node_modules/**"
+    - "dist/**"
+    - "build/**"
+    - "vendor/**"
+    - ".venv/**"
+    - "*.min.js"
+    - "coverage/**"
+
 # ==============================================================================
 # 4. Branch Selection & Hierarchy Precedence
 # ==============================================================================

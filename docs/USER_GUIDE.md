@@ -370,11 +370,8 @@ jobs:
         uses: sarthak2233/gdss-radar@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Optional inputs (defaults shown):
-          # threshold: "0.1"
-          # fail_on_collision: "false"
-          # provider: "github-models"
-          # model: "gpt-4o"
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }} # Optional BYOK key for AI patch synthesis (all collision analysis runs at $0 with 0 tokens)
 ```
 
 > [!TIP]

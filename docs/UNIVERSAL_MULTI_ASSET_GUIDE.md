@@ -195,27 +195,18 @@ This guarantees that tests run against reproducible, validated lockfiles without
 
 ## Configuration (`.gdss.yml`)
 
-While GDSS auto-discovers all project layouts, you can customize path inclusions and exclusions in `.gdss.yml`:
+GDSS auto-discovers all project migrations, manifests, and SQL assets autonomously with zero manual path registration needed (see [Stage A & B Autonomous Router](#dual-stage-autonomous-router)). Standard `.gdss.yml` controls collision sensitivity and branch filtering:
 
 ```yaml
-version: 1
-
 radar:
+  risk_threshold: 0.1
   fail_on_collision: false
-  risk_threshold: 0.8
-  same_base_only: true
 
 hierarchy:
   same_base_only: true
   include:
-    - "feat/*"
+    - "feature/*"
     - "fix/*"
   exclude:
     - "dependabot/*"
-
-# Custom migration directory overrides (optional)
-migrations:
-  paths:
-    - "backend/custom_db/versions"
-    - "services/*/db/migrations"
 ```

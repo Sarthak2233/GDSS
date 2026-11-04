@@ -3,6 +3,39 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-04 - Phase 3 & 4: Worktree Lifecycle, Monorepo Intelligence, and Universal Migration Reducer
+
+- **Phase 3: Worktree Dependency Lifecycle & Sandboxing (`gdss/validation/worktree.py`, `gdss/validation/sandbox.py`, `gdss/validation/test_runner.py`)**:
+  - Implemented `symlink_worktree_dependencies(parent_repo, worktree_path, changed_files)` to symlink root and subpackage dependency directories (`node_modules`, `.venv`, `vendor`) into ephemeral sandbox worktrees when package manifests are untouched.
+  - Wired `val_config.install_command` in `ValidationSandbox.validate_patch` post-checkout before type/test gates, capturing failures with error logs and `FAILED_PATCH` status.
+  - Wired `val_config.mode == "full_suite"` in `test_runner.py` to run unconstrained test commands without `{file}` or `{test_file}` filters.
+  - Authored unit test suite `tests/validation/test_worktree_dependency_lifecycle.py` (4 tests).
+- **Phase 4: Monorepo & Multi-Package Intelligence (`gdss/validation/discovery.py`, `gdss/validation/typechecker.py`, `gdss/validation/test_runner.py`)**:
+  - Implemented `group_files_by_package_root(repo_root, changed_files)` in `discovery.py` using `find_project_root_for_file`.
+  - Added `pytest.ini`, `mypy.ini`, `.mypy.ini` to `PROJECT_DESCRIPTORS`.
+  - Updated `detect_typecheck_command` and `detect_test_command` to inspect subpackages when root descriptors are absent.
+  - Implemented monorepo subpackage dispatch in `run_targeted_typecheck` and `run_targeted_tests` to execute per-package in `cwd=pkg_root`, relativizing `{file}` and `{test_file}` to `pkg_root`, and aggregating results across multiple packages.
+  - Authored unit test suite `tests/validation/test_monorepo_validation.py` (7 tests).
+- **Universal Multi-Stack Migration Reducer (Audit Item 26 - `gdss/reducers/migration_reducer.py`, `gdss/reducers/registry.py`, `gdss/core/trajectory.py`)**:
+  - Added universal timestamp regex (`\d{10,14}`) and sequence regex (`[vV]?\d+`) covering Knex, TypeORM, Sequelize, Goose, Golang-migrate, Liquibase, Atlas, and custom SQL migrations.
+  - Added universal stem fallback (`migration::step::{stem}`) ensuring any file in a migration directory participates in DAG split-head collision detection.
+  - Added `framework: str | None = None` to `MigrationsConfig` and forwarded `config.migrations.framework` via `DomainReducerRegistry` and `trajectory.py`.
+  - Fixed pre-existing Alembic regex bug where `revision\s*[:=]` matched `down_revision = '...'` using negative lookbehind `(?<!down_)`.
+  - Authored unit test suite `tests/reducers/test_universal_migration_reducer.py` (4 tests).
+- **Root Version & Schema Validation (Audit Item 1 - `gdss/core/config.py`)**:
+  - Added `version: int = 1` to `GDSSConfig` with forward-compatibility validation and warning logs on non-integer/unsupported versions.
+  - Authored unit test suite `tests/core/test_config_version_and_framework.py` (4 tests).
+- **Documentation & Reference Updates**:
+  - Updated `.gdss.yml.example` with `version: 1`, `validation.mode`, `validation.symlink_dependencies`, `validation.install_command`, and `migrations` section.
+  - Updated `docs/CONFIGURATION_GUIDE.md` Detailed Schema Reference and complete production template.
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Layer 1 (lint, mypy 100 source files, architecture fitness, DSA fitness): OK.
+  - Layer 2 (pytest 394 passed, 3 skipped, 1 warning in 51.58s): OK.
+  - Layer 3 (CLI smoke, API smoke): OK.
+  - Frontend gate (eslint, tsc, token fitness, vitest 118 passed across 35 files, size-limit): OK.
+
+
 ## 2026-11-04 - Phase 2: Schema Unification & Loader Consolidation (P1)
 
 - **Centralized Configuration Architecture (`gdss/core/config.py`)**:

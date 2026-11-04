@@ -15,22 +15,40 @@ from gdss.logger import get_logger
 logger = get_logger("gdss.reducers.migration")
 
 _MIGRATION_DIR_SEGMENTS = frozenset(
-    {"migrations", "migration", "migrate", "versions", "drizzle", "alembic", "flyway", "prisma"}
+    {
+        "migrations",
+        "migration",
+        "migrate",
+        "versions",
+        "drizzle",
+        "alembic",
+        "flyway",
+        "prisma",
+        "changelog",
+        "changelogs",
+    }
 )
 
 _ALEMBIC_DOWN_RE = re.compile(r"down_revision\s*[:=]\s*(?:None|['\"](?P<rev>[^'\"]+)['\"])")
-_ALEMBIC_REV_RE = re.compile(r"revision\s*[:=]\s*['\"](?P<rev>[^'\"]+)['\"]")
+_ALEMBIC_REV_RE = re.compile(r"(?<!down_)revision\s*[:=]\s*['\"](?P<rev>[^'\"]+)['\"]")
 _DJANGO_DEP_RE = re.compile(r"dependencies\s*=\s*\[(?P<deps>[^\]]*)\]", re.DOTALL)
 _PRISMA_TIMESTAMP_RE = re.compile(r"(?:^|/)(\d{14})_[^/]+/migration\.sql$")
 _FLYWAY_RE = re.compile(r"(?:^|/)V(?P<ver>\d+)(?:__|\b)")
 _RAILS_TIMESTAMP_RE = re.compile(r"(?:^|/)(\d{14})_[^/]+\.rb$")
+_UNIVERSAL_TIMESTAMP_RE = re.compile(r"(?:^|/)(\d{10,14})_[^/]+$")
+_UNIVERSAL_SEQUENCE_RE = re.compile(r"(?:^|/)[vV]?(\d+)(?:__|_|\.|\b)[^/]+$")
 
 
 class MigrationDAGReducer:
     """Extracts DAG sequencing and revision operators from database migration files."""
 
-    def __init__(self, custom_paths: Sequence[str] | None = None) -> None:
+    def __init__(
+        self,
+        custom_paths: Sequence[str] | None = None,
+        framework: str | None = None,
+    ) -> None:
         self.custom_paths: tuple[str, ...] = tuple(custom_paths) if custom_paths else ()
+        self.framework: str | None = framework.lower().strip() if framework else None
 
     def can_handle(self, file_path: str, content: str | None = None) -> bool:
         norm = PurePosixPath(file_path)
@@ -40,17 +58,40 @@ class MigrationDAGReducer:
         if self.custom_paths and is_path_excluded(file_path, self.custom_paths):
             return True
 
-        # 1. Directory pattern check
+        # 1. Framework hint override
+        if self.framework:
+            if self.framework == "alembic" and content and ("down_revision" in content or "revision" in content):
+                return True
+            if self.framework == "django" and content and ("django.db" in content or "migrations.Migration" in content):
+                return True
+            if self.framework == "drizzle" and (norm.name == "_journal.json" or "meta" in parts):
+                return True
+            if self.framework in {
+                "prisma",
+                "rails",
+                "knex",
+                "typeorm",
+                "sequelize",
+                "goose",
+                "golang-migrate",
+                "liquibase",
+                "atlas",
+                "custom",
+            }:
+                if parts & _MIGRATION_DIR_SEGMENTS or _UNIVERSAL_TIMESTAMP_RE.search(file_path) or _UNIVERSAL_SEQUENCE_RE.search(file_path):
+                    return True
+
+        # 2. Directory pattern check
         if parts & _MIGRATION_DIR_SEGMENTS:
             return True
         if norm.name == "_journal.json" or "meta" in parts:
             return True
 
-        # 2. Content-first sniffer for non-standard paths
+        # 3. Content-first sniffer for non-standard paths
         if content:
-            if "down_revision" in content:
+            if "down_revision" in content or "revision =" in content or "revision: str =" in content:
                 return True
-            if "from django.db import migrations" in content:
+            if "from django.db import migrations" in content or "migrations.Migration" in content:
                 return True
             if '"entries":' in content and '"dialect":' in content:
                 return True
@@ -166,7 +207,51 @@ class MigrationDAGReducer:
                 )
             ]
 
-        return []
+        # 7. Universal Timestamp Migrations (Knex, TypeORM, Sequelize, Goose, GORM, Umzug: YYYYMMDDHHMMSS_*)
+        ts_match = _UNIVERSAL_TIMESTAMP_RE.search(norm_path)
+        if ts_match:
+            timestamp = ts_match.group(1)
+            fw_name = self.framework or "timestamp"
+            return [
+                SemanticOperator(
+                    operator=OperatorType.MIGRATION_STEP,
+                    file=file_path,
+                    commit=commit_sha,
+                    name=f"migration_timestamp::{timestamp}",
+                    details={"framework": fw_name, "timestamp": timestamp},
+                    symbol_id=f"migration::{fw_name}::{timestamp}",
+                )
+            ]
+
+        # 8. Universal Sequential Migrations (Golang-migrate, Goose, Liquibase, plain SQL: 001_*, V1__*, 0001.*)
+        seq_match = _UNIVERSAL_SEQUENCE_RE.search(norm_path)
+        if seq_match:
+            ver = seq_match.group(1)
+            fw_name = self.framework or "sequence"
+            return [
+                SemanticOperator(
+                    operator=OperatorType.MIGRATION_STEP,
+                    file=file_path,
+                    commit=commit_sha,
+                    name=f"migration_version::V{ver}",
+                    details={"framework": fw_name, "version": ver},
+                    symbol_id=f"migration::{fw_name}::V{ver}",
+                )
+            ]
+
+        # 9. Universal Fallback for any recognized migration file
+        stem = PurePosixPath(norm_path).stem.replace(".up", "").replace(".down", "")
+        fw_name = self.framework or "generic"
+        return [
+            SemanticOperator(
+                operator=OperatorType.MIGRATION_STEP,
+                file=file_path,
+                commit=commit_sha,
+                name=f"migration_step::{stem}",
+                details={"framework": fw_name, "step": stem},
+                symbol_id=f"migration::{fw_name}::{stem}",
+            )
+        ]
 
     def _extract_drizzle_journal(
         self,

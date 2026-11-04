@@ -6,16 +6,94 @@ and test suites without mutating the developer's working directory or index.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 
 from gdss.logger import get_logger
 
 logger = get_logger("gdss.validation.worktree")
+
+MANIFEST_FILENAMES = frozenset(
+    {
+        "package.json",
+        "pnpm-lock.yaml",
+        "package-lock.json",
+        "yarn.lock",
+        "pyproject.toml",
+        "poetry.lock",
+        "Pipfile.lock",
+        "requirements.txt",
+        "Cargo.toml",
+        "Cargo.lock",
+        "go.mod",
+        "go.sum",
+    }
+)
+
+DEPENDENCY_DIR_NAMES = ("node_modules", ".venv", "vendor")
+
+
+def symlink_worktree_dependencies(
+    parent_repo: Path,
+    worktree_path: Path,
+    changed_files: Sequence[str] | None = None,
+) -> list[Path]:
+    """Symlink parent dependency directories into the worktree if manifests are unchanged."""
+    if changed_files:
+        for f in changed_files:
+            name = Path(f).name
+            if name in MANIFEST_FILENAMES:
+                logger.debug("Skipping dependency symlink: manifest modified (%s)", f)
+                return []
+
+    created_links: list[Path] = []
+    try:
+        resolved_parent = parent_repo.resolve()
+        resolved_wt = worktree_path.resolve()
+    except Exception:
+        resolved_parent = parent_repo
+        resolved_wt = worktree_path
+
+    # 1. Root-level dependency directories
+    for dep_name in DEPENDENCY_DIR_NAMES:
+        parent_dep = resolved_parent / dep_name
+        wt_dep = resolved_wt / dep_name
+        if parent_dep.is_dir() and not wt_dep.exists() and not wt_dep.is_symlink():
+            try:
+                os.symlink(parent_dep, wt_dep)
+                created_links.append(wt_dep)
+                logger.debug("Symlinked %s -> %s", parent_dep, wt_dep)
+            except Exception as exc:
+                logger.debug("Failed to symlink %s: %s", dep_name, exc)
+
+    # 2. First-level subdirectory dependency directories (e.g. web/node_modules)
+    try:
+        for sub in resolved_parent.iterdir():
+            if sub.is_dir() and not sub.name.startswith("."):
+                for dep_name in DEPENDENCY_DIR_NAMES:
+                    parent_sub_dep = sub / dep_name
+                    wt_sub_dep = resolved_wt / sub.name / dep_name
+                    if (
+                        parent_sub_dep.is_dir()
+                        and (resolved_wt / sub.name).is_dir()
+                        and not wt_sub_dep.exists()
+                        and not wt_sub_dep.is_symlink()
+                    ):
+                        try:
+                            os.symlink(parent_sub_dep, wt_sub_dep)
+                            created_links.append(wt_sub_dep)
+                            logger.debug("Symlinked nested %s -> %s", parent_sub_dep, wt_sub_dep)
+                        except Exception as exc:
+                            logger.debug("Failed to symlink nested %s: %s", wt_sub_dep, exc)
+    except Exception as exc:
+        logger.debug("Error scanning nested directories for dependency symlinks: %s", exc)
+
+    return created_links
 
 
 def is_git_repo(path: Path) -> bool:

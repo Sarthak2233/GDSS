@@ -7,7 +7,11 @@ import subprocess
 from pathlib import Path
 
 from gdss.logger import get_logger
-from gdss.validation.discovery import get_sandbox_timeout, load_validation_config
+from gdss.validation.discovery import (
+    get_sandbox_timeout,
+    group_files_by_package_root,
+    load_validation_config,
+)
 from gdss.validation.types import TypeCheckResult
 
 logger = get_logger("gdss.validation.typecheck")
@@ -18,7 +22,6 @@ def detect_typecheck_command(
     changed_files: list[str] | None = None,
 ) -> tuple[str | None, str]:
     """Detect appropriate typechecker command and tool name for the worktree."""
-    _ = changed_files
     root = Path(worktree_path)
     config = load_validation_config(root)
 
@@ -41,7 +44,85 @@ def detect_typecheck_command(
     if (root / "go.mod").is_file():
         return "go vet ./...", "go"
 
+    # Subpackage check in monorepo if changed_files are provided
+    if changed_files:
+        pkg_groups = group_files_by_package_root(root, changed_files)
+        for pkg_root in pkg_groups:
+            if pkg_root != root:
+                cmd, tool = detect_typecheck_command(pkg_root)
+                if cmd and tool != "none":
+                    return cmd, tool
+
     return None, "none"
+
+
+def _run_single_typecheck(
+    cwd_path: Path,
+    cmd_template: str,
+    tool_name: str,
+    file_args_list: list[str],
+    timeout_seconds: float,
+    env: dict[str, str],
+) -> TypeCheckResult:
+    cmd = cmd_template
+    if "{file}" in cmd:
+        if file_args_list:
+            formatted_files = " ".join(f'"{f}"' for f in file_args_list)
+            cmd = cmd.replace("{file}", formatted_files)
+        else:
+            cmd = cmd.replace("{file}", ".").strip()
+
+    logger.debug(
+        "Running typechecker '%s' in %s (command: %s, timeout=%.1fs)",
+        tool_name,
+        cwd_path,
+        cmd,
+        timeout_seconds,
+    )
+    try:
+        proc = subprocess.run(
+            cmd,
+            shell=True,
+            cwd=str(cwd_path),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+        output = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
+        passed = proc.returncode == 0
+        errors = [line for line in output.splitlines() if "error" in line.lower()]
+
+        if passed:
+            logger.debug("Typecheck passed with tool '%s' in %s", tool_name, cwd_path)
+        else:
+            logger.warning("Typecheck failed (tool=%s, exit_code=%d)", tool_name, proc.returncode)
+
+        return TypeCheckResult(
+            checked=True,
+            passed=passed,
+            tool=tool_name,
+            output=output.strip(),
+            errors=errors,
+        )
+    except subprocess.TimeoutExpired:
+        logger.warning("Typecheck timed out after %.1fs (tool=%s)", timeout_seconds, tool_name)
+        return TypeCheckResult(
+            checked=True,
+            passed=False,
+            tool=tool_name,
+            output=f"Typecheck timed out after {timeout_seconds}s",
+            errors=[f"Timeout ({timeout_seconds}s)"],
+        )
+    except Exception as exc:
+        logger.warning("Typecheck invocation failed (tool=%s): %s", tool_name, exc)
+        return TypeCheckResult(
+            checked=True,
+            passed=False,
+            tool=tool_name,
+            output=f"Failed to run typechecker: {exc}",
+            errors=[str(exc)],
+        )
 
 
 def run_targeted_typecheck(
@@ -59,13 +140,49 @@ def run_targeted_typecheck(
     else:
         resolved_timeout = float(get_sandbox_timeout(config_timeout=config.timeout_seconds))
 
-    tool_name = "custom"
-    cmd = custom_command
+    env = dict(os.environ)
+    env["CI"] = "true"
+    env["GDSS_SANDBOX"] = "true"
 
-    if not cmd:
-        cmd, tool_name = detect_typecheck_command(root, changed_files)
+    # If an explicit custom command is given, execute at root
+    if custom_command:
+        file_args = changed_files or []
+        return _run_single_typecheck(
+            cwd_path=root,
+            cmd_template=custom_command,
+            tool_name="custom",
+            file_args_list=file_args,
+            timeout_seconds=resolved_timeout,
+            env=env,
+        )
 
-    if not cmd or not cmd.strip():
+    # Monorepo package-aware dispatch
+    pkg_groups = group_files_by_package_root(root, changed_files)
+    sub_results: list[TypeCheckResult] = []
+
+    for pkg_root, pkg_files in pkg_groups.items():
+        cmd, tool_name = detect_typecheck_command(pkg_root, pkg_files)
+        if cmd and cmd.strip():
+            # Format relative paths to this package root
+            rel_files: list[str] = []
+            for f in pkg_files:
+                try:
+                    rel = str((root / f).relative_to(pkg_root))
+                    rel_files.append(rel)
+                except ValueError:
+                    rel_files.append(f)
+
+            res = _run_single_typecheck(
+                cwd_path=pkg_root,
+                cmd_template=cmd,
+                tool_name=tool_name,
+                file_args_list=rel_files,
+                timeout_seconds=resolved_timeout,
+                env=env,
+            )
+            sub_results.append(res)
+
+    if not sub_results:
         logger.debug("No static typechecker detected for %s", root)
         return TypeCheckResult(
             checked=False,
@@ -74,62 +191,16 @@ def run_targeted_typecheck(
             output="No typechecker detected",
         )
 
-    # Format {file} placeholder with changed file paths
-    if "{file}" in cmd:
-        if changed_files:
-            file_args = " ".join(f'"{f}"' for f in changed_files)
-            cmd = cmd.replace("{file}", file_args)
-        else:
-            cmd = cmd.replace("{file}", ".").strip()
+    # Aggregate across all tested packages
+    all_passed = all(r.passed for r in sub_results)
+    combined_tools = ", ".join(dict.fromkeys(r.tool for r in sub_results if r.tool != "none"))
+    combined_outputs = "\n".join(r.output for r in sub_results if r.output and r.output.strip())
+    combined_errors = [e for r in sub_results for e in r.errors]
 
-    env = dict(os.environ)
-    env["CI"] = "true"
-    env["GDSS_SANDBOX"] = "true"
-
-    logger.debug(
-        "Running typechecker '%s' (command: %s, timeout=%.1fs)", tool_name, cmd, resolved_timeout
+    return TypeCheckResult(
+        checked=True,
+        passed=all_passed,
+        tool=combined_tools or "none",
+        output=combined_outputs.strip(),
+        errors=combined_errors,
     )
-    try:
-        proc = subprocess.run(
-            cmd,
-            shell=True,
-            cwd=str(root),
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=resolved_timeout,
-        )
-        output = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
-        passed = proc.returncode == 0
-        errors = [line for line in output.splitlines() if "error" in line.lower()]
-
-        if passed:
-            logger.debug("Typecheck passed with tool '%s'", tool_name)
-        else:
-            logger.warning("Typecheck failed (tool=%s, exit_code=%d)", tool_name, proc.returncode)
-
-        return TypeCheckResult(
-            checked=True,
-            passed=passed,
-            tool=tool_name,
-            output=output.strip(),
-            errors=errors,
-        )
-    except subprocess.TimeoutExpired:
-        logger.warning("Typecheck timed out after %.1fs (tool=%s)", resolved_timeout, tool_name)
-        return TypeCheckResult(
-            checked=True,
-            passed=False,
-            tool=tool_name,
-            output=f"Typecheck timed out after {resolved_timeout}s",
-            errors=[f"Timeout ({resolved_timeout}s)"],
-        )
-    except Exception as exc:
-        logger.warning("Typecheck invocation failed (tool=%s): %s", tool_name, exc)
-        return TypeCheckResult(
-            checked=True,
-            passed=False,
-            tool=tool_name,
-            output=f"Failed to run typechecker: {exc}",
-            errors=[str(exc)],
-        )

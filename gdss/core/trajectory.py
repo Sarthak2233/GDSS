@@ -58,7 +58,8 @@ def extract_trajectory_operators(
 
     effective_exclude = exclude_patterns or (cfg.ast.exclude_patterns if cfg else ())
     registry = reducer_registry or DomainReducerRegistry(
-        migration_paths=cfg.migrations.paths if cfg else None
+        migration_paths=cfg.migrations.paths if cfg else None,
+        migration_framework=cfg.migrations.framework if cfg else None,
     )
 
     for path in changes.get("modified", []):

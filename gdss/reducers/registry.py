@@ -16,9 +16,16 @@ from gdss.reducers.sql_reducer import SQLSchemaReducer
 class DomainReducerRegistry:
     """Registry resolving file paths and contents to appropriate domain reducers."""
 
-    def __init__(self, migration_paths: Sequence[str] | None = None) -> None:
+    def __init__(
+        self,
+        migration_paths: Sequence[str] | None = None,
+        migration_framework: str | None = None,
+    ) -> None:
         self.manifest_reducer = ManifestReducer()
-        self.migration_reducer = MigrationDAGReducer(custom_paths=migration_paths)
+        self.migration_reducer = MigrationDAGReducer(
+            custom_paths=migration_paths,
+            framework=migration_framework,
+        )
         self.sql_reducer = SQLSchemaReducer()
         self.markdown_reducer = MarkdownSectionReducer()
         self.lexical_reducer = UniversalLexicalReducer()

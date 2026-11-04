@@ -8,6 +8,9 @@
 # automatically load these settings as the single source of truth.
 # ==============================================================================
 
+# Configuration schema version (currently 1)
+version: 1
+
 # ------------------------------------------------------------------------------
 # 1. AI Convergence & PR Collision Radar
 # ------------------------------------------------------------------------------
@@ -87,6 +90,20 @@ radar:
 # GDSS validates candidate reconciliation patches in isolated temporary Git
 # worktrees before human review. Configure your project's validation commands:
 validation:
+  # Validation mode:
+  #   - "targeted" (default): filters tests and typechecking strictly to changed files or targeted test files
+  #   - "full_suite": runs the full unconstrained test suite in the ephemeral worktree
+  mode: "targeted"
+
+  # Worktree dependency optimization:
+  # When true (default), GDSS symlinks parent node_modules, .venv, and vendor directories
+  # into ephemeral sandbox worktrees if package manifests are unmodified, saving minutes of build time.
+  symlink_dependencies: true
+
+  # Optional package installation command executed inside the ephemeral worktree
+  # prior to static typechecking and tests (e.g. "npm ci", "poetry install", "pip install -e .").
+  # install_command: "npm ci"
+
   # Multi-language syntax compilation or fast syntax linter command (Gate 1).
   # Use {file} placeholder for targeted changed files.
   # If omitted, GDSS runs in-process Tree-sitter AST validation across 9+ languages.
@@ -170,3 +187,21 @@ ast:
     - ".venv/**"
     - "*.min.js"
     - "coverage/**"
+
+# ------------------------------------------------------------------------------
+# 5. Database Migration Reducer (Universal Multi-Stack DAG Intelligence)
+# ------------------------------------------------------------------------------
+migrations:
+  # Framework hint (optional):
+  #   - "alembic", "django", "prisma", "drizzle", "flyway", "rails", "knex",
+  #     "typeorm", "sequelize", "goose", "golang-migrate", "liquibase", "atlas", "custom"
+  # When omitted, GDSS uses universal timestamp/sequence pattern matching.
+  # framework: "alembic"
+
+  # Path glob patterns to track for database migration split-heads
+  paths:
+    - "migrations/**"
+    - "alembic/versions/**"
+    - "db/migrate/**"
+    - "prisma/migrations/**"
+

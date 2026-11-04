@@ -18,7 +18,7 @@ from gdss.validation.types import (
     ValidationReport,
     ValidationStatus,
 )
-from gdss.validation.worktree import ephemeral_worktree
+from gdss.validation.worktree import ephemeral_worktree, symlink_worktree_dependencies
 
 logger = get_logger("gdss.validation.sandbox")
 
@@ -101,6 +101,49 @@ class ValidationSandbox:
 
             val_config = load_validation_config(wt_path)
             effective_timeout = timeout_seconds if timeout_seconds is not None else float(val_config.timeout_seconds)
+
+            # 2b. Dependency Symlinking fast-path
+            if val_config.symlink_dependencies:
+                symlink_worktree_dependencies(self.repo_path, wt_path, changed_files=changed_files)
+
+            # 2c. Optional install_command execution
+            if val_config.install_command and val_config.install_command.strip():
+                install_cmd_to_run = val_config.install_command.strip()
+                logger.debug("Executing install_command in sandbox: %s", install_cmd_to_run)
+                try:
+                    install_proc = subprocess.run(
+                        install_cmd_to_run,
+                        shell=True,
+                        cwd=wt_str,
+                        capture_output=True,
+                        text=True,
+                        timeout=effective_timeout,
+                    )
+                    if install_proc.returncode != 0:
+                        err_out = (install_proc.stderr or install_proc.stdout or "").strip()
+                        logger.warning("Install command failed: %s", err_out)
+                        return ValidationReport(
+                            status=ValidationStatus.FAILED_PATCH,
+                            patch_applied=True,
+                            syntax=SyntaxCheckResult(valid=False, language="install", error_message=err_out),
+                            types=empty_types,
+                            tests=empty_tests,
+                            worktree_path=wt_str,
+                            duration_ms=elapsed_ms(),  # dsa:ignore
+                            error_summary=f"Install command failed: {err_out or 'Non-zero exit'}",
+                        )
+                except subprocess.TimeoutExpired:
+                    logger.warning("Install command timed out after %.1fs", effective_timeout)
+                    return ValidationReport(
+                        status=ValidationStatus.FAILED_PATCH,
+                        patch_applied=True,
+                        syntax=SyntaxCheckResult(valid=False, language="install", error_message=f"Install timed out after {effective_timeout}s"),
+                        types=empty_types,
+                        tests=empty_tests,
+                        worktree_path=wt_str,
+                        duration_ms=elapsed_ms(),  # dsa:ignore
+                        error_summary=f"Install command timed out after {effective_timeout}s",
+                    )
 
             # 3. Gate 1: Syntax Check
             # 3a. Custom syntax command from .gdss.yml if configured

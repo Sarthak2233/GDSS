@@ -91,6 +91,9 @@ Copy and paste this template into `.gdss.yml` at the root of your repository:
 # .gdss.yml - GDSS Semantic Repository Intelligence Configuration
 # Check this file into Git root so CI, CLI, and IDE agents share identical rules.
 
+# Configuration schema version
+version: 1
+
 # ==============================================================================
 # 1. AI Convergence & PR Collision Radar
 # ==============================================================================
@@ -153,6 +156,20 @@ radar:
 # 2. Ephemeral Sandbox Validation
 # ==============================================================================
 validation:
+  # Validation mode:
+  # - "targeted" (default): runs typechecks and tests filtered strictly to changed files / targeted test files
+  # - "full_suite": executes the unconstrained test suite across the sandbox worktree
+  mode: "targeted"
+
+  # Worktree dependency optimization:
+  # When true (default), GDSS symlinks parent node_modules, .venv, and vendor directories
+  # into ephemeral sandbox worktrees when package manifests are untouched, saving minutes of build time.
+  symlink_dependencies: true
+
+  # Optional package installation command executed inside the ephemeral worktree
+  # prior to static typechecking and tests (e.g. "npm ci", "poetry install", "pip install -e .").
+  # install_command: "npm ci"
+
   # Command used for targeted unit test execution in ephemeral worktrees
   # {test_file} placeholder is automatically substituted with matching test files
   test_command: "pytest {test_file}"
@@ -225,11 +242,34 @@ hierarchy:
   target_bases:
     - "main"
     - "develop"
+
+# ==============================================================================
+# 5. Database Migration Reducer (Universal Multi-Stack DAG Intelligence)
+# ==============================================================================
+migrations:
+  # Framework hint (optional):
+  # "alembic", "django", "prisma", "drizzle", "flyway", "rails", "knex",
+  # "typeorm", "sequelize", "goose", "golang-migrate", "liquibase", "atlas", "custom"
+  # When omitted, GDSS automatically applies universal timestamp/sequence pattern matching.
+  # framework: "alembic"
+
+  # Path glob patterns to track for database migration split-heads
+  paths:
+    - "migrations/**"
+    - "alembic/versions/**"
+    - "db/migrate/**"
+    - "prisma/migrations/**"
 ```
 
 ---
 
 ## 🔍 Detailed Schema Reference
+
+### 0. Root Directives
+
+| Directive | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `version` | `integer` | `1` | Schema version indicator. Ensures forwards-compatibility and informs GDSS parser behavior. |
 
 ### 1. `radar` (AI Convergence & CI Radar)
 
@@ -249,6 +289,9 @@ hierarchy:
 
 | Directive | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
+| `validation.mode` | `string` | `"targeted"` | Validation scope: `"targeted"` (constrains test/typecheck runs strictly to changed files / targeted tests) or `"full_suite"` (runs unconstrained suite). |
+| `validation.symlink_dependencies` | `boolean` | `true` | When `true`, automatically symlinks root and subpackage dependency directories (`node_modules`, `.venv`, `vendor`) from parent repo into ephemeral worktrees if manifests are untouched. |
+| `validation.install_command` | `string \| null` | `null` | Shell command executed inside the ephemeral worktree prior to typecheck and tests (e.g. `npm ci`, `poetry install`). |
 | `validation.test_command` | `string` | *Auto-detected* | Shell command to execute targeted regression tests. Supports `{test_file}` replacement. |
 | `validation.typecheck_command` | `string` | *Auto-detected* | Shell command to execute static typechecking (`mypy`, `tsc --noEmit`, `cargo check`). |
 | `validation.syntax_command` | `string` | *Auto-detected* | Shell command to execute syntax checks or linters. |
@@ -271,6 +314,13 @@ hierarchy:
 | `hierarchy.include` | `list[str]` | `[]` | Glob patterns or branch names included in analysis (e.g. `["feature/*", "fix/*"]`). If empty, all active non-attractor branches are candidates. |
 | `hierarchy.exclude` | `list[str]` | `[]` | Glob patterns or branch names ignored during analysis (e.g. `["spike/*", "archive/*"]`). |
 | `hierarchy.target_bases` | `list[str]` | `[]` | Allowed PR landing target branches in CI. If provided, PRs targeting branches outside this list are ignored. |
+
+### 5. `migrations` (Universal Multi-Stack DAG Reducer)
+
+| Directive | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `migrations.framework` | `string \| null` | `null` | Framework hint (`"alembic"`, `"django"`, `"prisma"`, `"drizzle"`, `"flyway"`, `"rails"`, `"knex"`, `"typeorm"`, `"sequelize"`, `"goose"`, `"golang-migrate"`, `"liquibase"`, `"atlas"`, `"custom"`). If omitted, universal timestamp and sequence matching is used. |
+| `migrations.paths` | `list[str]` | `["migrations/**", "db/migrate/**", "prisma/migrations/**"]` | Glob patterns where database migrations reside for DAG split-head collision detection. |
 
 ---
 

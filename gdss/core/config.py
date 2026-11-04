@@ -47,6 +47,8 @@ class ValidationConfig:
     typecheck_command: str | None = None
     syntax_command: str | None = None
     install_command: str | None = None
+    mode: str = "targeted"
+    symlink_dependencies: bool = True
     timeout_seconds: int = 30
 
 
@@ -75,12 +77,14 @@ class MigrationsConfig:
     """Configuration for database migration directories and DAG tracking."""
 
     paths: tuple[str, ...] = ()
+    framework: str | None = None
 
 
 @dataclass(frozen=True)
 class GDSSConfig:
     """Top-level unified GDSS repository configuration."""
 
+    version: int = 1
     radar: RadarConfig = field(default_factory=RadarConfig)
     validation: ValidationConfig = field(default_factory=ValidationConfig)
     hierarchy: HierarchyConfig = field(default_factory=HierarchyConfig)
@@ -159,6 +163,25 @@ def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> 
                 out.append(clean)
         return tuple(out)
 
+    # 0. Parse version
+    raw_version = data.get("version", 1)
+    try:
+        parsed_version = int(raw_version)
+    except (ValueError, TypeError):
+        logger.warning(
+            "Invalid 'version' value in %s: %r. Defaulting to version 1.",
+            config_file,
+            raw_version,
+        )
+        parsed_version = 1
+
+    if parsed_version != 1:
+        logger.warning(
+            "Unsupported GDSS schema version %s in %s. Supported version is 1. Parsing with best-effort compatibility.",
+            parsed_version,
+            config_file,
+        )
+
     # 1. Parse hierarchy block
     h_data = data.get("hierarchy", {})
     if not isinstance(h_data, dict):
@@ -219,12 +242,16 @@ def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> 
     type_cmd = str(v_data.get("typecheck_command") or "").strip() or None
     syntax_cmd = str(v_data.get("syntax_command") or "").strip() or None
     install_cmd = str(v_data.get("install_command") or "").strip() or None
+    val_mode = str(v_data.get("mode") or "targeted").strip().lower() or "targeted"
+    symlink_deps = bool(v_data.get("symlink_dependencies", True))
 
     validation_cfg = ValidationConfig(
         test_command=test_cmd,
         typecheck_command=type_cmd,
         syntax_command=syntax_cmd,
         install_command=install_cmd,
+        mode=val_mode,
+        symlink_dependencies=symlink_deps,
         timeout_seconds=int(v_data.get("timeout_seconds", 30)),
     )
 
@@ -269,9 +296,11 @@ def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> 
             if p_str and p_str not in norm_paths:
                 norm_paths.append(p_str)
 
-    migrations_cfg = MigrationsConfig(paths=tuple(norm_paths))
+    m_framework = str(m_data.get("framework") or "").strip().lower() or None
+    migrations_cfg = MigrationsConfig(paths=tuple(norm_paths), framework=m_framework)
 
     return GDSSConfig(
+        version=parsed_version,
         radar=radar_cfg,
         validation=validation_cfg,
         hierarchy=hierarchy_cfg,

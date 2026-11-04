@@ -8,7 +8,11 @@ import subprocess
 from pathlib import Path
 
 from gdss.logger import get_logger
-from gdss.validation.discovery import get_sandbox_timeout, load_validation_config
+from gdss.validation.discovery import (
+    get_sandbox_timeout,
+    group_files_by_package_root,
+    load_validation_config,
+)
 from gdss.validation.languages import get_default_registry
 from gdss.validation.types import TestExecutionResult
 
@@ -78,6 +82,15 @@ def detect_test_command(
     if (root / "go.mod").is_file():
         return "go test ./...", "go"
 
+    # Subpackage check in monorepo if changed_files are provided
+    if changed_files:
+        pkg_groups = group_files_by_package_root(root, changed_files)
+        for pkg_root in pkg_groups:
+            if pkg_root != root:
+                cmd, tool = detect_test_command(pkg_root)
+                if cmd and tool != "none":
+                    return cmd, tool
+
     return None, "none"
 
 
@@ -143,80 +156,58 @@ def synchronize_sandbox_lockfiles(
     return synced
 
 
-def run_targeted_tests(
-    worktree_path: str | Path,
-    changed_files: list[str] | None = None,
-    timeout_seconds: float | None = None,
-    custom_command: str | None = None,
+def _run_single_test(
+    cwd_path: Path,
+    cmd_template: str,
+    tool_name: str,
+    file_args_list: list[str],
+    is_full_suite: bool,
+    timeout_seconds: float,
+    env: dict[str, str],
 ) -> TestExecutionResult:
-    """Execute targeted or repository tests within the given worktree sandbox."""
-    root = Path(worktree_path)
+    cmd = cmd_template
 
-    if changed_files:
-        synchronize_sandbox_lockfiles(root, changed_files)
-
-    config = load_validation_config(root)
-
-    # Resolve timeout: explicit argument -> discovery helper
-    if timeout_seconds is not None and timeout_seconds > 0:
-        resolved_timeout = float(timeout_seconds)
-    else:
-        resolved_timeout = float(get_sandbox_timeout(config_timeout=config.timeout_seconds))
-
-    # Resolve command
-    tool_name = "custom"
-    cmd = custom_command
-
-    if not cmd:
-        cmd, tool_name = detect_test_command(root, changed_files)
-
-    if not cmd or not cmd.strip():
-        logger.debug("No automated test framework detected for %s", root)
-        return TestExecutionResult(
-            executed=False,
-            passed=True,
-            tool="none",
-            output="No test runner detected",
-        )
-
-    # If changed files are provided, format {file} if placeholder exists
-    if "{file}" in cmd:
-        if changed_files:
-            file_args = " ".join(f'"{f}"' for f in changed_files)
-            cmd = cmd.replace("{file}", file_args)
-        else:
-            cmd = cmd.replace("{file}", ".").strip()
-
-    # If changed files are provided, format {test_file} if placeholder exists
-    if "{test_file}" in cmd:
-        matched = find_targeted_test_files(root, changed_files or [])
-        if matched:
-            rel_paths = " ".join(str(m.relative_to(root)) for m in matched)
-            cmd = cmd.replace("{test_file}", rel_paths)
-            logger.debug("Filtered test command with targeted test files: %s", rel_paths)
-        else:
+    # Mode handling: in full_suite mode, remove placeholder restrictions
+    if is_full_suite:
+        if "{file}" in cmd:
+            cmd = cmd.replace("{file}", "").strip()
+        if "{test_file}" in cmd:
             cmd = cmd.replace("{test_file}", "").strip()
+    else:
+        # If changed files are provided, format {file} if placeholder exists
+        if "{file}" in cmd:
+            if file_args_list:
+                file_args = " ".join(f'"{f}"' for f in file_args_list)
+                cmd = cmd.replace("{file}", file_args)
+            else:
+                cmd = cmd.replace("{file}", ".").strip()
 
-    # Sandboxed execution environment
-    env = dict(os.environ)
-    env["CI"] = "true"
-    env["GDSS_SANDBOX"] = "true"
+        # If changed files are provided, format {test_file} if placeholder exists
+        if "{test_file}" in cmd:
+            matched = find_targeted_test_files(cwd_path, file_args_list or [])
+            if matched:
+                rel_paths = " ".join(str(m.relative_to(cwd_path)) for m in matched)
+                cmd = cmd.replace("{test_file}", rel_paths)
+                logger.debug("Filtered test command with targeted test files in %s: %s", cwd_path, rel_paths)
+            else:
+                cmd = cmd.replace("{test_file}", "").strip()  # dsa:ignore
 
     logger.debug(
-        "Running targeted tests with '%s' (cmd: %s, timeout=%.1fs)",
+        "Running tests with '%s' in %s (cmd: %s, timeout=%.1fs)",
         tool_name,
+        cwd_path,
         cmd,
-        resolved_timeout,
+        timeout_seconds,
     )
     try:
         proc = subprocess.run(
             cmd,
             shell=True,
-            cwd=str(root),
+            cwd=str(cwd_path),
             env=env,
             capture_output=True,
             text=True,
-            timeout=resolved_timeout,
+            timeout=timeout_seconds,
         )
         output = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
         # Pytest exit code 5 means 0 tests collected; treat as passed with notice
@@ -240,10 +231,10 @@ def run_targeted_tests(
         tests_run = tests_passed + tests_failed
 
         if passed:
-            logger.info("Targeted tests PASSED with %s (%d passed)", tool_name, tests_passed)
+            logger.info("Targeted tests PASSED with %s in %s (%d passed)", tool_name, cwd_path, tests_passed)
         else:
             logger.warning(
-                "Targeted tests FAILED with %s (exit code %d)", tool_name, proc.returncode
+                "Targeted tests FAILED with %s in %s (exit code %d)", tool_name, cwd_path, proc.returncode
             )
 
         return TestExecutionResult(
@@ -257,19 +248,112 @@ def run_targeted_tests(
         )
     except subprocess.TimeoutExpired:
         logger.warning(
-            "Targeted tests timed out after %.1fs (tool=%s)", resolved_timeout, tool_name
+            "Targeted tests timed out after %.1fs (tool=%s) in %s", timeout_seconds, tool_name, cwd_path
         )
         return TestExecutionResult(
             executed=True,
             passed=False,
             tool=tool_name,
-            output=f"Test run timed out after {resolved_timeout}s",
+            output=f"Test run timed out after {timeout_seconds}s in {cwd_path}",
         )
     except Exception as exc:
-        logger.warning("Targeted test invocation failed (tool=%s): %s", tool_name, exc)
+        logger.warning("Targeted test invocation failed (tool=%s) in %s: %s", tool_name, cwd_path, exc)
         return TestExecutionResult(
             executed=True,
             passed=False,
             tool=tool_name,
-            output=f"Failed to execute tests: {exc}",
+            output=f"Failed to execute tests in {cwd_path}: {exc}",
         )
+
+
+def run_targeted_tests(
+    worktree_path: str | Path,
+    changed_files: list[str] | None = None,
+    timeout_seconds: float | None = None,
+    custom_command: str | None = None,
+) -> TestExecutionResult:
+    """Execute targeted or repository tests within the given worktree sandbox."""
+    root = Path(worktree_path)
+
+    if changed_files:
+        synchronize_sandbox_lockfiles(root, changed_files)
+
+    config = load_validation_config(root)
+
+    # Resolve timeout: explicit argument -> discovery helper
+    if timeout_seconds is not None and timeout_seconds > 0:
+        resolved_timeout = float(timeout_seconds)
+    else:
+        resolved_timeout = float(get_sandbox_timeout(config_timeout=config.timeout_seconds))
+
+    env = dict(os.environ)
+    env["CI"] = "true"
+    env["GDSS_SANDBOX"] = "true"
+    is_full_suite = (config.mode == "full_suite")
+
+    # If explicit custom command is given, execute at root
+    if custom_command:
+        file_args = changed_files or []
+        return _run_single_test(
+            cwd_path=root,
+            cmd_template=custom_command,
+            tool_name="custom",
+            file_args_list=file_args,
+            is_full_suite=is_full_suite,
+            timeout_seconds=resolved_timeout,
+            env=env,
+        )
+
+    # Monorepo package-aware dispatch
+    pkg_groups = group_files_by_package_root(root, changed_files)
+    sub_results: list[TestExecutionResult] = []
+
+    for pkg_root, pkg_files in pkg_groups.items():
+        cmd, tool_name = detect_test_command(pkg_root, pkg_files)
+        if cmd and cmd.strip():
+            # Format relative paths to this package root
+            rel_files: list[str] = []
+            for f in pkg_files:
+                try:
+                    rel = str((root / f).relative_to(pkg_root))
+                    rel_files.append(rel)
+                except ValueError:
+                    rel_files.append(f)
+
+            res = _run_single_test(
+                cwd_path=pkg_root,
+                cmd_template=cmd,
+                tool_name=tool_name,
+                file_args_list=rel_files,
+                is_full_suite=is_full_suite,
+                timeout_seconds=resolved_timeout,
+                env=env,
+            )
+            sub_results.append(res)
+
+    if not sub_results:
+        logger.debug("No automated test framework detected for %s", root)
+        return TestExecutionResult(
+            executed=False,
+            passed=True,
+            tool="none",
+            output="No test runner detected",
+        )
+
+    # Aggregate across all tested packages
+    all_passed = all(r.passed for r in sub_results)
+    combined_tools = ", ".join(dict.fromkeys(r.tool for r in sub_results if r.tool != "none"))
+    combined_outputs = "\n".join(r.output for r in sub_results if r.output and r.output.strip())
+    total_passed = sum(r.tests_passed for r in sub_results)
+    total_failed = sum(r.tests_failed for r in sub_results)
+    total_run = sum(r.tests_run for r in sub_results)
+
+    return TestExecutionResult(
+        executed=True,
+        passed=all_passed,
+        tool=combined_tools or "none",
+        tests_run=total_run,
+        tests_passed=total_passed,
+        tests_failed=total_failed,
+        output=combined_outputs.strip(),
+    )

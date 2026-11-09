@@ -3,6 +3,27 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-09 - Closed-Engine Distribution, Docker Cython Compilation, and Public Docs Sanitization
+
+- **Engine Protection & Native Binary Compilation (`Dockerfile`)**:
+  - Upgraded multi-stage production `Dockerfile` builder to compile all modules in `gdss/` into native C shared objects (`.so`) via Cython and delete source `.py` files (preserving package `__init__.py`).
+  - Ensures the published runner container (`ghcr.io/sarthak2233/gdss-runner`) distributes 0 plaintext Python source code or comments, protecting proprietary algorithms from reverse engineering.
+- **Commercial Pricing & Tier Strategy (`gdss-radar/README.md`, `gdss-radar/docs/USER_GUIDE.md`)**:
+  - Embedded formal **Pricing & Commercial Model**: Community Tier ($0 / Free Forever, 0 tokens) vs. Team & Organization Tier (Cross-repo collision radar, policy merge queues, dedicated managed runners).
+  - Linked enterprise inquiries to GitHub Discussions.
+- **Complete Public Documentation Sanitization (`gdss-radar/docs/`)**:
+  - Sanitized `gdss-radar/docs/UNIVERSAL_MULTI_ASSET_GUIDE.md`: stripped internal regex patterns (`\d{10,14}`, `[vV]?\d+`), internal Python module paths (`gdss/reducers/migration_reducer.py`), internal contact key strings, and operator enum names (`OperatorType.MIGRATION_STEP`).
+  - Sanitized `gdss-radar/docs/PARALLEL_ORCHESTRATION_AND_CONTEXT_GUIDE.md`: retitled to *Performance, Concurrency & Context Window Tuning Guide*, removing internal prompt budgeting calculations and internal module links.
+  - Removed all local machine paths (`/home/sarakb/...`) and local `file:///` URLs from `gdss-radar/docs/GITHUB_ACTIONS_GUIDE.md` and `gdss-radar/docs/CONFIGURATION_GUIDE.md`.
+  - Verified 0 leaks across `gdss-radar/` for `file:///`, `/home/sarakb`, `OperatorType`, and internal regex patterns.
+- **Verification Evidence**:
+  - `bash harness/sensors/lint.sh`: OK (ruff clean).
+  - `bash harness/sensors/typecheck.sh`: OK (mypy 100 source files clean).
+  - `python harness/sensors/dsa_fitness.py`: OK.
+  - `python harness/sensors/architecture_fitness.py`: OK.
+  - `bash harness/sensors/cli_smoke.sh`: OK.
+
+
 ## 2026-11-04 - Release v1.1.1: Documentation Synchronization, Agent Directive, and Multi-Stack Release
 
 - **Version Bump & Packaging Alignment**:

@@ -1,34 +1,26 @@
-# Session Handoff - 2026-11-04 (Release v1.1.1)
+# Session Handoff - 2026-11-09 (Closed Engine Model & Docs Sanitization)
 
 ## Completed Work
-1. **v1.1.1 Release Bumps**:
-   - Bumped `gdss` package version from `0.1.0` to `1.1.1` in `pyproject.toml` and `gdss/__init__.py`.
-   - Bumped `gdss-web` dashboard version to `1.1.1` in `web/package.json`.
+1. **Engine Protection & Native Binary Compilation (`Dockerfile`)**:
+   - Multi-stage `Dockerfile` upgraded with Cython native compilation.
+   - All modules in `gdss/` compiled into native C shared objects (`.so`), with original `.py` source files and temporary `.c` files removed.
+   - Published runner container distributes zero plaintext Python code.
 
-2. **1-Prompt AI Agent Integration Directive**:
-   - Added standard copy-paste AI Agent prompt in both `README.md` and `gdss-radar/README.md`.
-   - Instructs agents (Cursor, Claude Code, Copilot, Antigravity) to autonomously inspect stacks, fetch authoritative templates, configure `.gdss.yml` (`version: 1`, worktree caching, multi-package discovery), and generate GitHub Actions PR workflow (`fetch-depth: 0`, `@v1.1.1`).
+2. **Pricing & Commercial Model (`gdss-radar/README.md`, `gdss-radar/docs/USER_GUIDE.md`)**:
+   - Added Community ($0 / Free Forever, 0 tokens) vs. Team & Organization Tier structure.
+   - Added enterprise inquiry link pointing to GitHub Discussions.
+   - Reinforced 0-token local deterministic core and BYOK model.
 
-3. **Documentation Synchronization Across Repositories (`GDSS` & `gdss-radar`)**:
-   - Synchronized `docs/UNIVERSAL_MULTI_ASSET_GUIDE.md` detailing multi-stack database migrations, universal regex, and framework hints.
-   - Synchronized `docs/USER_GUIDE.md` detailing monorepo subpackage discovery, isolated execution, worktree dependency symlinking (`symlink_dependencies`), and `install_command`.
-   - Synchronized `docs/GITHUB_ACTIONS_GUIDE.md` updating action references to `@v1.1.1`.
-   - Mirrored all guides, reference templates, and `.gdss.yml.example` to `gdss-radar/`.
+3. **Total Public Documentation Sanitization (`gdss-radar/docs/`)**:
+   - Sanitized `gdss-radar/docs/UNIVERSAL_MULTI_ASSET_GUIDE.md`: removed internal regexes (`\d{10,14}`, `[vV]?\d+`), internal Python file paths, operator enums, and contact keys.
+   - Sanitized `gdss-radar/docs/PARALLEL_ORCHESTRATION_AND_CONTEXT_GUIDE.md`: retitled to *Performance, Concurrency & Context Window Tuning Guide*, removing prompt budget percentages and naive code truncation examples.
+   - Removed local filesystem path leaks (`file:///`, `/home/sarakb/...`) from `gdss-radar/docs/GITHUB_ACTIONS_GUIDE.md` and `gdss-radar/docs/CONFIGURATION_GUIDE.md`.
+   - Verified 0 leaks of `file:///`, `/home/sarakb`, `OperatorType`, or internal regex strings across `gdss-radar/`.
 
-4. **Release Tagging**:
-   - Tag `v1.1.1` created in `GDSS`.
-   - Tag `v1.1.1` created in `gdss-radar`.
-
-5. **Verification Evidence**:
-   - `bash harness/sensors/lint.sh`: OK (ruff clean).
-   - `bash harness/sensors/typecheck.sh`: OK (mypy 100 source files clean).
-   - `python harness/sensors/dsa_fitness.py`: OK.
-   - `python harness/sensors/architecture_fitness.py`: OK.
-   - `bash harness/sensors/run_tests.sh`: OK (394 passed, 3 skipped, 1 warning in 51.91s).
-   - `bash harness/sensors/cli_smoke.sh`: OK.
-   - `bash harness/sensors/api_smoke.sh`: OK.
-   - Frontend vitest: OK (35 test files, 118 passed).
+4. **Verification Evidence**:
+   - Static: ruff clean, mypy 100 source files clean, architecture fitness OK, DSA fitness OK.
+   - End-to-end: CLI smoke OK.
 
 ## Current State
-- Branch: `main` (both repos clean)
-- Tags: `v1.1.1` active in both `GDSS` and `gdss-radar`
+- `GDSS`: `Dockerfile` updated with Cython native compilation.
+- `gdss-radar`: All public documentation sanitized and pricing tier framework embedded.

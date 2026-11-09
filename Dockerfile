@@ -1,11 +1,12 @@
 # Multi-stage production Dockerfile for GDSS PR Collision Radar
-# Stage 1: Build wheel and compile dependencies
+# Stage 1: Build wheel and compile dependencies into native C shared objects (.so)
 FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    python3-dev \
     git \
     && rm -rf /var/lib/apt/lists/*
 
@@ -13,12 +14,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml README.md /build/
 COPY gdss /build/gdss
 
-# Build wheel and install into /install prefix
-RUN pip install --no-cache-dir --upgrade pip build wheel setuptools && \
-    python -m build --wheel && \
+# Install build dependencies and Cython
+RUN pip install --no-cache-dir --upgrade pip build wheel setuptools cython
+
+# Compile Python source files into native C shared objects (.so) and strip source .py
+RUN python -c "\
+import os, glob; \
+from setuptools import setup, Extension; \
+from Cython.Build import cythonize; \
+py_files = [f for f in glob.glob('gdss/**/*.py', recursive=True) if not f.endswith('__init__.py')]; \
+exts = [Extension(f.replace('/', '.').replace('\\\\', '.')[:-3], [f]) for f in py_files]; \
+setup(name='gdss_compiled', ext_modules=cythonize(exts, compiler_directives={'language_level': '3'})); \
+" build_ext --inplace && \
+find gdss -name "*.py" ! -name "__init__.py" -delete && \
+find gdss -name "*.c" -delete
+
+# Build binary wheel and install into /install prefix
+RUN python -m build --wheel && \
     pip install --no-cache-dir --prefix=/install dist/*.whl
 
-# Stage 2: Minimal runtime image (contains zero build tools or source git history)
+# Stage 2: Minimal runtime image (contains zero build tools, zero git history, zero plaintext .py files)
 FROM python:3.11-slim
 
 LABEL org.opencontainers.image.title="GDSS PR Collision Radar" \

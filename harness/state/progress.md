@@ -6,22 +6,22 @@ output), not just claims.
 ## 2026-11-09 - Closed-Engine Distribution, Docker Cython Compilation, and Public Docs Sanitization
 
 - **Engine Protection & Native Binary Compilation (`Dockerfile`)**:
-  - Upgraded multi-stage production `Dockerfile` builder to compile all modules in `gdss/` into native C shared objects (`.so`) via Cython and delete source `.py` files (preserving package `__init__.py`).
-  - Ensures the published runner container (`ghcr.io/sarthak2233/gdss-runner`) distributes 0 plaintext Python source code or comments, protecting proprietary algorithms from reverse engineering.
+  - Implemented in-place Cython compilation in multi-stage Docker build: compiles all proprietary engine modules (`gdss/core`, `gdss/reducers`, `gdss/ai`, `gdss/graph`, `gdss/validation`, `gdss/embeddings`, etc.) to native C shared objects (`.so`) using `compiler_directives={'language_level': '3', 'annotation_typing': False, 'binding': True}`.
+  - Kept CLI interface (`gdss/cli/`) and package metadata (`__init__.py`) as clean Python wrappers to preserve Typer CLI introspection without typing conflicts (`OptionInfo`).
+  - Purged all source `.py`, `.c`, and `.o` files from the final image.
+  - Verified container image (`gdss-test`): 84 `.so` native ELF shared libraries; `RUN gdss --help` and `RUN gdss audit-pr --help` run cleanly; verified `audit-pr --dry-run` works out of the box in the sealed container.
 - **Commercial Pricing & Tier Strategy (`gdss-radar/README.md`, `gdss-radar/docs/USER_GUIDE.md`)**:
   - Embedded formal **Pricing & Commercial Model**: Community Tier ($0 / Free Forever, 0 tokens) vs. Team & Organization Tier (Cross-repo collision radar, policy merge queues, dedicated managed runners).
-  - Linked enterprise inquiries to GitHub Discussions.
+  - Linked enterprise inquiries to GitHub Discussions (`https://github.com/sarthak2233/gdss-radar/discussions`).
 - **Complete Public Documentation Sanitization (`gdss-radar/docs/`)**:
   - Sanitized `gdss-radar/docs/UNIVERSAL_MULTI_ASSET_GUIDE.md`: stripped internal regex patterns (`\d{10,14}`, `[vV]?\d+`), internal Python module paths (`gdss/reducers/migration_reducer.py`), internal contact key strings, and operator enum names (`OperatorType.MIGRATION_STEP`).
   - Sanitized `gdss-radar/docs/PARALLEL_ORCHESTRATION_AND_CONTEXT_GUIDE.md`: retitled to *Performance, Concurrency & Context Window Tuning Guide*, removing internal prompt budgeting calculations and internal module links.
   - Removed all local machine paths (`/home/sarakb/...`) and local `file:///` URLs from `gdss-radar/docs/GITHUB_ACTIONS_GUIDE.md` and `gdss-radar/docs/CONFIGURATION_GUIDE.md`.
   - Verified 0 leaks across `gdss-radar/` for `file:///`, `/home/sarakb`, `OperatorType`, and internal regex patterns.
 - **Verification Evidence**:
-  - `bash harness/sensors/lint.sh`: OK (ruff clean).
-  - `bash harness/sensors/typecheck.sh`: OK (mypy 100 source files clean).
-  - `python harness/sensors/dsa_fitness.py`: OK.
-  - `python harness/sensors/architecture_fitness.py`: OK.
-  - `bash harness/sensors/cli_smoke.sh`: OK.
+  - `bash harness/verify.sh`: ALL 3 LAYERS GREEN + FRONTEND GATE ALL GREEN (394 pytest tests passed, 35 vitest suites / 118 tests passed, ruff/mypy clean).
+  - Docker build: `docker build -t gdss-test .` succeeded with code 0 (exit 0).
+  - Commits & tags pushed: `GDSS` on `origin/main` (`fd9460d`), `gdss-radar` tag `v1.1.1` moved to sanitized commit `7165a56` and force-pushed.
 
 
 ## 2026-11-04 - Release v1.1.1: Documentation Synchronization, Agent Directive, and Multi-Stack Release

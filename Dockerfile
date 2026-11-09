@@ -1,5 +1,5 @@
 # Multi-stage production Dockerfile for GDSS PR Collision Radar
-# Stage 1: Build wheel and compile dependencies into native C shared objects (.so)
+# Stage 1: Build dependencies and compile GDSS into native C shared objects (.so)
 FROM python:3.11-slim AS builder
 
 WORKDIR /build
@@ -10,28 +10,38 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy build manifests and source
 COPY pyproject.toml README.md /build/
 COPY gdss /build/gdss
 
 # Install build dependencies and Cython
-RUN pip install --no-cache-dir --upgrade pip build wheel setuptools cython
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel cython
 
-# Compile Python source files into native C shared objects (.so) and strip source .py
+# 1. Install GDSS and all runtime dependencies into the /install prefix
+RUN pip install --no-cache-dir --prefix=/install .
+
+# 2. Compile proprietary engine modules to native C extensions (.so) and strip .py source files
+# CLI interface (gdss/cli/) and package metadata (__init__.py) remain as pure Python to preserve Typer CLI introspection.
 RUN python -c "\
 import os, glob; \
 from setuptools import setup, Extension; \
 from Cython.Build import cythonize; \
-py_files = [f for f in glob.glob('gdss/**/*.py', recursive=True) if not f.endswith('__init__.py')]; \
-exts = [Extension(f.replace('/', '.').replace('\\\\', '.')[:-3], [f]) for f in py_files]; \
-setup(name='gdss_compiled', ext_modules=cythonize(exts, compiler_directives={'language_level': '3'})); \
+site_pkg = glob.glob('/install/lib/python*/site-packages')[0]; \
+os.chdir(site_pkg); \
+py_files = [ \
+    f for f in glob.glob('gdss/**/*.py', recursive=True) \
+    if not f.endswith('__init__.py') and not f.startswith('gdss/cli/') \
+]; \
+exts = [Extension(f[:-3].replace('/', '.'), [f]) for f in py_files]; \
+setup(ext_modules=cythonize( \
+    exts, \
+    compiler_directives={'language_level': '3', 'annotation_typing': False, 'binding': True}, \
+    nthreads=4 \
+)); \
 " build_ext --inplace && \
-find gdss -name "*.py" ! -name "__init__.py" -delete && \
-find gdss -name "*.c" -delete
-
-# Build binary wheel and install into /install prefix
-RUN python -m build --wheel && \
-    pip install --no-cache-dir --prefix=/install dist/*.whl
+site_pkg=$(python -c "import glob; print(glob.glob('/install/lib/python*/site-packages')[0])") && \
+find "$site_pkg/gdss" -name "*.py" ! -name "__init__.py" ! -path "$site_pkg/gdss/cli/*" -delete && \
+find "$site_pkg/gdss" -name "*.c" -delete && \
+find "$site_pkg/gdss" -name "*.o" -delete
 
 # Stage 2: Minimal runtime image (contains zero build tools, zero git history, zero plaintext .py files)
 FROM python:3.11-slim

@@ -93,6 +93,26 @@ class GDSSConfig:
     raw_data: dict[str, Any] = field(default_factory=dict)
 
 
+DEFAULT_GENERATED_EXCLUDE_PATTERNS: tuple[str, ...] = (
+    "*.Designer.cs",
+    "*.g.cs",
+    "*.g.i.cs",
+    "*.generated.cs",
+    "*.AssemblyInfo.cs",
+    "*AssemblyInfo.cs",
+    "*.pb.go",
+    "*.gen.go",
+    "*.generated.go",
+    "*.generated.ts",
+    "*.generated.js",
+    "*.min.js",
+    "*.min.css",
+    "bin/**",
+    "obj/**",
+    "target/**",
+)
+
+
 def is_path_excluded(rel_path: str, exclude_patterns: Sequence[str]) -> bool:
     """Check if a relative path matches any exclusion pattern."""
     if not exclude_patterns:
@@ -127,6 +147,11 @@ def is_path_excluded(rel_path: str, exclude_patterns: Sequence[str]) -> bool:
         elif norm_path == pat or norm_path.startswith(pat + "/"):
             return True
     return False
+
+
+def is_generated_or_excluded(rel_path: str, user_excludes: Sequence[str] = ()) -> bool:
+    """Check if a relative path matches auto-generated code patterns or user excludes."""
+    return is_path_excluded(rel_path, tuple(user_excludes) + DEFAULT_GENERATED_EXCLUDE_PATTERNS)
 
 
 def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> GDSSConfig:

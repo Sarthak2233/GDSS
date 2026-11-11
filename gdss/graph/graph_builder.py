@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 
 from gdss.core.ast_parser import ASTParser, get_source_extensions
-from gdss.core.config import is_path_excluded, load_gdss_config
+from gdss.core.config import is_generated_or_excluded, is_path_excluded, load_gdss_config
 from gdss.graph.code_graph import CodeGraph
 from gdss.logger import get_logger
 
@@ -66,7 +66,7 @@ def build_code_graph_from_repo(
         ]
         for filename in files:
             rel_file = os.path.relpath(os.path.join(root, filename), root_path)
-            if is_path_excluded(rel_file, exclude_patterns):
+            if is_generated_or_excluded(rel_file, exclude_patterns):
                 continue
             if (
                 filename.endswith(".min.js")

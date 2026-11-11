@@ -44,6 +44,18 @@ def detect_typecheck_command(
     if (root / "go.mod").is_file():
         return "go vet ./...", "go"
 
+    # C# / .NET (Solution or Project)
+    try:
+        if (
+            any(root.glob("*.sln"))
+            or any(root.glob("*.slnx"))
+            or any(root.glob("*.csproj"))
+            or any(root.glob("*.fsproj"))
+        ):
+            return "dotnet build --no-incremental", "dotnet"
+    except Exception:
+        pass
+
     # Subpackage check in monorepo if changed_files are provided
     if changed_files:
         pkg_groups = group_files_by_package_root(root, changed_files)

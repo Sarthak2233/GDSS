@@ -82,6 +82,18 @@ def detect_test_command(
     if (root / "go.mod").is_file():
         return "go test ./...", "go"
 
+    # C# / .NET (Solution or Project)
+    try:
+        if (
+            any(root.glob("*.sln"))
+            or any(root.glob("*.slnx"))
+            or any(root.glob("*.csproj"))
+            or any(root.glob("*.fsproj"))
+        ):
+            return "dotnet test", "dotnet"
+    except Exception:
+        pass
+
     # Subpackage check in monorepo if changed_files are provided
     if changed_files:
         pkg_groups = group_files_by_package_root(root, changed_files)

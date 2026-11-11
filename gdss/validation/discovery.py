@@ -71,6 +71,13 @@ def find_project_root_for_file(file_path: Path, repo_root: Path) -> Path:
             if (current / descriptor).is_file():
                 return current
 
+        # Check for .NET project / solution files (*.csproj, *.fsproj, *.sln)
+        try:
+            if any(current.glob("*.csproj")) or any(current.glob("*.sln")) or any(current.glob("*.fsproj")):
+                return current
+        except Exception:
+            pass
+
         if current == resolved_repo or current.parent == current:
             break
         try:

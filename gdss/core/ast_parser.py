@@ -77,6 +77,33 @@ def _load_cpp():
     return Language(tree_sitter_cpp.language())
 
 
+def _load_c_sharp():
+    try:
+        import tree_sitter_c_sharp
+
+        return Language(tree_sitter_c_sharp.language())
+    except ImportError:
+        return None
+
+
+def _load_ruby():
+    try:
+        import tree_sitter_ruby
+
+        return Language(tree_sitter_ruby.language())
+    except ImportError:
+        return None
+
+
+def _load_bash():
+    try:
+        import tree_sitter_bash
+
+        return Language(tree_sitter_bash.language())
+    except ImportError:
+        return None
+
+
 LANGUAGE_REGISTRY: dict[str, tuple[str, Callable[[], Language | None]]] = {
     ".py": ("python", _load_python),
     ".pyi": ("python", _load_python),
@@ -95,6 +122,11 @@ LANGUAGE_REGISTRY: dict[str, tuple[str, Callable[[], Language | None]]] = {
     ".hpp": ("cpp", _load_cpp),
     ".cc": ("cpp", _load_cpp),
     ".cxx": ("cpp", _load_cpp),
+    ".cs": ("c_sharp", _load_c_sharp),
+    ".csx": ("c_sharp", _load_c_sharp),
+    ".rb": ("ruby", _load_ruby),
+    ".sh": ("bash", _load_bash),
+    ".bash": ("bash", _load_bash),
 }
 
 DEFAULT_SOURCE_EXTENSIONS: tuple[str, ...] = (
@@ -116,6 +148,11 @@ DEFAULT_SOURCE_EXTENSIONS: tuple[str, ...] = (
     ".cc",
     ".cxx",
     ".cs",
+    ".csx",
+    ".razor",
+    ".cshtml",
+    ".vue",
+    ".svelte",
     ".rb",
     ".php",
     ".kt",
@@ -219,6 +256,19 @@ class ASTParser:
         except Exception:
             return None
 
+    @classmethod
+    def has_ast_grammar(cls, ext: str) -> bool:
+        """Return True if an official Tree-sitter grammar is registered for the extension."""
+        cleaned = ext.lower().strip()
+        if not cleaned.startswith("."):
+            cleaned = f".{cleaned}"
+        return cleaned in LANGUAGE_REGISTRY
+
+    @classmethod
+    def is_language_supported(cls, ext: str) -> bool:
+        """Check if an extension has AST grammar coverage (Level 2+) vs. lexical fallback."""
+        return cls.has_ast_grammar(ext)
+
     def consume_skipped_summary(self) -> dict[str, int]:
         """Return and clear counts of files skipped due to missing parsers."""
         summary = dict(self._skipped_extensions)
@@ -267,6 +317,21 @@ class ASTParser:
             return cached
 
         ext = os.path.splitext(filepath)[1].lower()
+
+        # Tier 0: Hybrid Sub-Document Region Projection (.razor, .cshtml, .vue, .svelte)
+        from gdss.core.region_projector import RegionProjector
+
+        if RegionProjector.can_project(filepath) and content:
+            try:
+                proj_syms = RegionProjector.project_and_parse(filepath, content, self)
+                if proj_syms:
+                    if mtime is not None:
+                        self._cache[filepath] = (mtime, proj_syms)
+                    self._remember_content(cache_key, proj_syms)
+                    return proj_syms
+            except Exception as e:
+                logger.debug("Region projection error on %s: %s", filepath, e)
+
         language = self._language_for_ext(ext)
         parser = self.get_parser_for_ext(ext)
         symbols: list[CodeSymbol] = []
@@ -311,6 +376,10 @@ class ASTParser:
                     self._parse_c_cpp(
                         root, content_bytes, symbols, language=language, chart_location=filepath
                     )
+                elif language == "c_sharp":
+                    self._parse_csharp(
+                        root, content_bytes, symbols, language=language, chart_location=filepath
+                    )
                 else:
                     self._parse_universal_tree_sitter(
                         root, content_bytes, symbols, language=language, chart_location=filepath
@@ -334,6 +403,12 @@ class ASTParser:
         # Tier 3: Universal Fallback if no parser available or if parsing yielded 0 symbols
         if not symbols and content_bytes.strip():
             symbols = self._parse_universal_fallback(content_bytes, filepath, ext)
+            if not parser and ext:
+                logger.warning(
+                    "No Tree-sitter grammar registered for %s (extension %s). Operating in lexical advisory mode.",
+                    filepath,
+                    ext,
+                )
 
         if not symbols and not parser and ext:
             self._skipped_extensions[ext] = self._skipped_extensions.get(ext, 0) + 1
@@ -404,7 +479,7 @@ class ASTParser:
 
     def _extract_calls(self, node: Node, content_bytes: bytes, calls: list[str]):
         """Recursively traverses a node to find all function and method call names."""
-        if node.type in {"call", "call_expression"}:
+        if node.type in {"call", "call_expression", "invocation_expression"}:
             func_node = node.child_by_field_name("function")
             if func_node:
                 if func_node.type == "identifier":
@@ -417,6 +492,10 @@ class ASTParser:
                     prop_node = func_node.child_by_field_name("property")
                     if prop_node:
                         calls.append(self._get_node_text(prop_node, content_bytes))
+                elif func_node.type == "member_access_expression":  # e.g. obj.Method() in C#
+                    name_node = func_node.child_by_field_name("name")
+                    if name_node:
+                        calls.append(self._get_node_text(name_node, content_bytes))
 
         for child in node.children:
             self._extract_calls(child, content_bytes, calls)
@@ -490,9 +569,7 @@ class ASTParser:
                         language=language,
                         chart_location=chart_location,
                     )
-                    self._append_symbol(
-                        symbols, sym, chart_location
-                    )  # dsa:ignore per-symbol registration
+                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
 
             elif ctype == "class_definition":
                 if name_node:
@@ -511,9 +588,7 @@ class ASTParser:
                         language=language,
                         chart_location=chart_location,
                     )
-                    self._append_symbol(
-                        symbols, sym, chart_location
-                    )  # dsa:ignore per-symbol registration
+                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
 
                     if body_node:
                         self._parse_python(
@@ -664,9 +739,7 @@ class ASTParser:
                         language=language,
                         chart_location=chart_location,
                     )
-                    self._append_symbol(
-                        symbols, sym, chart_location
-                    )  # dsa:ignore per-symbol registration
+                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
 
             elif ctype == "class_declaration":
                 if name_node:
@@ -685,9 +758,7 @@ class ASTParser:
                         language=language,
                         chart_location=chart_location,
                     )
-                    self._append_symbol(
-                        symbols, sym, chart_location
-                    )  # dsa:ignore per-symbol registration
+                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore per-symbol registration
 
                     if body_node:
                         self._parse_js_ts(
@@ -1277,6 +1348,183 @@ class ASTParser:
                         chart_location=chart_location,
                     )
 
+    def _parse_csharp(
+        self,
+        root: Node,
+        content_bytes: bytes,
+        symbols: list[CodeSymbol],
+        parent_class: str | None = None,
+        language: str = "c_sharp",
+        chart_location: str | None = None,
+    ) -> None:
+        """Recursively parses a C# AST root node using tree-sitter-c-sharp."""
+        current_namespace: str | None = parent_class
+
+        for child in root.children:
+            loc = self._location_kwargs(child)
+            ctype = child.type
+            name_node = child.child_by_field_name("name")
+            body_node = child.child_by_field_name("body")
+            name_text = self._get_node_text(name_node, content_bytes) if name_node else ""
+            body_text = self._get_node_text(body_node, content_bytes) if body_node else ""
+            body_blocks = self._extract_body_blocks(body_node, content_bytes) if body_node else []
+
+            # 1. Namespaces
+            if ctype in {"namespace_declaration", "file_scoped_namespace_declaration"}:
+                ns_name = name_text
+                if not ns_name:
+                    for sub in child.children:
+                        if sub.type in {"qualified_name", "identifier"}:
+                            ns_name = self._get_node_text(sub, content_bytes)
+                            break
+                current_namespace = ns_name
+                target_body = body_node or child.child_by_field_name("declaration_list")
+                if target_body:
+                    self._parse_csharp(
+                        target_body,
+                        content_bytes,
+                        symbols,
+                        parent_class=current_namespace,
+                        language=language,
+                        chart_location=chart_location,
+                    )
+                elif ctype == "file_scoped_namespace_declaration":
+                    parent_class = current_namespace
+
+            # 2. Classes, Interfaces, Structs, Records, Enums
+            elif ctype in {
+                "class_declaration",
+                "interface_declaration",
+                "struct_declaration",
+                "enum_declaration",
+                "record_declaration",
+                "record_struct_declaration",
+            }:
+                if name_node:
+                    sig = name_text
+                    for sub in child.children:
+                        sub_text = self._get_node_text(sub, content_bytes)  # dsa:ignore
+                        if sub.type == "type_parameter_list":
+                            sig += sub_text
+                        elif sub.type == "base_list":
+                            base_text = sub_text.strip()
+                            if base_text:
+                                sig += f" {base_text}"
+
+                    sym = CodeSymbol(
+                        name=name_text,
+                        type=SymbolType.CLASS,
+                        **loc,
+                        signature=sig,
+                        body=body_text,
+                        parent_class=parent_class,
+                        structural_tokens=self._extract_structural_tokens(body_node),
+                        body_blocks=body_blocks,
+                        language=language,
+                        chart_location=chart_location,
+                    )
+                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore
+
+                    decl_list = child.child_by_field_name("declaration_list")  # dsa:ignore
+                    decl_body = body_node or decl_list
+                    if not decl_body:
+                        for sub in child.children:
+                            if sub.type in {"declaration_list", "enum_member_declaration_list"}:
+                                decl_body = sub
+                                break
+                    if decl_body:
+                        self._parse_csharp(
+                            decl_body,
+                            content_bytes,
+                            symbols,
+                            parent_class=name_text,
+                            language=language,
+                            chart_location=chart_location,
+                        )
+
+            # 3. Methods, Constructors, Destructors
+            elif ctype in {
+                "method_declaration",
+                "constructor_declaration",
+                "destructor_declaration",
+            }:
+                if name_node:
+                    params_node = child.child_by_field_name("parameters")
+                    sig = self._get_node_text(params_node, content_bytes) if params_node else "()"
+                    ret_node = child.child_by_field_name("type") or child.child_by_field_name("returns")
+                    if ret_node:
+                        sig = f"{self._get_node_text(ret_node, content_bytes)} {name_text}{sig}"
+                    else:
+                        sig = f"{name_text}{sig}"
+
+                    calls: list[str] = []
+                    if body_node:
+                        self._extract_calls(body_node, content_bytes, calls)
+
+                    structural_tokens = (
+                        [b.node_type for b in body_blocks]
+                        if body_blocks
+                        else extract_tokens_from_body_text(body_text)
+                    )
+                    sym = CodeSymbol(
+                        name=name_text,
+                        type=SymbolType.FUNCTION,
+                        **loc,
+                        signature=sig,
+                        body=body_text,
+                        parent_class=parent_class,
+                        calls=calls,
+                        structural_tokens=structural_tokens,
+                        body_blocks=body_blocks,
+                        language=language,
+                        chart_location=chart_location,
+                    )
+                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore
+
+            # 4. Properties and Indexers
+            elif ctype in {"property_declaration", "indexer_declaration"}:
+                if name_node:
+                    prop_type_node = child.child_by_field_name("type")  # dsa:ignore
+                    type_str = self._get_node_text(prop_type_node, content_bytes) if prop_type_node else ""  # dsa:ignore
+                    sig = f"{type_str} {name_text}".strip()
+                    prop_body = body_text or self._get_node_text(child, content_bytes)  # dsa:ignore
+                    sym = CodeSymbol(
+                        name=name_text,
+                        type=SymbolType.FUNCTION,
+                        **loc,
+                        signature=sig,
+                        body=prop_body,
+                        parent_class=parent_class,
+                        language=language,
+                        chart_location=chart_location,
+                    )
+                    self._append_symbol(symbols, sym, chart_location)  # dsa:ignore
+
+            # 5. Using directives / Imports
+            elif ctype == "using_directive":
+                raw_text = self._get_node_text(child, content_bytes)
+                imp_text = (
+                    raw_text.replace("using", "")
+                    .replace("static", "")
+                    .replace("global", "")
+                    .replace(";", "")
+                    .strip()
+                )
+                module_name = imp_text
+                imported_names = [imp_text.split(".")[-1]] if "." in imp_text else [imp_text]
+                sym = CodeSymbol(
+                    name=imp_text,
+                    type=SymbolType.IMPORT,
+                    **loc,
+                    signature=raw_text.strip(),
+                    body=raw_text.strip(),
+                    module=module_name,
+                    imported_names=imported_names,
+                    language=language,
+                    chart_location=chart_location,
+                )
+                self._append_symbol(symbols, sym, chart_location)  # dsa:ignore
+
     _TS_FUNCTION_TYPES = frozenset(
         {
             "function_item",
@@ -1479,6 +1727,7 @@ class ASTParser:
 
         is_ruby_like = ext in self._RUBY_LIKE_EXTS
         is_shell = ext in self._SHELL_EXTS
+        is_lexical = ext not in LANGUAGE_REGISTRY
         language = self._language_for_ext(ext)
         if language == "unknown" and ext:
             language = ext.lstrip(".")
@@ -1611,6 +1860,7 @@ class ASTParser:
         for item in open_items:
             end_line = item.get("end_line", total_lines)
             body_text = "\n".join(item.get("lines", []))
+            docstring = "lexical_advisory: true" if is_lexical else None
             sym = CodeSymbol(
                 name=item["name"],
                 type=item["type"],
@@ -1620,6 +1870,7 @@ class ASTParser:
                 end_column=item.get("end_column", 1),
                 signature=item.get("signature", item["name"]),
                 body=body_text,
+                docstring=docstring,
                 parent_class=item.get("parent_class"),
                 structural_tokens=extract_tokens_from_body_text(body_text),
                 language=language,

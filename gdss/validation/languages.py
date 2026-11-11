@@ -129,10 +129,10 @@ def get_default_registry() -> LanguageRegistry:
     registry.register(
         LanguageDefinition(
             name="csharp",
-            extensions=[".cs"],
+            extensions=[".cs", ".csx", ".razor"],
             default_test_cmd="dotnet test {test_file}",
-            default_typecheck_cmd="dotnet build --no-build-incrementally",
-            test_file_patterns=["{name}Tests.cs", "Test{name}.cs"],
+            default_typecheck_cmd="dotnet build --no-incremental",
+            test_file_patterns=["{name}Tests.cs", "{name}Test.cs", "Test{name}.cs"],
         )
     )
 

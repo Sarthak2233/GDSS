@@ -95,11 +95,12 @@ File routing occurs in two stages without requiring users to manually configure 
 
 ### Stage A: Advisory Path Sniffer
 The router examines the file path against standardized repository layout conventions:
-- **Manifests**: `package.json`, `Cargo.toml`, `pyproject.toml`.
+- **Manifests & Build Projects**: `package.json`, `Cargo.toml`, `pyproject.toml`, `.csproj`, `.fsproj`, `.vbproj`, `.props`, `.targets`, `Directory.Build.props`, `Directory.Packages.props`, `.sln`, `.slnx`.
 - **Migrations**: `**/migrations/**`, `**/migration/**`, `**/migrate/**`, `alembic/**`, `prisma/migrations/**`, `drizzle/**`, `db/migrations/meta/*.json`, `supabase/migrations/**`, `flyway/**`.
 - **SQL DDL**: `*.sql`.
 - **Documentation**: `*.md`, `*.rst`.
-- **Code ASTs**: Extensions matching registered Tree-sitter parsers (`.py`, `.ts`, `.js`, `.go`, `.rs`, `.java`, `.c`, `.cpp`).
+- **Code ASTs**: Extensions matching registered Tree-sitter parsers (`.py`, `.ts`, `.js`, `.go`, `.rs`, `.java`, `.c`, `.cpp`, `.cs`, `.csx`, `.rb`, `.sh`, `.bash`).
+- **Hybrid Sub-Documents**: Region projection for Blazor (`.razor`, `.cshtml`) and Vue/Svelte (`.vue`, `.svelte`).
 
 ### Stage B: Content-First Deep Sniffer
 If a project uses non-standard, custom, or nested folder paths (e.g. `src/modules/billing/db_rev_42.py`), the sniffer inspects file content:
@@ -130,28 +131,43 @@ Tracks database migration dependencies and sequence DAGs across all major web fr
 - **Operator Generation**: Emits `OperatorType.MIGRATION_STEP` with target name `migration_parent::<parent_id>` or `migration_step::<step>`.
 - **Collision Behavior**: If two concurrent branches branch from the same parent or append competing migration steps, GDSS assigns $\Omega_{ij} = 1.0$ (Critical) with badge `🗄️ Split-Head Hazard` and recommends a re-parenting command.
 
-### 2. Manifest Reducer (`gdss/reducers/manifest_reducer.py`)
-Parses `package.json`, `Cargo.toml`, and `pyproject.toml`:
+### 2. Manifest & MSBuild Reducer (`gdss/reducers/manifest_reducer.py`)
+Parses `package.json`, `Cargo.toml`, `pyproject.toml`, `.csproj`, `.props`, `.targets`, `Directory.Packages.props`, `.sln`, and `.slnx`:
 - **Granular Operators**:
-  - `OperatorType.ADD_DEPENDENCY`: Target `manifest::<file>::dependencies.<pkg>`.
-  - `OperatorType.MODIFY_DEPENDENCY`: Version constraint updates.
-  - `OperatorType.REMOVE_DEPENDENCY`: Deleted packages.
+  - `OperatorType.ADD_DEPENDENCY`: Target `manifest::<file>::dependencies.<pkg>` or `msbuild::<file>::package_reference.<pkg>`.
+  - `OperatorType.MODIFY_DEPENDENCY`: Version constraint updates and CPM version upgrades.
+  - `OperatorType.REMOVE_DEPENDENCY`: Deleted packages, project references, or solution projects.
+- **MSBuild Support**:
+  - `<PackageReference Include="..." Version="..." />`: Tracks NuGet dependencies.
+  - `<PackageVersion Include="..." Version="..." />`: Tracks Central Package Management (CPM) changes in `Directory.Packages.props`.
+  - `<ProjectReference Include="..." />`: Tracks project-to-project architectural couplings.
+  - **Visual Studio Solutions (`.sln`, `.slnx`)**: Parses project membership so adding, removing, or re-targeting project components triggers dependency operators.
 - **Commutativity Logic**:
   - If Branch A adds `axios@^1.6` and Branch B adds `zod@^3.22`, the contact keys differ. They commute independently ($[\mathcal{T}_A, \mathcal{T}_B] = 0$, $\Omega_{ij} = 0.0$).
   - If Branch A adds `axios@^1.6` and Branch B adds `axios@^0.28`, the contact keys clash. The operators do not commute, triggering `📦 Manifest Divergence`.
 
-### 3. SQL Schema Reducer (`gdss/reducers/sql_reducer.py`)
+### 3. Hybrid Sub-Document Region Projector (`gdss/core/region_projector.py`)
+Extracts embedded code from composite multi-language files without requiring single monolithic grammars:
+- **Blazor (`.razor`, `.cshtml`)**: Extracts `@code { ... }` and `@functions { ... }` blocks, mapping methods, properties, and constructors to the C# Tree-sitter visitor with 1-to-1 line remapping.
+- **Vue & Svelte (`.vue`, `.svelte`)**: Extracts `<script>` and `<script setup>` tags, detecting TypeScript vs. JavaScript and preserving accurate source file line/column coordinates.
+
+### 4. Generated Code Exclusion Policy (`gdss/core/config.py`)
+Filters out auto-generated source files and compiler artifacts before AST parsing and trajectory calculation:
+- Automatically ignores `*.Designer.cs`, `*.g.cs`, `*.g.i.cs`, `*AssemblyInfo.cs`, `*.pb.go`, `*.generated.ts`, `*.min.js`, `bin/**`, `obj/**`, and `target/**`.
+- Prevents build-tool code churn from polluting the $\Omega_{ij}$ collision tensor.
+
+### 5. SQL Schema Reducer (`gdss/reducers/sql_reducer.py`)
 Tokenizes standard DDL statements:
 - Extracts `CREATE TABLE <name>`, `ALTER TABLE <name> ADD COLUMN <col>`, and `DROP COLUMN <col>`.
 - Emits `OperatorType.SCHEMA_ADD_TABLE`, `SCHEMA_ADD_COLUMN`, and `SCHEMA_DROP_COLUMN`.
 - Prevents breaking changes between simultaneous schema refactors and query additions.
 
-### 4. Markdown Section Reducer (`gdss/reducers/markdown_reducer.py`)
+### 6. Markdown Section Reducer (`gdss/reducers/markdown_reducer.py`)
 Diffs structured documentation:
 - Analyzes changes scoped to ATX headings (`# Heading`, `## Subheading`).
 - Classifies list item additions under identical sections as `🔀 Union` candidates ($\Omega_{ij} \le 0.25$), recommending automated union merging without developer friction.
 
-### 5. Universal Lexical Safety Net (`gdss/reducers/lexical_reducer.py`)
+### 7. Universal Lexical Safety Net (`gdss/reducers/lexical_reducer.py`)
 The ultimate safety net for any text file:
 - Emits `OperatorType.LEXICAL_CHUNK_EDIT` with 1-indexed line ranges and content hashes.
 - Dispatches overlapping chunk edits as `⚙️ Lexical Overlap`, guaranteeing zero unpredicted merge conflicts.

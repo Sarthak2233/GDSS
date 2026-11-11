@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from gdss.core.ast_parser import SOURCE_EXTENSIONS, ASTParser
-from gdss.core.config import is_path_excluded, load_gdss_config
+from gdss.core.config import is_generated_or_excluded, load_gdss_config
 from gdss.core.transform_extractor import TransformExtractor
 from gdss.core.transform_types import SemanticOperator
 from gdss.reducers.registry import DomainReducerRegistry
@@ -63,7 +63,7 @@ def extract_trajectory_operators(
     )
 
     for path in changes.get("modified", []):
-        if is_path_excluded(path, effective_exclude):  # dsa:ignore
+        if is_generated_or_excluded(path, effective_exclude):  # dsa:ignore
             continue
         old_content = observer.get_file_content_at_commit(merge_base, path)  # dsa:ignore
         new_content = observer.get_file_content_at_commit(head_commit.hexsha, path)  # dsa:ignore
@@ -84,7 +84,7 @@ def extract_trajectory_operators(
             )
 
     for path in changes.get("added", []):
-        if is_path_excluded(path, effective_exclude):  # dsa:ignore
+        if is_generated_or_excluded(path, effective_exclude):  # dsa:ignore
             continue
         new_content = observer.get_file_content_at_commit(head_commit.hexsha, path)  # dsa:ignore
         if new_content is None:
@@ -103,7 +103,7 @@ def extract_trajectory_operators(
             )
 
     for path in changes.get("deleted", []):
-        if is_path_excluded(path, effective_exclude):  # dsa:ignore
+        if is_generated_or_excluded(path, effective_exclude):  # dsa:ignore
             continue
         old_content = observer.get_file_content_at_commit(merge_base, path)  # dsa:ignore
         if old_content is None:

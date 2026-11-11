@@ -12,22 +12,41 @@ from gdss.logger import get_logger
 logger = get_logger("gdss.reducers.manifest")
 
 _MANIFEST_FILENAMES = frozenset({"package.json", "cargo.toml", "pyproject.toml"})
+_MSBUILD_EXTENSIONS = frozenset(
+    {".csproj", ".fsproj", ".vbproj", ".props", ".targets", ".sln", ".slnx"}
+)
 _DEP_SECTIONS = ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies")
+_SLN_PROJECT_RE = re.compile(
+    r'Project\s*\([^)]*\)\s*=\s*"([^"]+)"\s*,\s*"([^"]+)"',
+    re.IGNORECASE,
+)
 
 
 class ManifestReducer:
-    """Extracts dependency operators from package.json, Cargo.toml, pyproject.toml."""
+    """Extracts dependency operators from package.json, Cargo.toml, pyproject.toml, and MSBuild (.csproj, .props)."""
 
     def can_handle(self, file_path: str, content: str | None = None) -> bool:
         lower = file_path.lower()
         base_name = lower.split("/")[-1]
         if base_name in _MANIFEST_FILENAMES:
             return True
+        if any(lower.endswith(ext) for ext in _MSBUILD_EXTENSIONS):
+            return True
+        if base_name in {"directory.build.props", "directory.packages.props"}:
+            return True
         if content:
             stripped = content.strip()
             if stripped.startswith("{") and '"dependencies"' in stripped:
                 return True
             if "[dependencies]" in stripped or "[project.dependencies]" in stripped:
+                return True
+            if "<Project" in stripped and (
+                "<PackageReference" in stripped
+                or "<ProjectReference" in stripped
+                or "<PackageVersion" in stripped
+            ):
+                return True
+            if "<Solution" in stripped or "Microsoft Visual Studio Solution File" in stripped:
                 return True
         return False
 
@@ -39,6 +58,11 @@ class ManifestReducer:
         commit_sha: str = "",
     ) -> list[SemanticOperator]:
         lower = file_path.lower()
+        if any(lower.endswith(ext) for ext in _MSBUILD_EXTENSIONS) or (
+            (new_content and "<Project" in new_content)
+            or (old_content and "<Project" in old_content)
+        ):
+            return self._extract_msbuild(file_path, old_content, new_content, commit_sha)
         if lower.endswith(".json") or (new_content and new_content.strip().startswith("{")):
             return self._extract_json(file_path, old_content, new_content, commit_sha)
         if lower.endswith("pyproject.toml") or (new_content and "[project" in new_content):
@@ -46,6 +70,135 @@ class ManifestReducer:
         if lower.endswith("cargo.toml") or (new_content and "[dependencies]" in new_content):
             return self._extract_cargo(file_path, old_content, new_content, commit_sha)
         return []
+
+    def _extract_msbuild(
+        self,
+        file_path: str,
+        old_content: str | None,
+        new_content: str | None,
+        commit_sha: str,
+    ) -> list[SemanticOperator]:
+        import xml.etree.ElementTree as ET
+
+        def _clean_project_name(path: str) -> tuple[str, str]:
+            clean_proj = path.replace("\\", "/").rstrip("/")  # dsa:ignore
+            base = clean_proj.split("/")[-1]
+            lower_base = base.lower()
+            for ext in (".csproj", ".fsproj", ".vbproj"):
+                if lower_base.endswith(ext):
+                    base = base[: -len(ext)]  # dsa:ignore
+                    break
+            return base, clean_proj
+
+        def parse_sln_deps(text: str | None) -> dict[str, dict[str, str]]:
+            if not text or not text.strip():
+                return {}
+            deps: dict[str, dict[str, str]] = {}
+            for match in _SLN_PROJECT_RE.finditer(text):
+                proj_name = match.group(1).strip()
+                proj_path = match.group(2).strip()
+                _, clean_path = _clean_project_name(proj_path)
+                if clean_path.lower().endswith((".csproj", ".fsproj", ".vbproj")) or (
+                    not proj_path.startswith("{") and "/" in clean_path
+                ):
+                    deps[f"proj:{proj_name}"] = {
+                        "name": proj_name,
+                        "target": clean_path,
+                        "type": "solution_project",
+                    }
+            return deps
+
+        def parse_xml_deps(text: str | None) -> dict[str, dict[str, str]]:
+            if not text or not text.strip():
+                return {}
+            try:
+                root = ET.fromstring(text)
+            except Exception:
+                return {}
+
+            deps: dict[str, dict[str, str]] = {}
+            for elem in root.iter():
+                tag = elem.tag.split("}")[-1]
+                if tag in {"PackageReference", "PackageVersion"}:
+                    pkg = elem.attrib.get("Include") or elem.attrib.get("Update")
+                    ver = elem.attrib.get("Version") or ""
+                    if pkg:
+                        deps[f"pkg:{pkg}"] = {
+                            "name": pkg,
+                            "version": ver,
+                            "type": "package_reference",
+                        }
+                elif tag == "ProjectReference":
+                    proj = elem.attrib.get("Include")
+                    if proj:
+                        p_name, _ = _clean_project_name(proj)  # dsa:ignore
+                        deps[f"proj:{p_name}"] = {
+                            "name": p_name,
+                            "target": proj,
+                            "type": "project_reference",
+                        }
+                elif tag == "Project" and elem.attrib.get("Path"):
+                    proj = elem.attrib["Path"]
+                    p_name, _ = _clean_project_name(proj)  # dsa:ignore
+                    deps[f"proj:{p_name}"] = {
+                        "name": p_name,
+                        "target": proj,
+                        "type": "solution_project",
+                    }
+            return deps
+
+        is_sln = file_path.lower().endswith(".sln")
+        old_deps = parse_sln_deps(old_content) if is_sln else parse_xml_deps(old_content)
+        new_deps = parse_sln_deps(new_content) if is_sln else parse_xml_deps(new_content)
+        operators: list[SemanticOperator] = []
+
+        all_keys = sorted(set(old_deps.keys()) | set(new_deps.keys()))
+        for key in all_keys:
+            old_item = old_deps.get(key)
+            new_item = new_deps.get(key)
+
+            if old_item is None and new_item is not None:
+                dep_name = new_item["name"]
+                dep_type = new_item["type"]
+                operators.append(
+                    SemanticOperator(
+                        operator=OperatorType.ADD_DEPENDENCY,
+                        file=file_path,
+                        commit=commit_sha,
+                        name=dep_name,
+                        details=new_item,
+                        symbol_id=f"msbuild::{file_path}::{dep_type}.{dep_name}",
+                    )
+                )
+            elif old_item is not None and new_item is None:
+                dep_name = old_item["name"]
+                dep_type = old_item["type"]
+                operators.append(
+                    SemanticOperator(
+                        operator=OperatorType.REMOVE_DEPENDENCY,
+                        file=file_path,
+                        commit=commit_sha,
+                        name=dep_name,
+                        details=old_item,
+                        symbol_id=f"msbuild::{file_path}::{dep_type}.{dep_name}",
+                    )
+                )
+            elif old_item is not None and new_item is not None:
+                if old_item != new_item:
+                    dep_name = new_item["name"]
+                    dep_type = new_item["type"]
+                    operators.append(
+                        SemanticOperator(
+                            operator=OperatorType.MODIFY_DEPENDENCY,
+                            file=file_path,
+                            commit=commit_sha,
+                            name=dep_name,
+                            details={"old": old_item, "new": new_item},
+                            symbol_id=f"msbuild::{file_path}::{dep_type}.{dep_name}",
+                        )
+                    )
+
+        return operators
 
     def _extract_json(
         self,

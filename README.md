@@ -345,8 +345,8 @@ GDSS can generate minimal conflict-free patches and plain-English risk assessmen
 
 ### 🛡️ Ephemeral Sandboxed Validation (Phase 6)
 When `--validate` is passed, candidate patches are tested in an isolated Git worktree (`/tmp/gdss-sandbox-...`) before presentation:
-- **Repository-Agnostic**: Automatically walks up from the patched file to discover the nearest project root (`pyproject.toml`, `package.json`, `Cargo.toml`, `go.mod`, `pom.xml`, `Makefile`), with optional `.gdss.yml` for custom build systems (Bazel, Gradle).
-- **Multi-Language Pluggable**: 3-tier registry supporting built-in Tree-Sitter (Py, TS, JS, Go), native project compilers (Rust `cargo check`, Java `javac`), and universal diff fallbacks.
+- **Repository-Agnostic**: Automatically walks up from the patched file to discover the nearest project root (`pyproject.toml`, `package.json`, `Cargo.toml`, `go.mod`, `pom.xml`, `Makefile`, `*.csproj`, `*.sln`), with optional `.gdss.yml` for custom build systems (Bazel, Gradle).
+- **Multi-Language Pluggable**: High-accuracy Tree-Sitter support for Python, TypeScript, JavaScript, Go, Rust, Java, C/C++, C#, Ruby, and Bash, sub-document region projection for Blazor (`.razor`) and Vue/Svelte, and transparent lexical advisory mode for ungrammared files.
 - **Existing Project Tests**: Executes only existing automated tests covering the affected symbol to verify zero regressions.
 - **Configurable Timeout**: Set via `--sandbox-timeout <seconds>` or `GDSS_SANDBOX_TIMEOUT` (default: 30s local, 60s CI).
 - **GitHub PR Integration**: When run in GitHub Actions, verified patches format as native ````suggestion ```` blocks with a 1-click **"Commit suggestion"** button directly on github.com.
@@ -534,7 +534,7 @@ This section tracks the roadmap. **Done** means the feature is implemented, test
 | Phase / Module | Status | Deliverables |
 | :--- | :--- | :--- |
 | **Phase 0 — Distributed Runtime** | **Done** | Event bus, local/remote observers, daemon, context engine |
-| **Phase 1 — Deterministic Brain** | **Done** | Multi-language AST (Py/TS/JS/Go/Rust/Java/C/C++), transform algebra, CodeGraph, semantic diff |
+| **Phase 1 — Deterministic Brain** | **Done** | Multi-language AST (Py/TS/JS/Go/Rust/Java/C/C++/C#/Ruby/Bash), Blazor/Vue region projection, MSBuild DAG, CodeGraph |
 | **Phase 2 — Semantic Embeddings** | **Done** | Symbol encoders, FAISS vector index, assistive similarity search |
 | **Phase 3 — Continuous Drift** | **Done** | Trajectory integral $I(B_i)$, drift alerts, snapshot history, `gdss drift` |
 | **Phase 4 — PR Collision Radar** | **Done** | Interaction tensor $\Omega_{ij}$, non-commutative operators, optimal merge order |

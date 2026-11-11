@@ -292,8 +292,8 @@ migrations:
 | `validation.mode` | `string` | `"targeted"` | Validation scope: `"targeted"` (constrains test/typecheck runs strictly to changed files / targeted tests) or `"full_suite"` (runs unconstrained suite). |
 | `validation.symlink_dependencies` | `boolean` | `true` | When `true`, automatically symlinks root and subpackage dependency directories (`node_modules`, `.venv`, `vendor`) from parent repo into ephemeral worktrees if manifests are untouched. |
 | `validation.install_command` | `string \| null` | `null` | Shell command executed inside the ephemeral worktree prior to typecheck and tests (e.g. `npm ci`, `poetry install`). |
-| `validation.test_command` | `string` | *Auto-detected* | Shell command to execute targeted regression tests. Supports `{test_file}` replacement. |
-| `validation.typecheck_command` | `string` | *Auto-detected* | Shell command to execute static typechecking (`mypy`, `tsc --noEmit`, `cargo check`). |
+| `validation.test_command` | `string` | *Auto-detected* | Shell command to execute targeted regression tests (`pytest`, `npm test`, `cargo test`, `dotnet test`). Supports `{test_file}` replacement. |
+| `validation.typecheck_command` | `string` | *Auto-detected* | Shell command to execute static typechecking (`mypy`, `tsc --noEmit`, `cargo check`, `dotnet build --no-incremental`). |
 | `validation.syntax_command` | `string` | *Auto-detected* | Shell command to execute syntax checks or linters. |
 | `validation.timeout_seconds` | `integer` | `30` | Worktree execution timeout in seconds. Prevents hanging tests from stalling CI. |
 
@@ -302,7 +302,10 @@ migrations:
 | Directive | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
 | `ast.additional_extensions` | `list[str]` | `[]` | List of custom file extensions (e.g. `[.vue, .sol]`) mapped into symbol extraction. |
-| `ast.exclude_patterns` | `list[str]` | `[]` | Glob patterns of paths or files to exclude from AST symbol parsing (e.g. `["node_modules/**", "dist/**", "vendor/**"]`). |
+| `ast.exclude_patterns` | `list[str]` | `[]` | Glob patterns of paths or files to exclude from AST symbol parsing (e.g. `["custom_gen/**", "fixtures/**"]`). |
+
+> [!NOTE]
+> **Automatic Generated Code Exclusion:** GDSS automatically ignores compiler artifacts and generated files by default (`*.Designer.cs`, `*.g.cs`, `*.g.i.cs`, `*AssemblyInfo.cs`, `*.pb.go`, `*.gen.go`, `*.generated.ts`, `*.min.js`, `*.min.css`, `bin/**`, `obj/**`, `target/**`). Use `ast.exclude_patterns` to augment these with repository-specific exclusion rules.
 
 ### 4. `hierarchy` (Branch Selection & Attractor Precedence)
 

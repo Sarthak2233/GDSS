@@ -3,6 +3,72 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-11 - .NET Solution Architecture, Zero-Config Validation & Public Documentation Synchronization
+
+- **Zero-Config .NET Validation Heuristics (`gdss/validation/typechecker.py`, `gdss/validation/test_runner.py`)**:
+  - Implemented heuristic auto-detection for .NET solutions and projects: returns `dotnet build --no-incremental` and `dotnet test` when `*.sln`, `*.slnx`, `*.csproj`, or `*.fsproj` files are present.
+  - Preserved strict precedence of user configuration overrides from `.gdss.yml`.
+  - Author test suite in `tests/validation/test_csharp_sandbox_detection.py`.
+- **Visual Studio Solution Manifest Reducer (`gdss/reducers/manifest_reducer.py`)**:
+  - Added support for `.sln` (plain-text) and `.slnx` (XML) Visual Studio solution files.
+  - Extracts project membership and maps changes to `ADD_DEPENDENCY`, `REMOVE_DEPENDENCY`, or `MODIFY_DEPENDENCY` operators.
+  - Added test coverage in `tests/reducers/test_msbuild_manifest_reducer.py`.
+- **Public Client Action Documentation Synchronization (`gdss-radar/`)**:
+  - Synchronized `gdss-radar/README.md`, `docs/UNIVERSAL_MULTI_ASSET_GUIDE.md`, `docs/CONFIGURATION_GUIDE.md`, `docs/GITHUB_ACTIONS_GUIDE.md`, and `.gdss.yml.example`.
+  - Added Recipe 5 (.NET / C# Solution & Project Builds) and updated language support tiers.
+  - Cleaned accidental draft query artifact from `README.md`.
+  - Maintained thin, client-facing abstraction with 0 leaks of internal Python paths, internal regexes, or engine AST visitors.
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Layer 1: lint OK (ruff), typecheck OK (mypy 101 files), architecture fitness OK, DSA fitness OK.
+  - Layer 2: pytest 416 passed, 3 skipped in 52.01s.
+  - Layer 3: cli-smoke OK, api-smoke OK.
+  - Frontend: F1 lint/typecheck/token fitness OK, F2 118 vitest tests in 35 files OK, F3 Next.js static build + size-limit budget OK.
+  - Sanitization leak checks: 0 matches for internal paths or proprietary enums.
+
+## 2026-11-10 - Multi-Language AST Architecture, .NET Enterprise Support & Wayfinder Overhaul
+
+- **First-Class C# Tree-Sitter AST Visitor (`gdss/core/ast_parser.py::_parse_csharp`)**:
+  - Implemented specialized C# Concrete Syntax Tree visitor via `tree-sitter-c-sharp` (v0.23.5+).
+  - Accurately parses block and C# 10+ file-scoped namespaces (`file_scoped_namespace_declaration`).
+  - Extracts classes, interfaces, records, record structs, structs, and enums with generic parameter lists (`<T>`) and base class/interface inheritance (`base_list`).
+  - Extracts methods, constructors, destructors, expression-bodied methods, and `required`/`init` properties.
+  - Extracts caller/callee dependencies from `invocation_expression` and `member_access_expression`.
+  - Author comprehensive test suite in `tests/core/test_csharp_tree_sitter.py`.
+- **Hybrid Sub-Document Region Projection Pipeline (`gdss/core/region_projector.py`)**:
+  - Built `RegionProjector` for composite documents: Blazor (`.razor`, `.cshtml`), Vue (`.vue`), and Svelte (`.svelte`).
+  - Balanced-brace block extraction for `@code { ... }` and `@functions { ... }` (synthetically wrapped for C# AST visitor).
+  - Tag-based extraction for `<script>` and `<script setup>` with automatic TypeScript vs. JavaScript detection.
+  - Translates inner AST coordinates back to exact 1-indexed lines and columns in the parent source document.
+  - Author test suite in `tests/core/test_region_projector.py`.
+- **MSBuild Project Reference DAG & CPM Manifest Reducer (`gdss/reducers/manifest_reducer.py`)**:
+  - Extended `ManifestReducer` to parse MSBuild XML (`.csproj`, `.props`, `.targets`, `.fsproj`, `.vbproj`, `Directory.Build.props`, `Directory.Packages.props`).
+  - Extracts `<PackageReference>` (NuGet), `<PackageVersion>` (Central Package Management), and `<ProjectReference>` (project-to-project couplings).
+  - Emits `OperatorType.ADD_DEPENDENCY`, `REMOVE_DEPENDENCY`, and `MODIFY_DEPENDENCY` with symbol IDs `msbuild::{file}::{type}.{name}`.
+  - Enhanced `find_project_root_for_file` in `gdss/validation/discovery.py` to auto-detect enclosing directories containing `*.csproj`, `*.fsproj`, or `*.sln`.
+  - Author test suite in `tests/reducers/test_msbuild_manifest_reducer.py`.
+- **Deterministic Generated Code Exclusion Policy (`gdss/core/config.py`)**:
+  - Established `DEFAULT_GENERATED_EXCLUDE_PATTERNS` and `is_generated_or_excluded`.
+  - Automatically filters `*.Designer.cs`, `*.g.cs`, `*.g.i.cs`, `*AssemblyInfo.cs`, `*.pb.go`, `*.gen.go`, `*.generated.ts`, `*.min.js`, `*.min.css`, `bin/**`, `obj/**`, `target/**`.
+  - Wired into `graph_builder.py` (preventing graph pollution) and `trajectory.py` (preventing phantom collision operators).
+  - Author test suite in `tests/core/test_generated_code_exclusion.py`.
+- **Tier 3 Fallback Demotion to Explicit Lexical Advisory**:
+  - Implemented `has_ast_grammar(ext)` and `is_language_supported(ext)` in `ASTParser`.
+  - Fallback logs a warning and flags extracted symbols with `docstring="lexical_advisory: true"`.
+  - Author test suite in `tests/core/test_lexical_fallback_demotion.py`.
+- **Packaging & Dependencies (`pyproject.toml`)**:
+  - Added pre-compiled wheels: `tree-sitter-c-sharp>=0.21.0`, `tree-sitter-ruby>=0.21.0`, `tree-sitter-bash>=0.21.0`.
+- **Wayfinder Map & Documentation Synchronized**:
+  - Initialized and resolved all 6 tickets under `.scratch/multi-language-ast-architecture/`.
+  - Updated `README.md`, `docs/UNIVERSAL_MULTI_ASSET_GUIDE.md`, `docs/CONFIGURATION_GUIDE.md`, and `GLOSSARY.md`.
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Layer 1: lint OK, typecheck (101 source files) OK, architecture fitness OK, DSA fitness OK.
+  - Layer 2: pytest 409 passed, 3 skipped in 51.69s.
+  - Layer 3: cli-smoke OK, api-smoke OK.
+  - Frontend: F1, F2 (118 tests), F3 (Next.js build + size-limit) ALL GREEN.
+
+
 ## 2026-11-09 - Closed-Engine Distribution, Docker Cython Compilation, and Public Docs Sanitization
 
 - **Engine Protection & Native Binary Compilation (`Dockerfile`)**:

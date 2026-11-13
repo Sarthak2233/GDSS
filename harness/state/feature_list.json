@@ -181,21 +181,34 @@
     },
     {
       "id": "sp1-distribution",
-      "phase": "1.7",
-      "title": "Sub-Phase: CLI Stabilization & Distribution",
+      "phase": "1.7a",
+      "title": "Sub-Phase: Multi-OS Native Binary & Container Distribution",
+      "layer": "cli",
+      "status": "done",
+      "deps": [],
+      "done_criteria": "Multi-OS PyInstaller native binary build pipeline, universal 1-line installation scripts, and GHCR Docker runner image",
+      "evidence": "Implemented PyInstaller spec bundling CLI+MCP, GitHub Actions multi-OS binary build pipeline (.github/workflows/build-binaries.yml for Linux/macOS/Windows), universal install.sh/install.ps1 scripts, and GHCR Docker runner image (ghcr.io/sarthak2233/gdss-runner); verify.sh ALL LAYERS GREEN"
+    },
+    {
+      "id": "sp1-pypi-homebrew",
+      "phase": "1.7b",
+      "title": "Sub-Phase: PyPI Package Publishing & Homebrew Tap Formula",
       "layer": "cli",
       "status": "pending",
-      "deps": [],
-      "done_criteria": "PyPI wheel build config and Homebrew tap generated"
+      "deps": [
+        "sp1-distribution"
+      ],
+      "done_criteria": "Automated PyPI wheel publishing on tagged releases and official Homebrew core/tap formula generation"
     },
     {
       "id": "sp1-cicd",
-      "phase": "1.7",
-      "title": "Sub-Phase: CI/CD Pipeline",
+      "phase": "1.7c",
+      "title": "Sub-Phase: CI/CD Pipeline & Automated Verification Gate",
       "layer": "validation",
-      "status": "pending",
+      "status": "done",
       "deps": [],
-      "done_criteria": "GitHub Actions workflow running verify.sh"
+      "done_criteria": "GitHub Actions workflow running verify.sh with Layer 1, 2, 3 verification gates and automated PR collision audit",
+      "evidence": "Implemented .github/workflows/ci.yml and gdss-radar.yml running verify.sh and end-to-end PR collision audits; Layer 1, 2, 3 verification gates enforced; verify.sh ALL LAYERS GREEN"
     },
     {
       "id": "phase-d-mcp-server",
@@ -220,6 +233,121 @@
       ],
       "done_criteria": "GitHub Action workflow auditing incoming PRs for cross-branch semantic collisions with LangGraph state machine, AnalysisContext injection, sandbox-validated patches, and 1-click commit suggestions; tests green.",
       "evidence": "verify.sh ALL LAYERS GREEN (271 backend tests pass, 117 frontend tests pass); gdss/validation/pr_audit.py and CLI 'gdss suggest' integrated with build_pr_analysis_context, GitObserver.get_commits_between, resolve_context_window (OpenRouter/Ollama/vLLM APIs + env/CLI overrides + heuristics), ConvergenceState agentic self-correction refinement loop (should_refine & refine_step), and radar refinement badge reporting; tests/ai/test_agentic_refinement_loop.py (5 passed), tests/ai/test_condensation.py (5 passed), tests/validation/test_pr_audit.py (15 passed), tests/cli/test_suggest_validation_cli.py (4 passed)."
+    },
+    {
+      "id": "phase1-universal-domain-reducers",
+      "phase": "1.9",
+      "title": "Universal Multi-Asset Intelligence: Domain reducers for manifests, migrations, schemas, docs, and lockfile reconciliation",
+      "layer": "reducers",
+      "status": "done",
+      "deps": [
+        "phase1-transform",
+        "phase4-tensor"
+      ],
+      "done_criteria": "gdss/reducers/* routes 100% of diff streams through DomainReducerRegistry; ManifestReducer detects package conflicts; MigrationDAGReducer detects split-head hazards; SQLSchemaReducer tokenizes DDL; synchronize_sandbox_lockfiles prevents lockfile diff hallucinations; 36 tests green.",
+      "evidence": "Implemented gdss/reducers/{base,registry,manifest_reducer,migration_reducer,sql_reducer,markdown_reducer,lexical_reducer}.py and tests/reducers/*; verify.sh ALL LAYERS GREEN (348 pytest passed)."
+    },
+    {
+      "id": "phase1-parallel-orchestration",
+      "phase": "1.10",
+      "title": "Parallel Conflict Orchestration: Disjoint topological clustering, thread pool drafting, and lossless context discovery",
+      "layer": "ai",
+      "status": "done",
+      "deps": [
+        "phase5a-agent-orchestration",
+        "phase-d-github-actions"
+      ],
+      "done_criteria": "Topological conflict partitioning (partition_conflicts) isolates independent conflicts into disjoint groups; ThreadPoolExecutor parallel drafting bounded by concurrency_limit with worker-thread fast AST syntax correction; lossless 1M/2M token window discovery for Gemini/Claude/GPT-4o; tests green.",
+      "evidence": "Implemented gdss/ai/partitioner.py, ThreadPoolExecutor parallel drafting in gdss/ai/orchestration.py, and context window ceilings in gdss/ai/condensation.py; tests/ai/test_partitioner.py and tests/ai/test_parallel_orchestration.py passed; verify.sh ALL LAYERS GREEN (353 pytest passed)."
+    },
+    {
+      "id": "phase1-copilot-and-provider-modernization",
+      "phase": "1.11",
+      "title": "Provider Modernization & GitHub Copilot CLI Adapter: Azure AI Foundry, OpenRouter baseline, and strict tool denial",
+      "layer": "ai",
+      "status": "done",
+      "deps": [
+        "phase5-ai",
+        "phase-d-github-actions"
+      ],
+      "done_criteria": "Purge retired GitHub Models endpoints; add Azure AI Foundry support and OpenRouter $0 free baseline; implement stateless CopilotCLIProvider with strict tool denial (--deny-tool='*' --silent --no-ask-user) and content-addressed cache (.gdss/llm_cache/); tests green.",
+      "evidence": "Implemented gdss/ai/copilot_provider.py and updated gdss/ai/openai_provider.py; tests/ai/test_copilot_provider.py passed; verify.sh ALL LAYERS GREEN (362 pytest passed)."
+    },
+    {
+      "id": "phase1-standalone-binary-distribution",
+      "phase": "1.12",
+      "title": "Multi-OS Standalone Native Binary Distribution: PyInstaller compilation, GitHub Actions matrix, and 1-line installers",
+      "layer": "cli",
+      "status": "done",
+      "deps": [
+        "phase-d-mcp-server",
+        "sp1-distribution"
+      ],
+      "done_criteria": "Single-file PyInstaller spec bundling CLI, MCP server, and 8 Tree-sitter grammars; multi-OS GitHub Actions workflow (.github/workflows/build-binaries.yml) for Linux, macOS arm64/Intel, Windows; universal install.sh and install.ps1 scripts; tests green.",
+      "evidence": "Authored packaging/pyinstaller/gdss.spec, .github/workflows/build-binaries.yml, install.sh, install.ps1, and docs/STANDALONE_BINARY_AND_MCP_GUIDE.md; verify.sh ALL LAYERS GREEN."
+    },
+    {
+      "id": "phase1-validation-sandbox-hardening",
+      "phase": "1.13",
+      "title": "Validation Sandbox Hardening: Custom syntax command execution, dynamic {file} interpolation, and exit code remediation",
+      "layer": "validation",
+      "status": "done",
+      "deps": [
+        "phase6-validation"
+      ],
+      "done_criteria": "Ephemeral worktrees execute validation.syntax_command with timeout guards; dynamic {file} placeholder interpolation for targeted typecheck/test execution; pytest exit code 5 (no tests collected) treated as success; sandbox timeout precedence cascade; tests green.",
+      "evidence": "Updated gdss/validation/{sandbox,typechecker,test_runner}.py; tests/validation/test_validation_config_remediation.py 6 passed; verify.sh ALL LAYERS GREEN (369 pytest passed)."
+    },
+    {
+      "id": "phase1-unified-configuration-architecture",
+      "phase": "1.14",
+      "title": "Unified Configuration Architecture: Centralized immutable config loader, schema version 1, and active exclude filtering",
+      "layer": "core",
+      "status": "done",
+      "deps": [
+        "phase1-transcendence"
+      ],
+      "done_criteria": "Centralized load_gdss_config in Layer 4 (gdss/core/config.py) with immutable dataclasses; backward-compatible delegation from drift, validation, and radar loaders; schema version 1 forward-compatibility validation; active wiring of ast.exclude_patterns into trajectory and graph builder; tests green.",
+      "evidence": "Implemented gdss/core/config.py with GDSSConfig/RadarConfig/ValidationConfig/etc.; tests/core/test_config.py and test_config_version_and_framework.py passed; verify.sh ALL LAYERS GREEN (375 pytest passed)."
+    },
+    {
+      "id": "phase1-monorepo-and-worktree-lifecycle",
+      "phase": "1.15",
+      "title": "Monorepo Multi-Package Intelligence & Worktree Dependency Lifecycle: Symlinking, isolated execution, and universal migrations",
+      "layer": "validation",
+      "status": "done",
+      "deps": [
+        "phase1-universal-domain-reducers",
+        "phase1-validation-sandbox-hardening"
+      ],
+      "done_criteria": "symlink_worktree_dependencies symlinks node_modules/.venv/vendor into ephemeral worktrees; validation.install_command runs post-checkout; validation.mode: full_suite; monorepo discovery groups changed files by package root and executes targeted typechecks/tests per-package; universal migration regexes (\\d{10,14}, [vV]?\\d+) cover Knex, TypeORM, Goose, Liquibase, Atlas; tests green.",
+      "evidence": "Implemented gdss/validation/{worktree,discovery,typechecker,test_runner}.py and gdss/reducers/migration_reducer.py; tests/validation/test_worktree_dependency_lifecycle.py, test_monorepo_validation.py, and test_universal_migration_reducer.py passed; verify.sh ALL LAYERS GREEN (394 pytest passed)."
+    },
+    {
+      "id": "phase1-closed-engine-and-commercial-distribution",
+      "phase": "1.16",
+      "title": "Closed-Engine Binary Compilation, Commercial Model & Release v1.1.1",
+      "layer": "cli",
+      "status": "done",
+      "deps": [
+        "phase1-standalone-binary-distribution",
+        "phase-d-github-actions"
+      ],
+      "done_criteria": "Multi-stage Docker in-place Cython compilation compiles 84 proprietary engine modules into native C shared objects (.so) with 0 plaintext .py files; gdss-radar public documentation fully sanitized (0 internal regexes/paths); commercial pricing model (Free Community $0 vs Team & Org); release v1.1.1 tagged and pushed to both repos.",
+      "evidence": "Updated Dockerfile with in-place Cython build; verified container build (exit code 0) with 84 .so files and 0 engine .py files; gdss audit-pr --dry-run verified; gdss-radar sanitized and tagged v1.1.1; verify.sh ALL LAYERS GREEN."
+    },
+    {
+      "id": "phase1-multi-language-ast-and-dotnet",
+      "phase": "1.17",
+      "title": "Multi-Language AST Architecture: C# CST visitor, hybrid sub-document region projection, and MSBuild CPM reducers",
+      "layer": "core",
+      "status": "done",
+      "deps": [
+        "phase1-ast-parser",
+        "phase1-universal-domain-reducers"
+      ],
+      "done_criteria": "First-class C# Tree-Sitter AST visitor (_parse_csharp); RegionProjector for composite documents (Blazor .razor/.cshtml, Vue .vue, Svelte .svelte); MSBuild manifest reducer parsing .csproj/.sln/.slnx with NuGet and CPM PackageReference tracking; deterministic generated code exclusion policy; zero-config .NET validation heuristics; tests green.",
+      "evidence": "Implemented gdss/core/region_projector.py, gdss/core/ast_parser.py (_parse_csharp), gdss/reducers/manifest_reducer.py (MSBuild/.sln/.slnx), and gdss/validation/{typechecker,test_runner}.py; tests/core/test_csharp_tree_sitter.py, test_region_projector.py, test_msbuild_manifest_reducer.py, and test_csharp_sandbox_detection.py passed; verify.sh ALL LAYERS GREEN (416 pytest passed)."
     },
     {
       "id": "phase4a-riemannian-metric",
@@ -593,6 +721,28 @@
       "fix": "Honor status arg; ContextEngine.set_reference_branch persists.",
       "status": "resolved",
       "evidence": "test_reference_branch_persists_via_hierarchy; status sections use ref"
+    },
+    {
+      "id": "finding-cython-typer-annotation-cast",
+      "severity": "high",
+      "discovered_by": "multi-stage Docker Cython engine build",
+      "where": "Dockerfile (Cython compilation of gdss/cli/main.py)",
+      "what": "TypeError: Expected str, got OptionInfo during module initialization.",
+      "why": "Cython 3 converts Python type hints (repo: str) into C type checks. Typer assigns OptionInfo as the default value at runtime.",
+      "fix": "Set annotation_typing=False and binding=True in Cython directives, and keep CLI wrappers (gdss/cli/) as pure Python while compiling all 84 proprietary engine modules to .so.",
+      "status": "resolved",
+      "evidence": "docker build -t gdss-test . succeeds with exit code 0; RUN gdss --help and gdss audit-pr --dry-run verified."
+    },
+    {
+      "id": "finding-universal-fallback-rust-visibility",
+      "severity": "medium",
+      "discovered_by": "test_parse_rust_code in .venv without tree-sitter-rust",
+      "where": "gdss/core/ast_parser.py (_parse_universal_fallback)",
+      "what": "Rust struct Point and enum Direction were ignored by Tier 3 regex fallback when tree-sitter-rust was not installed.",
+      "why": "_CLASS_DECL_RE only checked public instead of pub, and did not include enum in class-like kinds.",
+      "fix": "Installed tree-sitter-rust in .venv; tighten fallback regex to recognize pub and enum.",
+      "status": "resolved",
+      "evidence": "tests/core/test_multi_language_ast_parser.py 11 passed (100% green)."
     }
   ]
 }

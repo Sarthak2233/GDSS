@@ -1,30 +1,33 @@
-# Session Handoff - 2026-11-09 (Closed Engine Model & Docs Sanitization)
+# Session Handoff - 2026-11-13 (Feature List Alignment & Scope Synchronization)
 
 ## Completed Work
-1. **Engine Protection & Native Binary Compilation (`Dockerfile`)**:
-   - Multi-stage `Dockerfile` upgraded with in-place Cython native compilation.
-   - All proprietary engine modules (`gdss/core`, `gdss/reducers`, `gdss/ai`, `gdss/graph`, `gdss/validation`, `gdss/embeddings`, etc.) compiled into 84 native C shared objects (`.so`) using `annotation_typing: False` and `binding: True`.
-   - Preserved `gdss/cli/` as pure Python wrapper for Typer CLI argument parsing.
-   - All original `.py`, `.c`, and `.o` files stripped from the final runtime image.
-   - Tested and verified container build: `docker build -t gdss-test .` (exit code 0), `gdss --help` (exit code 0), `gdss audit-pr --dry-run` (exit code 0).
+1. **Machine-Readable Scope Realigned (`harness/state/feature_list.json`)**:
+   - Re-synced feature list with all completed work from `progress.md`:
+     - Added Phase 1.9 (`phase1-universal-domain-reducers`, `done`): Manifests, Migration DAG, SQL, Markdown, Lexical reducers, and lockfile synchronization.
+     - Added Phase 1.10 (`phase1-parallel-orchestration`, `done`): Disjoint topological conflict partitioning, ThreadPoolExecutor parallel drafting, 1M/2M context discovery.
+     - Added Phase 1.11 (`phase1-copilot-and-provider-modernization`, `done`): GitHub Models purge, Azure AI Foundry, OpenRouter, Copilot CLI adapter.
+     - Added Phase 1.12 (`phase1-standalone-binary-distribution`, `done`): PyInstaller spec, multi-OS build matrix (Linux/macOS/Windows), universal 1-line installers.
+     - Added Phase 1.13 (`phase1-validation-sandbox-hardening`, `done`): Worktree syntax commands, `{file}` interpolation, pytest exit code 5 fix, timeout cascade.
+     - Added Phase 1.14 (`phase1-unified-configuration-architecture`, `done`): Centralized `load_gdss_config`, immutable dataclasses, schema version 1, active exclude filtering.
+     - Added Phase 1.15 (`phase1-monorepo-and-worktree-lifecycle`, `done`): Worktree dependency symlinks, monorepo subpackage discovery and isolated validation, universal migration regexes.
+     - Added Phase 1.16 (`phase1-closed-engine-and-commercial-distribution`, `done`): Docker in-place Cython compilation (84 `.so` files, 0 plaintext `.py`), public docs sanitization, v1.1.1 release.
+     - Added Phase 1.17 (`phase1-multi-language-ast-and-dotnet`, `done`): C# Tree-Sitter AST visitor, `RegionProjector` (Blazor/Vue/Svelte), MSBuild manifest reducer, generated code exclusions, zero-config .NET validation.
+   - Updated `sp1-cicd` to `done`.
+   - Updated `sp1-distribution` to `done` and added `sp1-pypi-homebrew` to cleanly preserve the PyPI / Homebrew backlog.
+   - Added 2 new harness ratchet findings: `finding-cython-typer-annotation-cast` and `finding-universal-fallback-rust-visibility`.
+   - Maintained all active pending product backlogs (`sp1-telemetry`, `sp1-pypi-homebrew`, `frontend-ai-suggestions`, `frontend-validation-ui`, `frontend-human-approved-apply`, `frontend-manifold-3d`) and frozen research track items.
 
-2. **Pricing & Commercial Model (`gdss-radar/README.md`, `gdss-radar/docs/USER_GUIDE.md`)**:
-   - Added Community ($0 / Free Forever, 0 tokens) vs. Team & Organization Tier structure.
-   - Added enterprise inquiry link pointing to GitHub Discussions (`https://github.com/sarthak2233/gdss-radar/discussions`).
-   - Reinforced 0-token local deterministic core and BYOK model.
+2. **Verification & DAG Integrity**:
+   - `feature_list.json` DAG validation script: 48 total features (36 done, 6 pending, 6 blocked/research), 14 harness findings, 0 broken dependency references.
+   - `bash harness/verify.sh`: ALL LAYERS GREEN.
+     - Layer 1 Static: ruff clean, mypy 101 files clean, architecture fitness OK, DSA fitness OK.
+     - Layer 2 Runtime: pytest 416 passed, 3 skipped, 1 warning in 54.11s.
+     - Layer 3 End-to-end: cli-smoke OK, api-smoke OK.
+     - Frontend Gate: F1, F2 (118 vitest tests in 35 files), F3 (Next.js build + size-limit budget) ALL GREEN.
 
-3. **Total Public Documentation Sanitization (`gdss-radar/docs/`)**:
-   - Sanitized `gdss-radar/docs/UNIVERSAL_MULTI_ASSET_GUIDE.md`: removed internal regexes (`\d{10,14}`, `[vV]?\d+`), internal Python file paths, operator enums, and contact keys.
-   - Sanitized `gdss-radar/docs/PARALLEL_ORCHESTRATION_AND_CONTEXT_GUIDE.md`: retitled to *Performance, Concurrency & Context Window Tuning Guide*, removing prompt budget percentages and naive code truncation examples.
-   - Removed local filesystem path leaks (`file:///`, `/home/sarakb/...`) from `gdss-radar/docs/GITHUB_ACTIONS_GUIDE.md` and `gdss-radar/docs/CONFIGURATION_GUIDE.md`.
-   - Verified 0 leaks of `file:///`, `/home/sarakb`, `OperatorType`, or internal regex strings across `gdss-radar/`.
-
-4. **Verification Evidence**:
-   - Backend verification: `bash harness/verify.sh` passed all 3 layers (Ruff clean, Mypy 100 files clean, Architecture fitness OK, DSA fitness OK, Pytest 394 passed).
-   - Frontend verification: `bash harness/verify-frontend.sh` passed all layers (ESLint clean, TypeScript clean, token fitness OK, Vitest 118 passed, size-limit OK).
-   - Remote synchronization: Pushed `main` to `origin` in `GDSS` (`fd9460d`), updated and pushed tag `v1.1.1` in `gdss-radar` (`7165a56`).
-
-## Current State & Architecture Model
-- **`GDSS` Core Engine Repository**: Private repository containing the source code and build automation.
-- **`gdss-radar` Repository**: Public open-source repository containing the GitHub Action wrapper, docs, and sanitized user guides.
-- **`ghcr.io/sarthak2233/gdss-runner`**: Public Docker container containing zero plaintext Python source code (compiled native `.so` ELF binaries). Anyone can run the Action for free, but reverse-engineering the core algorithms would require disassembling machine code.
+## Current State & Next Steps
+- **Current State**: `harness/state/feature_list.json` is completely aligned with the codebase and `progress.md`.
+- **Next Backlog Candidates (Single Feature Rule)**:
+  1. `frontend-validation-ui` (Phase F9) — Surface ephemeral worktree sandbox evidence (tests passed, types, syntax) in the Next.js visual dashboard.
+  2. `sp1-telemetry` (Phase 1.7) — Telemetry opt-out flags and privacy schema.
+  3. `sp1-pypi-homebrew` (Phase 1.7b) — PyPI wheel distribution and Homebrew tap formula.

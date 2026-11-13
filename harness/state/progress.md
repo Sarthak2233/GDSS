@@ -3,6 +3,31 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-13 - Feature List Realignment & Machine-Readable Scope Synchronization
+
+- **Comprehensive Feature List Realignment (`harness/state/feature_list.json`)**:
+  - Reconciled machine-readable queue with historical implementations in `progress.md`: inserted 9 completed production backend phases (Phases 1.9 through 1.17):
+    - `phase1-universal-domain-reducers` (Phase 1.9): Manifest, Migration DAG, SQL, Markdown, Lexical reducers, and sandbox lockfile synchronization.
+    - `phase1-parallel-orchestration` (Phase 1.10): Disjoint topological conflict partitioning, ThreadPoolExecutor parallel drafting, and 1M/2M lossless context windows.
+    - `phase1-copilot-and-provider-modernization` (Phase 1.11): Retired GitHub Models purge, Azure AI Foundry, OpenRouter baseline, and stateless Copilot CLI adapter.
+    - `phase1-standalone-binary-distribution` (Phase 1.12): PyInstaller spec, multi-OS GitHub Actions matrix (Linux/macOS/Windows), and universal 1-line installers.
+    - `phase1-validation-sandbox-hardening` (Phase 1.13): Worktree syntax commands, `{file}` interpolation, pytest exit code 5 passing resolution, timeout cascade.
+    - `phase1-unified-configuration-architecture` (Phase 1.14): Centralized `load_gdss_config` in Layer 4, immutable dataclasses, schema v1 validation, exclude filtering.
+    - `phase1-monorepo-and-worktree-lifecycle` (Phase 1.15): Worktree dependency symlinks, monorepo subpackage discovery and isolated validation, universal migration regexes.
+    - `phase1-closed-engine-and-commercial-distribution` (Phase 1.16): Docker in-place Cython compilation (84 `.so` files, 0 plaintext `.py`), public docs sanitization, v1.1.1 release.
+    - `phase1-multi-language-ast-and-dotnet` (Phase 1.17): C# Tree-Sitter AST visitor, `RegionProjector` (Blazor/Vue/Svelte), MSBuild manifest reducer, generated code exclusions, zero-config .NET validation.
+  - Updated `sp1-cicd` to `done` (.github/workflows/ci.yml and gdss-radar.yml running verify.sh and PR collision radar audits).
+  - Updated `sp1-distribution` to `done` (PyInstaller multi-OS binaries and GHCR runner container) and added `sp1-pypi-homebrew` as a pending backlog item.
+  - Maintained all active pending product backlogs (`sp1-telemetry`, `sp1-pypi-homebrew`, `frontend-ai-suggestions`, `frontend-validation-ui`, `frontend-human-approved-apply`, `frontend-manifold-3d`) and frozen research track items.
+  - Appended 2 new harness ratchet findings: `finding-cython-typer-annotation-cast` and `finding-universal-fallback-rust-visibility`.
+- **Verification Evidence**:
+  - `feature_list.json` DAG validation: 48 total features (36 done, 6 pending, 6 blocked/research), 14 harness findings, 0 broken dependency references.
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Layer 1: lint OK (ruff), typecheck OK (mypy 101 source files), architecture fitness OK, DSA fitness OK.
+  - Layer 2: pytest 416 passed, 3 skipped, 1 warning in 54.11s.
+  - Layer 3: cli-smoke OK, api-smoke OK.
+  - Frontend: F1, F2 (35 vitest files, 118 tests), F3 (Next.js build + size-limit budget) ALL GREEN.
+
 ## 2026-11-11 - .NET Solution Architecture, Zero-Config Validation & Public Documentation Synchronization
 
 - **Zero-Config .NET Validation Heuristics (`gdss/validation/typechecker.py`, `gdss/validation/test_runner.py`)**:

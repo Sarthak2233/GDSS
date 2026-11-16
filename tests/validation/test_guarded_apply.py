@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -296,9 +297,10 @@ def test_cli_apply_dry_run_and_execution(
     # 1. CLI Help
     res_help = runner.invoke(app, ["apply", "--help"])
     assert res_help.exit_code == 0
-    assert "--strategy" in res_help.output
-    assert "--dry-run" in res_help.output
-    assert "--rollback" in res_help.output
+    clean_help = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", res_help.output)
+    assert "--strategy" in clean_help
+    assert "--dry-run" in clean_help
+    assert "--rollback" in clean_help
 
     # 2. CLI Dry-Run
     res_dry = runner.invoke(app, ["apply", "sug_test123", "--repo", str(repo_dir), "--dry-run"])

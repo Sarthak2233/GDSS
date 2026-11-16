@@ -56,7 +56,7 @@ class VectorStore:
     @property
     def size(self) -> int:
         if self._use_faiss and self._index is not None:
-            return int(self._index.ntotal)
+            return self._index.ntotal
         if self._matrix is None:
             return 0
         return int(self._matrix.shape[0])
@@ -190,7 +190,7 @@ class VectorStore:
             use_faiss = stored_backend == "faiss" and _HAS_FAISS
         store = cls(dim=dim, use_faiss=bool(use_faiss))
         store._id_to_int = {str(k): int(v) for k, v in meta["id_to_int"].items()}  # dsa:ignore
-        store._int_to_id = {int(v): str(k) for k, v in store._id_to_int.items()}  # dsa:ignore
+        store._int_to_id = {v: k for k, v in store._id_to_int.items()}  # dsa:ignore
         store._next_int = int(meta.get("next_int", len(store._id_to_int)))
 
         faiss_path = directory / "index.faiss"

@@ -931,18 +931,16 @@ def audit_pr_collisions(
                                         )
                                         merge_rec = f"Merge PR #{other_pr['number']} first, then rebase PR #{context.pr_number}."
 
-                                    suggestion_code = None
-                                    if effective_token or effective_base_url:
-                                        suggestion_code = generate_pr_convergence_patch(
-                                            repo_path=repo_root,
-                                            target_file=target_file,
-                                            overlapping_symbol=sym_name,
-                                            current_ops=current_ops,
-                                            other_ops=other_ops,
-                                            token=effective_token,
-                                            model=config.get("model") if config else None,
-                                            base_url=effective_base_url,
-                                        )
+                                    suggestion_code = generate_pr_convergence_patch(
+                                        repo_path=repo_root,
+                                        target_file=target_file,
+                                        overlapping_symbol=sym_name,
+                                        current_ops=current_ops,
+                                        other_ops=other_ops,
+                                        token=effective_token,
+                                        model=config.get("model") if config else None,
+                                        base_url=effective_base_url,
+                                    )
 
                                     collisions.append(
                                         PRCollisionDetail(

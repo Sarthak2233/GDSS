@@ -76,6 +76,7 @@ def test_ci_group_in_github_actions(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_ci_group_in_local_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.delenv("CI", raising=False)
     assert not is_ci_environment()
     stream = io.StringIO()
 

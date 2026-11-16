@@ -3,6 +3,26 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-16 - CI Environment Test Failure Remediation (5/5 Fixed)
+
+- **Diagnosed and Resolved 5 CI-Specific Test Failures**:
+  1. `test_ci_group_in_local_environment` (`tests/test_logger.py`):
+     - *Issue:* In GitHub Actions, both `GITHUB_ACTIONS=true` and `CI=true` are injected. The test only removed `GITHUB_ACTIONS`, so `is_ci_environment()` returned `True` from `os.environ.get("CI") == "true"`.
+     - *Fix:* Added `monkeypatch.delenv("CI", raising=False)`.
+  2. `test_suggest_help_displays_validation_options` (`tests/cli/test_suggest_validation_cli.py`):
+     - *Issue:* In CI runners with color terminal emulation (`PY_COLORS=1`), Rich applies syntax styling between the option hyphens (`\x1b[1;36m-\x1b[0m\x1b[1;36m-validate\x1b[0m`), causing literal substring search for `"--validate"` to fail on raw output.
+     - *Fix:* Stripped ANSI escape codes using regex before asserting options.
+  3. `test_cli_apply_dry_run_and_execution` (`tests/validation/test_guarded_apply.py`):
+     - *Issue:* Same ANSI hyphen-styling issue for `--strategy`, `--dry-run`, and `--rollback`.
+     - *Fix:* Stripped ANSI escape codes before asserting help options.
+  4. & 5. `test_audit_pr_collisions_full_orchestration_flow` (`tests/ai/test_pr_context_orchestration.py`) & `test_audit_pr_collisions_generates_verified_suggestion_in_radar` (`tests/validation/test_pr_audit.py`):
+     - *Issue:* In `gdss/validation/pr_audit.py`, `generate_pr_convergence_patch` was guarded by `if effective_token or effective_base_url:`. In CI, no LLM credentials are set, causing the block to be skipped entirely and leaving `suggestion_code=None` even when the test mocked `generate_pr_convergence_patch`.
+     - *Fix:* Removed redundant token guard from caller (the function itself internally handles token/copilot validation safely).
+- **Verification Evidence**:
+  - All 42 tests across the 5 affected modules passed under simulated CI conditions (`env -u OPENROUTER_API_KEY -u OPENAI_API_KEY CI=true GITHUB_ACTIONS=true PY_COLORS=1`).
+  - Full test suite: 449 passed, 1 skipped in 54.73s.
+  - Verification gate (`bash harness/verify.sh`): ALL LAYERS GREEN.
+
 ## 2026-11-16 - CI Static Typecheck Remediation (FAISS typing in VectorStore)
 
 - **Mypy Static Typecheck Incompatibility Fix**:

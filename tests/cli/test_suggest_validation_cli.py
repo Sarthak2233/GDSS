@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from typer.testing import CliRunner
 
 from gdss.cli.main import app
@@ -12,10 +14,11 @@ runner = CliRunner()
 def test_suggest_help_displays_validation_options():
     res = runner.invoke(app, ["suggest", "--help"])
     assert res.exit_code == 0
-    assert "--validate" in res.output
-    assert "--sandbox-timeout" in res.output
-    assert "--context-window" in res.output
-    assert "--max-refinements" in res.output
+    clean = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", res.output)
+    assert "--validate" in clean
+    assert "--sandbox-timeout" in clean
+    assert "--context-window" in clean
+    assert "--max-refinements" in clean
 
 
 def test_suggest_context_window_sets_env(monkeypatch):

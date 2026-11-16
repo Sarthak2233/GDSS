@@ -3,6 +3,16 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-16 - CI Static Typecheck Remediation (FAISS typing in VectorStore)
+
+- **Mypy Static Typecheck Incompatibility Fix**:
+  - Resolved 4 Mypy static typing errors in `gdss/embeddings/vector_store.py` triggered when `faiss-cpu` is installed in CI (`pip install -e .[dev,embeddings]`):
+    - Removed incompatible `faiss = None` assignment under `except ImportError:`.
+    - Explicitly annotated `self._index: faiss.Index | None = None` in `VectorStore.__init__` to unify base class `faiss.Index` (returned by `read_index`) with subclass `faiss.IndexFlatIP`.
+    - Added `assert self._index is not None` before `faiss.write_index` in `VectorStore.save()`.
+  - Verified static typecheck passes 100% green (`bash harness/sensors/typecheck.sh`) both with `faiss-cpu` installed and uninstalled.
+  - Full verification gate (`bash harness/verify.sh`) passed: 449 pytest passed (with faiss enabled), 118 vitest passed across 35 files, size-limit OK, lint OK, DSA OK, architecture OK.
+
 ## 2026-11-16 - IDE MCP Layer Semantic Intelligence & 8-Tool Parity Overhaul
 
 - **Elevated MCP Tool Server to 8 Registered Tools**:

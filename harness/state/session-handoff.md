@@ -1,8 +1,15 @@
-# Session Handoff - 2026-11-16 (IDE MCP Layer 8-Tool Parity & CI Test Pipeline)
+# Session Handoff - 2026-11-16 (IDE MCP Layer 8-Tool Parity, CI Test Pipeline, & Typecheck Fix)
 
 ## Completed Work
 
-1. **IDE MCP Layer 8-Tool Parity Overhaul (`gdss/mcp/`)**:
+1. **CI Static Typecheck Remediation (`gdss/embeddings/vector_store.py`)**:
+   - Fixed 4 Mypy static typing errors triggered when `faiss-cpu` is installed in CI (`pip install -e .[dev,embeddings]`):
+     - Eliminated `faiss = None` assignment on `ImportError` that conflicted with Mypy module typing.
+     - Explicitly annotated `self._index: faiss.Index | None = None` in `VectorStore.__init__` to unify base class `Index` (returned by `read_index`) with subclass `IndexFlatIP`.
+     - Added `assert self._index is not None` before `faiss.write_index(...)` in `VectorStore.save()`.
+   - Verified Mypy passes with 0 errors both with `faiss-cpu` installed and uninstalled.
+
+2. **IDE MCP Layer 8-Tool Parity Overhaul (`gdss/mcp/`)**:
    - Elevated MCP server (`gdss/mcp/server.py`, `v0.2.0`) and tools (`gdss/mcp/tools.py`) to 8 fully registered deterministic tools.
    - Implemented `gdss_get_impact_closure`: Dedicated 2-hop Semantic Impact Closure (SIC) tool with relevance weighting, contract detection, verifying test detection, and Knapsack token budgeting.
    - Implemented `gdss_check_anti_gaming`: Dedicated sensor auditing test diffs against assertion-preservation invariants across all languages.

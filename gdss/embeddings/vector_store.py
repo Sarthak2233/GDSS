@@ -17,7 +17,6 @@ try:
 
     _HAS_FAISS = True
 except ImportError:
-    faiss = None
     _HAS_FAISS = False
 
 
@@ -45,7 +44,7 @@ class VectorStore:
         self._int_to_id: dict[int, str] = {}
         self._next_int = 0
         self._matrix: np.ndarray | None = None  # numpy backend
-        self._index = None
+        self._index: faiss.Index | None = None
         if self._use_faiss:
             # pyrefly: ignore [missing-attribute]
             self._index = faiss.IndexFlatIP(dim)
@@ -165,6 +164,7 @@ class VectorStore:
         }
         (directory / "id_map.json").write_text(json.dumps(meta), encoding="utf-8")
         if self._use_faiss:
+            assert self._index is not None
             # pyrefly: ignore [missing-attribute]
             faiss.write_index(self._index, str(directory / "index.faiss"))
         else:

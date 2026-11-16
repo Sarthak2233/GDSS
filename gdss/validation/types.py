@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 
 class ValidationStatus(str, Enum):
@@ -66,6 +67,7 @@ class ValidationReport:
     worktree_path: str | None = None
     duration_ms: float = 0.0
     error_summary: str | None = None
+    diagnostics: Any = None
 
     @property
     def is_clean(self) -> bool:

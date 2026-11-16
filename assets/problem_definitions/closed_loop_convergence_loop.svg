@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 480" width="100%" height="480">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#64748b" />
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#059669" />
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#dc2626" />
+    </marker>
+    <linearGradient id="grad-detect" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#0891b2" />
+    </linearGradient>
+    <linearGradient id="grad-sic" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="grad-ai" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#6d28d9" />
+    </linearGradient>
+    <linearGradient id="grad-box" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="grad-oracle" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <linearGradient id="grad-pass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="grad-diag" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#dc2626" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="475" y="32" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="18">Closed-Loop AI Convergence &amp; Validation Feedback Loop</text>
+  <text x="475" y="52" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">Iterative Self-Healing Conditioning Patch Candidate Synthesis on Structured Failure Traces</text>
+
+  <!-- Step 1: Detect -->
+  <rect x="30" y="80" width="160" height="90" rx="12" fill="url(#grad-detect)" stroke="#0e7490" stroke-width="2" />
+  <text x="110" y="112" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">1. Conflict Detection</text>
+  <text x="110" y="132" text-anchor="middle" fill="#ecfeff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Omega Tensor (Ω_ij)</text>
+  <text x="110" y="148" text-anchor="middle" fill="#cffafe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">[T_A, T_B] ≠ 0</text>
+
+  <!-- Arrow 1 -> 2 -->
+  <line x1="190" y1="125" x2="215" y2="125" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Step 2: SIC -->
+  <rect x="215" y="80" width="170" height="90" rx="12" fill="url(#grad-sic)" stroke="#1e40af" stroke-width="2" />
+  <text x="300" y="112" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">2. Impact Closure</text>
+  <text x="300" y="132" text-anchor="middle" fill="#eff6ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Compute S* over CodeGraph</text>
+  <text x="300" y="148" text-anchor="middle" fill="#dbeafe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Callers, Contracts, Tests</text>
+
+  <!-- Arrow 2 -> 3 -->
+  <line x1="385" y1="125" x2="410" y2="125" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Step 3: AI Candidate -->
+  <rect x="410" y="80" width="165" height="90" rx="12" fill="url(#grad-ai)" stroke="#5b21b6" stroke-width="2" />
+  <text x="492" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">3. Candidate Synthesis</text>
+  <text x="492" y="130" text-anchor="middle" fill="#ede9fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Coordinated Multi-File</text>
+  <text x="492" y="146" text-anchor="middle" fill="#ddd6fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Unified Diff (T_k)</text>
+
+  <!-- Arrow 3 -> 4 -->
+  <line x1="575" y1="125" x2="600" y2="125" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Step 4: Sandbox -->
+  <rect x="600" y="80" width="150" height="90" rx="12" fill="url(#grad-box)" stroke="#b45309" stroke-width="2" />
+  <text x="675" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">4. Ephemeral Sandbox</text>
+  <text x="675" y="130" text-anchor="middle" fill="#fef3c7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Isolated Git Worktree</text>
+  <text x="675" y="146" text-anchor="middle" fill="#fde68a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Target: R_k = T_k(R_0)</text>
+
+  <!-- Arrow 4 -> 5 -->
+  <line x1="750" y1="125" x2="775" y2="125" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Step 5: Oracle -->
+  <rect x="775" y="80" width="145" height="90" rx="12" fill="url(#grad-oracle)" stroke="#0369a1" stroke-width="2" />
+  <text x="847" y="110" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">5. Validation Oracle</text>
+  <text x="847" y="130" text-anchor="middle" fill="#f0f9ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Gate 1: AST Syntax</text>
+  <text x="847" y="144" text-anchor="middle" fill="#f0f9ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Gate 2: Types</text>
+  <text x="847" y="158" text-anchor="middle" fill="#f0f9ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Gate 3: Targeted Tests</text>
+
+  <!-- Validation Passed Branch (V = 1) -->
+  <path d="M 847 170 L 847 240" fill="none" stroke="#059669" stroke-width="3" marker-end="url(#arrow-green)" />
+  <text x="857" y="210" fill="#059669" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Pass (V = 1)</text>
+
+  <!-- Step 6: Verified Patch -->
+  <rect x="735" y="240" width="225" height="110" rx="14" fill="url(#grad-pass)" stroke="#047857" stroke-width="3" />
+  <text x="847" y="272" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">Convergence Achieved</text>
+  <text x="847" y="295" text-anchor="middle" fill="#d1fae5" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Levels 1, 2, and 3 Verified</text>
+  <text x="847" y="315" text-anchor="middle" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Candidate staged for human review</text>
+  <text x="847" y="333" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="10">Never auto-merges</text>
+
+  <!-- Validation Failed Branch (V = 0) -->
+  <path d="M 775 145 L 755 145 L 755 385 L 595 385" fill="none" stroke="#dc2626" stroke-width="3" marker-end="url(#arrow-red)" />
+  <text x="690" y="375" text-anchor="middle" fill="#dc2626" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Fails (V = 0)</text>
+
+  <!-- Step 7: Diagnostic Extractor (Ek) -->
+  <rect x="390" y="340" width="205" height="90" rx="12" fill="url(#grad-diag)" stroke="#b91c1c" stroke-width="2" />
+  <text x="492" y="367" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">6. Diagnostic Extraction</text>
+  <text x="492" y="387" text-anchor="middle" fill="#fee2e2" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Differential Baseline (E_k)</text>
+  <text x="492" y="403" text-anchor="middle" fill="#fecaca" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Tracebacks, Implicated Symbols</text>
+  <text x="492" y="419" text-anchor="middle" fill="#fca5a5" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Anti-Gaming Gate Enforced</text>
+
+  <!-- Feedback Loop Arrow: Ek -> AI Synthesis -->
+  <path d="M 492 340 L 492 170" fill="none" stroke="#7c3aed" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arrow)" />
+  <rect x="420" y="245" width="145" height="28" rx="6" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1" />
+  <text x="492" y="263" text-anchor="middle" fill="#6d28d9" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">Self-Healing Loop (k+1)</text>
+</svg>
+

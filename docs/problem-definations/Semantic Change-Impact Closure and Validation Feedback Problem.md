@@ -18,6 +18,11 @@ This document formalizes the **Semantic Change-Impact Closure and Validation Fee
 
 Consider a typical service architecture within a repository:
 
+<p align="center"><img src="../../assets/problem_definitions/conflict_isolation_problem.svg" alt="The Conflict Blast Radius" width="100%"></p>
+
+<details>
+<summary>🔄 Mermaid source (click to expand)</summary>
+
 ```mermaid
 graph TD
     subgraph Direct Conflict Boundary
@@ -40,6 +45,8 @@ graph TD
     A -.->|Target of Behavioral Assertions| E
     C -.->|Tested by| E
 ```
+
+</details>
 
 ### The Failure Mode
 
@@ -204,6 +211,11 @@ To prevent premature declarations of victory, GDSS structures convergence verifi
 
 Rather than dispatching raw conflict files directly to the model, GDSS computes the **Semantic Impact Closure (SIC)** before invoking patch generation.
 
+<p align="center"><img src="../../assets/problem_definitions/impact_closure_pipeline.svg" alt="Semantic Impact Closure Expansion Pipeline" width="100%"></p>
+
+<details>
+<summary>🔄 Mermaid source (click to expand)</summary>
+
 ```mermaid
 flowchart TD
     C0["<b>1. Initial Conflict Set ($C_0$)</b><br/>Directly modified conflicting symbols"]
@@ -217,6 +229,8 @@ flowchart TD
     T1 --> K1
     K1 --> STAR
 ```
+
+</details>
 
 ### Mathematical Formulation of SIC
 
@@ -259,6 +273,11 @@ Not all dependency edges carry equal significance. GDSS assigns explicit edge we
 
 The convergence lifecycle is an iterative feedback control loop executed in an isolated worktree sandbox:
 
+<p align="center"><img src="../../assets/problem_definitions/closed_loop_convergence_loop.svg" alt="Closed-Loop AI Convergence Engine" width="100%"></p>
+
+<details>
+<summary>🔄 Mermaid source (click to expand)</summary>
+
 ```mermaid
 flowchart TD
     A["<b>1. Conflict Detection</b><br/>Omega tensor + non-commutative operators"] --> B["<b>2. Semantic Impact Closure</b><br/>Compute $S^*$ over code graph and test suites"]
@@ -271,6 +290,8 @@ flowchart TD
     
     G -->|Inject $E_k$ into Context| C
 ```
+
+</details>
 
 ### Diagnostic Evidence Structure
 
@@ -330,6 +351,11 @@ GDSS tracks test file diffs separately from production code diffs. In CI reports
 
 The proposed engines map directly onto GDSS's deterministic/probabilistic two-brain architecture:
 
+<p align="center"><img src="../../assets/problem_definitions/two_brain_closure_architecture.svg" alt="Integration with GDSS Two-Brain Architecture" width="100%"></p>
+
+<details>
+<summary>🔄 Mermaid source (click to expand)</summary>
+
 ```mermaid
 graph LR
     subgraph Deterministic Core (0 Tokens, CPU)
@@ -347,6 +373,8 @@ graph LR
     LLM -->|Candidate Multi-File Patch| BOX
     DIAG -->|Iterative Feedback $E_k$| LLM
 ```
+
+</details>
 
 | Engine Component | Architectural Role | Source Implementation |
 | :--- | :--- | :--- |

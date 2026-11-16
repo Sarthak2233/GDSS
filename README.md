@@ -443,6 +443,22 @@ validation:
   typecheck_command: "tsc --noEmit"
   # Execution timeout in seconds (CLI --sandbox-timeout > GDSS_SANDBOX_TIMEOUT > config > default 30s)
   timeout_seconds: 60
+  # Test anti-gaming policy (forbids deleting assertions to make failing tests pass)
+  anti_gaming_strict: true
+  allow_callsite_updates: true
+
+impact_closure:
+  # Semantic Impact Closure: Transitive caller depth, relevance threshold, and token ceiling
+  max_hops: 2
+  relevance_threshold: 0.70
+  token_budget: 4000
+  # Explicit test and contract glob patterns (Tier 1 Primary Authority)
+  test_patterns:
+    - "tests/**"
+    - "spec/**"
+  contract_patterns:
+    - "proto/**"
+    - "schemas/**/*.json"
 
 ast:
   # Additional file extensions to track in collision radar and dependency graphs

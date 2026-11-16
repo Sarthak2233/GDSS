@@ -7,6 +7,10 @@ import time
 from pathlib import Path
 
 from gdss.logger import get_logger
+from gdss.validation.diagnostic_extractor import (
+    inspect_test_diff_anti_gaming,
+    parse_test_diagnostics,
+)
 from gdss.validation.discovery import load_validation_config
 from gdss.validation.syntax import validate_file_syntax
 from gdss.validation.test_runner import run_targeted_tests
@@ -199,25 +203,50 @@ class ValidationSandbox:
                         error_summary=f"Syntax command timed out after {effective_timeout}s",
                     )
 
-            # 3b. Multi-language AST Syntax Check (Tree-sitter)
+            # 3b. Multi-language AST Syntax Check & Anti-Gaming Invariant Check
             for f in changed_files:
                 target_file = wt_path / f
-                if target_file.is_file():
-                    syntax_res = validate_file_syntax(target_file)
-                    if not syntax_res.valid:
-                        logger.warning(
-                            "Gate 1 Syntax check failed on %s: %s", f, syntax_res.error_message
+                if not target_file.is_file():
+                    continue
+
+                syntax_res = validate_file_syntax(target_file)
+                if not syntax_res.valid:
+                    logger.warning(
+                        "Gate 1 Syntax check failed on %s: %s", f, syntax_res.error_message
+                    )
+                    return ValidationReport(
+                        status=ValidationStatus.FAILED_SYNTAX,
+                        patch_applied=True,
+                        syntax=syntax_res,
+                        types=empty_types,
+                        tests=empty_tests,
+                        worktree_path=wt_str,
+                        duration_ms=elapsed_ms(),  # dsa:ignore
+                        error_summary=f"Syntax error in {f}: {syntax_res.error_message}",
+                    )
+
+                if "test" in f.lower() or "spec" in f.lower():
+                    try:
+                        base_cmd = ["git", "show", f"{target_branch}:{f}"]
+                        base_proc = subprocess.run(
+                            base_cmd, cwd=wt_str, capture_output=True, text=True
                         )
-                        return ValidationReport(
-                            status=ValidationStatus.FAILED_SYNTAX,
-                            patch_applied=True,
-                            syntax=syntax_res,
-                            types=empty_types,
-                            tests=empty_tests,
-                            worktree_path=wt_str,
-                            duration_ms=elapsed_ms(),  # dsa:ignore
-                            error_summary=f"Syntax error in {f}: {syntax_res.error_message}",
-                        )
+                        if base_proc.returncode == 0:
+                            orig_test_content = base_proc.stdout
+                            patched_test_content = target_file.read_text(encoding="utf-8")
+                            anti_res = inspect_test_diff_anti_gaming(
+                                orig_test_content,
+                                patched_test_content,
+                                file_path=f,
+                                strict=val_config.anti_gaming_strict,
+                                allow_callsite_updates=val_config.allow_callsite_updates,
+                            )
+                            if not anti_res.passed:
+                                logger.warning(
+                                    "Gate 1 Anti-gaming warning on %s: %s", f, anti_res.warnings
+                                )
+                    except Exception as exc:
+                        logger.debug("Anti-gaming check skipped for %s: %s", f, exc)
 
             # 4. Gate 2: Targeted Static Type Check
             if run_types:
@@ -254,6 +283,11 @@ class ValidationSandbox:
                     logger.warning(
                         "Gate 3 Targeted tests failed (%s): %s", test_res.tool, test_res.output
                     )
+                    diag_payload = parse_test_diagnostics(
+                        tool_name=test_res.tool,
+                        raw_output=test_res.output or "",
+                        exit_code=1,
+                    )
                     return ValidationReport(
                         status=ValidationStatus.FAILED_TESTS,
                         patch_applied=True,
@@ -263,6 +297,7 @@ class ValidationSandbox:
                         worktree_path=wt_str,
                         duration_ms=elapsed_ms(),  # dsa:ignore
                         error_summary=f"Tests failed: {test_res.output}",
+                        diagnostics=diag_payload,
                     )
             else:
                 test_res = TestExecutionResult(executed=False, passed=True, tool="skipped")

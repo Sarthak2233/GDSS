@@ -177,6 +177,21 @@ validation:
   typecheck_command: "mypy ."
   # Sandbox execution timeout in seconds
   timeout_seconds: 45
+  # Test anti-gaming enforcement (forbids dropping assertions to make failing tests pass)
+  anti_gaming_strict: true
+  allow_callsite_updates: true
+
+# Deterministic Semantic Impact Closure (SIC)
+impact_closure:
+  max_hops: 2
+  relevance_threshold: 0.70
+  token_budget: 4000
+  test_patterns:
+    - "tests/**"
+    - "spec/**"
+  contract_patterns:
+    - "proto/**"
+    - "schemas/**/*.json"
 
 # Branch hierarchy and scoping (scopes collision radar to relevant PRs)
 hierarchy:
@@ -218,6 +233,13 @@ ast:
 | `radar.max_refinements` | `integer` | `2` | Maximum agentic self-correction attempts inside ephemeral sandbox worktrees before halting. |
 | `radar.risk_threshold` | `float` | `0.8` | The numeric collision risk cutoff score between `0.0` and `1.0`. |
 | `radar.fail_on_collision` | `boolean` | `false` | When `true`, the workflow exits with code `1` if $\Omega_{ij} \ge \text{risk threshold}$, blocking the merge button. |
+| `validation.anti_gaming_strict` | `boolean` | `true` | When `true`, strictly blocks any candidate patch from deleting test assertions to make failing tests pass. |
+| `validation.allow_callsite_updates` | `boolean` | `true` | When `true`, permits adapting test call-site signatures to match refactored functions without anti-gaming penalty. |
+| `impact_closure.max_hops` | `integer` | `2` | Maximum depth of reverse caller graph traversal ($C_0 \rightarrow D(C_0) \rightarrow \text{transitive callers}$). |
+| `impact_closure.relevance_threshold` | `float` | `0.70` | Relevance edge-weight cutoff ($0.0$ to $1.0$). Distant or weak caller edges below this cutoff are pruned. |
+| `impact_closure.token_budget` | `integer` | `4000` | Context token budget ceiling for semantic impact closure packaging. |
+| `impact_closure.test_patterns` | `list[str]` | `[]` | Explicit glob patterns for test files (Tier 1 Primary Authority, evaluated before built-in heuristics). |
+| `impact_closure.contract_patterns` | `list[str]` | `[]` | Explicit glob patterns for API schemas, IDLs, and interface definitions (Tier 1 Primary Authority). |
 | `hierarchy.same_base_only` | `boolean` | `true` | Only audit PRs targeting the exact same base landing branch (e.g. `develop`), eliminating false-positive alarms across separate release tracks. |
 | `hierarchy.include` | `list[str]` | `[]` | Glob patterns or PR branch names/numbers included in collision radar audits. |
 | `hierarchy.exclude` | `list[str]` | `[]` | Glob patterns or PR branch names/numbers excluded from audits (e.g. `["spike/*", "dependabot/*"]`). |

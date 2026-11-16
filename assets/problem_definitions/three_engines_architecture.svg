@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 420" width="100%" height="420">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#64748b" />
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#7c3aed" />
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#2563eb" />
+    </marker>
+    <linearGradient id="grad-core" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="grad-ai" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#6d28d9" />
+    </linearGradient>
+    <linearGradient id="grad-box" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="grad-diag" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="475" y="32" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="18">The Three Engines of Verified Convergence</text>
+  <text x="475" y="52" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">Deterministic Core ($0 Tokens) coordinates with Probabilistic AI via Guarded Sandboxes</text>
+
+  <!-- Deterministic Box Left -->
+  <rect x="25" y="80" width="560" height="310" rx="14" fill="#f8fafc" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6,6" />
+  <text x="40" y="105" fill="#1e293b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">DETERMINISTIC CORE (0 Tokens, Local CPU)</text>
+
+  <!-- Engine 1: SIC -->
+  <rect x="45" y="125" width="240" height="75" rx="10" fill="url(#grad-core)" stroke="#1e40af" stroke-width="2" />
+  <text x="165" y="152" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Engine 1: SIC Engine</text>
+  <text x="165" y="170" text-anchor="middle" fill="#dbeafe" font-family="Consolas, monospace" font-size="11">gdss/graph/impact_closure.py</text>
+  <text x="165" y="188" text-anchor="middle" fill="#bfdbfe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">2-Hop S* Traversal &amp; Test Mapping</text>
+
+  <!-- Ephemeral Sandbox -->
+  <rect x="320" y="125" width="245" height="75" rx="10" fill="url(#grad-box)" stroke="#b45309" stroke-width="2" />
+  <text x="442" y="152" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Ephemeral Sandbox</text>
+  <text x="442" y="170" text-anchor="middle" fill="#fef3c7" font-family="Consolas, monospace" font-size="11">gdss/validation/sandbox.py</text>
+  <text x="442" y="188" text-anchor="middle" fill="#fde68a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">Git Worktree &amp; Pre-Flight Baseline</text>
+
+  <!-- Engine 3: Diagnostic Extractor -->
+  <rect x="45" y="240" width="240" height="75" rx="10" fill="url(#grad-diag)" stroke="#047857" stroke-width="2" />
+  <text x="165" y="267" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Engine 3: Diagnostic Extractor</text>
+  <text x="165" y="285" text-anchor="middle" fill="#d1fae5" font-family="Consolas, monospace" font-size="11">gdss/validation/diagnostic_extractor.py</text>
+  <text x="165" y="303" text-anchor="middle" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">E_k Parser &amp; Anti-Gaming Invariants</text>
+
+  <!-- Guarded Atomic Rollback -->
+  <rect x="320" y="240" width="245" height="75" rx="10" fill="url(#grad-core)" stroke="#1e40af" stroke-width="2" />
+  <text x="442" y="267" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Atomic Multi-File Rollback</text>
+  <text x="442" y="285" text-anchor="middle" fill="#dbeafe" font-family="Consolas, monospace" font-size="11">gdss/validation/guarded_apply.py</text>
+  <text x="442" y="303" text-anchor="middle" fill="#bfdbfe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">All-or-Nothing Disk Application</text>
+
+  <!-- Probabilistic Box Right -->
+  <rect x="635" y="80" width="290" height="310" rx="14" fill="#faf5ff" stroke="#c084fc" stroke-width="2" stroke-dasharray="6,6" />
+  <text x="650" y="105" fill="#581c87" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">PROBABILISTIC BRAIN (BYOK / LLM)</text>
+
+  <!-- Engine 2: Multi-File Synthesizer -->
+  <rect x="655" y="145" width="250" height="175" rx="12" fill="url(#grad-ai)" stroke="#5b21b6" stroke-width="2" />
+  <text x="780" y="180" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">Engine 2: Multi-File Synthesizer</text>
+  <text x="780" y="202" text-anchor="middle" fill="#ede9fe" font-family="Consolas, monospace" font-size="11">gdss/ai/context_builder.py</text>
+  <text x="780" y="220" text-anchor="middle" fill="#ede9fe" font-family="Consolas, monospace" font-size="11">gdss/ai/orchestration.py</text>
+  <text x="780" y="248" text-anchor="middle" fill="#ddd6fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Proportional Budgeting (50/30/20%)</text>
+  <text x="780" y="266" text-anchor="middle" fill="#ddd6fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">AST Symbol Slicing</text>
+  <text x="780" y="295" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="10">Emits Unified Multi-File Diffs</text>
+
+  <!-- Flow Lines -->
+  <!-- SIC -> AI -->
+  <path d="M 285 162 L 655 190" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" />
+  <!-- AI -> Sandbox -->
+  <path d="M 655 232 L 565 170" fill="none" stroke="#7c3aed" stroke-width="2" marker-end="url(#arrow-purple)" />
+  <!-- Sandbox -> Diagnostics -->
+  <line x1="442" y1="200" x2="442" y2="240" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+  <!-- Diagnostics -> AI -->
+  <path d="M 285 277 L 655 277" fill="none" stroke="#10b981" stroke-width="2" marker-end="url(#arrow)" />
+</svg>
+

@@ -350,6 +350,20 @@
       "evidence": "Implemented gdss/core/region_projector.py, gdss/core/ast_parser.py (_parse_csharp), gdss/reducers/manifest_reducer.py (MSBuild/.sln/.slnx), and gdss/validation/{typechecker,test_runner}.py; tests/core/test_csharp_tree_sitter.py, test_region_projector.py, test_msbuild_manifest_reducer.py, and test_csharp_sandbox_detection.py passed; verify.sh ALL LAYERS GREEN (416 pytest passed)."
     },
     {
+      "id": "phase1-semantic-impact-closure-and-validation-feedback",
+      "phase": "1.18",
+      "title": "Semantic Impact Closure (SIC), Multi-File Coordinated Patch Packaging, and Validation Diagnostics",
+      "layer": "core",
+      "status": "done",
+      "deps": [
+        "phase1-ast-parser",
+        "phase5-ai",
+        "phase6-validation"
+      ],
+      "done_criteria": "Deterministic 2-hop Semantic Impact Closure (SIC) over CodeGraph with relevance edge weights and token-budget pruning; multi-file unified git diff packaging with all-or-nothing atomic rollback; structured failure diagnostic extraction (Ek) with pre-flight differential baselines; strict test anti-gaming invariant enforcement; tests green.",
+      "evidence": "Implemented gdss/graph/impact_closure.py, gdss/validation/diagnostic_extractor.py, gdss/validation/guarded_apply.py (multi-file atomic apply/rollback), gdss/ai/context_builder.py, and gdss/validation/sandbox.py; tests/graph/test_impact_closure.py, tests/validation/test_diagnostic_extractor.py, tests/validation/test_anti_gaming.py, and tests/ai/test_multi_file_patch.py 13 passed; verify.sh ALL LAYERS GREEN (429 pytest passed, 35 vitest files green)."
+    },
+    {
       "id": "phase4a-riemannian-metric",
       "phase": "R.1",
       "title": "Research Track: Riemannian metric G on M (pullback from embeddings)",

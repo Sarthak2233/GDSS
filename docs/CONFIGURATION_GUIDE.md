@@ -11,8 +11,10 @@
 - [Detailed Schema Reference](#-detailed-schema-reference)
   - [`radar` (AI Convergence & CI Radar)](#1-radar-ai-convergence--ci-radar)
   - [`validation` (Ephemeral Sandbox Worktrees)](#2-validation-ephemeral-sandbox-worktrees)
-  - [`ast` (Multi-Language & DSL Tracking)](#3-ast-multi-language--dsl-tracking)
-  - [`hierarchy` (Branch Selection & Attractor Precedence)](#4-hierarchy-branch-selection--attractor-precedence)
+  - [`impact_closure` (Deterministic Semantic Impact Closure)](#3-impact_closure-deterministic-semantic-impact-closure)
+  - [`ast` (Multi-Language & DSL Tracking)](#4-ast-multi-language--dsl-tracking)
+  - [`hierarchy` (Branch Selection & Attractor Precedence)](#5-hierarchy-branch-selection--attractor-precedence)
+  - [`migrations` (Universal Multi-Stack DAG Reducer)](#6-migrations-universal-multi-stack-dag-reducer)
 - [🌳 Branch Hierarchy & Selection Guide](#-branch-hierarchy--selection-guide)
   - [The Core Rationale: Why Unconstrained N × N Fails](#the-core-rationale-why-unconstrained-n--n-fails)
   - [Precedence & Resolution Cascade](#precedence--resolution-cascade)
@@ -184,8 +186,44 @@ validation:
   # Default: 30 (Use 60-120s for larger test suites)
   timeout_seconds: 45
 
+  # Test Anti-Gaming Invariant Policy:
+  # When true (default), strictly forbids the convergence engine from deleting or removing
+  # any test assertions to make a failing suite pass. If assertions are deleted, the patch fails Gate 1.
+  anti_gaming_strict: true
+
+  # Allow Adapting Call Sites in Tests:
+  # When true (default), allows the convergence assistant to update test call sites to match
+  # new function signatures (e.g. adding a new required parameter) without triggering an anti-gaming penalty.
+  allow_callsite_updates: true
+
 # ==============================================================================
-# 3. AST Parsing & Multi-Language Scanning
+# 3. Deterministic Semantic Impact Closure (SIC) Engine
+# ==============================================================================
+impact_closure:
+  # Maximum depth of transitive caller traversal across reverse call graphs (default: 2 hops)
+  max_hops: 2
+
+  # Minimum relevance edge-weight threshold for transitive caller propagation (default: 0.70)
+  relevance_threshold: 0.70
+
+  # Context token budget ceiling for semantic closure packaging (default: 4000 tokens)
+  token_budget: 4000
+
+  # Explicit glob patterns for test suites (Tier 1 Primary Authority, overrides heuristics)
+  test_patterns:
+    - "tests/**"
+    - "spec/**"
+    - "e2e/**/*.spec.ts"
+    - "test-harness/**"
+
+  # Explicit glob patterns for API schemas, contracts, and interfaces (Tier 1 Primary Authority)
+  contract_patterns:
+    - "proto/**"
+    - "schemas/**/*.json"
+    - "src/contracts/**"
+
+# ==============================================================================
+# 4. AST Parsing & Multi-Language Scanning
 # ==============================================================================
 ast:
   # Additional file extensions to track in collision radar and dependency graphs
@@ -208,7 +246,7 @@ ast:
     - "coverage/**"
 
 # ==============================================================================
-# 4. Branch Selection & Hierarchy Precedence
+# 5. Branch Selection & Hierarchy Precedence
 # ==============================================================================
 hierarchy:
   # The default attractor (base) branch against which drift and collisions are computed
@@ -244,7 +282,7 @@ hierarchy:
     - "develop"
 
 # ==============================================================================
-# 5. Database Migration Reducer (Universal Multi-Stack DAG Intelligence)
+# 6. Database Migration Reducer (Universal Multi-Stack DAG Intelligence)
 # ==============================================================================
 migrations:
   # Framework hint (optional):
@@ -296,8 +334,24 @@ migrations:
 | `validation.typecheck_command` | `string` | *Auto-detected* | Shell command to execute static typechecking (`mypy`, `tsc --noEmit`, `cargo check`, `dotnet build --no-incremental`). |
 | `validation.syntax_command` | `string` | *Auto-detected* | Shell command to execute syntax checks or linters. |
 | `validation.timeout_seconds` | `integer` | `30` | Worktree execution timeout in seconds. Prevents hanging tests from stalling CI. |
+| `validation.anti_gaming_strict` | `boolean` | `true` | When `true`, strictly forbids the convergence engine from deleting or dropping test assertions to force a failing test to pass. |
+| `validation.allow_callsite_updates` | `boolean` | `true` | When `true`, permits adapting test call-site invocations to updated function signatures (e.g. adding required arguments) without triggering anti-gaming penalties. |
 
-### 3. `ast` (Multi-Language & DSL Tracking)
+### 3. `impact_closure` (Deterministic Semantic Impact Closure)
+
+The **Semantic Impact Closure (SIC)** engine computes the transitive blast radius around conflict symbols ($C_0$). It follows the **Two-Tier Precedence Strategy**:
+- **Tier 1 (Explicit Configuration)**: Glob patterns defined in `.gdss.yml` take primary authority.
+- **Tier 2 (Final Resort / Built-in Heuristics)**: If omitted or unmatched, GDSS automatically applies built-in multi-language indicators (supporting Python, TS/JS, Go, Rust, C#, Java, C/C++).
+
+| Directive | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `impact_closure.max_hops` | `integer` | `2` | Maximum depth of reverse caller graph traversal ($C_0 \rightarrow D(C_0) \rightarrow \text{transitive}$). |
+| `impact_closure.relevance_threshold` | `float` | `0.70` | Relevance edge-weight cutoff ($0.0$ to $1.0$). Weak or distant caller edges below this threshold are pruned from prompt context. |
+| `impact_closure.token_budget` | `integer` | `4000` | Maximum token ceiling for semantic impact closure packaging. Pruned via Knapsack prioritization ($C_0 > \text{Tests} > \text{Direct Callers} > \text{Transitive Callers}$). |
+| `impact_closure.test_patterns` | `list[str]` | `[]` | Explicit glob patterns for test files (e.g. `["tests/**", "spec/**", "e2e/**/*.spec.ts"]`). Evaluated **before** built-in heuristics. |
+| `impact_closure.contract_patterns` | `list[str]` | `[]` | Explicit glob patterns for API schemas, IDLs, and interface definitions (e.g. `["proto/**", "schemas/**/*.json"]`). Evaluated **before** built-in heuristics. |
+
+### 4. `ast` (Multi-Language & DSL Tracking)
 
 | Directive | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
@@ -307,7 +361,7 @@ migrations:
 > [!NOTE]
 > **Automatic Generated Code Exclusion:** GDSS automatically ignores compiler artifacts and generated files by default (`*.Designer.cs`, `*.g.cs`, `*.g.i.cs`, `*AssemblyInfo.cs`, `*.pb.go`, `*.gen.go`, `*.generated.ts`, `*.min.js`, `*.min.css`, `bin/**`, `obj/**`, `target/**`). Use `ast.exclude_patterns` to augment these with repository-specific exclusion rules.
 
-### 4. `hierarchy` (Branch Selection & Attractor Precedence)
+### 5. `hierarchy` (Branch Selection & Attractor Precedence)
 
 | Directive | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
@@ -318,7 +372,7 @@ migrations:
 | `hierarchy.exclude` | `list[str]` | `[]` | Glob patterns or branch names ignored during analysis (e.g. `["spike/*", "archive/*"]`). |
 | `hierarchy.target_bases` | `list[str]` | `[]` | Allowed PR landing target branches in CI. If provided, PRs targeting branches outside this list are ignored. |
 
-### 5. `migrations` (Universal Multi-Stack DAG Reducer)
+### 6. `migrations` (Universal Multi-Stack DAG Reducer)
 
 | Directive | Type | Default | Description |
 | :--- | :---: | :---: | :--- |

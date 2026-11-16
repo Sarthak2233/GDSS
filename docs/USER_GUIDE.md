@@ -316,6 +316,19 @@ validation:
   test_command: "pytest {test_file}"
   typecheck_command: "mypy {file}"
   timeout_seconds: 60
+  anti_gaming_strict: true
+  allow_callsite_updates: true
+
+impact_closure:
+  max_hops: 2
+  relevance_threshold: 0.70
+  token_budget: 4000
+  test_patterns:
+    - "tests/**"
+    - "spec/**"
+  contract_patterns:
+    - "proto/**"
+    - "schemas/**/*.json"
 
 ast:
   additional_extensions:

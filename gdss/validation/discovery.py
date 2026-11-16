@@ -51,6 +51,8 @@ class ValidationConfig:
     mode: str = "targeted"
     symlink_dependencies: bool = True
     timeout_seconds: int = 30
+    anti_gaming_strict: bool = True
+    allow_callsite_updates: bool = True
 
 
 def find_project_root_for_file(file_path: Path, repo_root: Path) -> Path:
@@ -130,6 +132,8 @@ def load_validation_config(repo_root: Path | str) -> ValidationConfig:
         mode=cfg.validation.mode,
         symlink_dependencies=cfg.validation.symlink_dependencies,
         timeout_seconds=cfg.validation.timeout_seconds,
+        anti_gaming_strict=cfg.validation.anti_gaming_strict,
+        allow_callsite_updates=cfg.validation.allow_callsite_updates,
     )
 
 

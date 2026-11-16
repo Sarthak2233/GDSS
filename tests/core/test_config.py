@@ -26,6 +26,13 @@ def test_load_gdss_config_defaults(tmp_path: Path) -> None:
     assert cfg.radar.concurrency_limit == 4
     assert cfg.radar.condensation == "lossless"
     assert cfg.validation.timeout_seconds == 30
+    assert cfg.validation.anti_gaming_strict is True
+    assert cfg.validation.allow_callsite_updates is True
+    assert cfg.impact_closure.max_hops == 2
+    assert cfg.impact_closure.relevance_threshold == 0.70
+    assert cfg.impact_closure.token_budget == 4000
+    assert cfg.impact_closure.test_patterns == ()
+    assert cfg.impact_closure.contract_patterns == ()
     assert cfg.hierarchy.reference_branch == "main"
     assert cfg.hierarchy.same_base_only is True
     assert cfg.ast.additional_extensions == ()
@@ -54,6 +61,19 @@ validation:
   typecheck_command: "mypy {file}"
   syntax_command: "ruff check {file}"
   timeout_seconds: 45
+  anti_gaming_strict: false
+  allow_callsite_updates: true
+
+impact_closure:
+  max_hops: 3
+  relevance_threshold: 0.85
+  token_budget: 6000
+  test_patterns:
+    - "custom_tests/**"
+    - "e2e/**/*.spec.ts"
+  contract_patterns:
+    - "proto/**"
+    - "custom_interfaces/**"
 
 hierarchy:
   reference_branch: "develop"
@@ -100,6 +120,14 @@ migrations:
     assert cfg.validation.typecheck_command == "mypy {file}"
     assert cfg.validation.syntax_command == "ruff check {file}"
     assert cfg.validation.timeout_seconds == 45
+    assert cfg.validation.anti_gaming_strict is False
+    assert cfg.validation.allow_callsite_updates is True
+
+    assert cfg.impact_closure.max_hops == 3
+    assert cfg.impact_closure.relevance_threshold == 0.85
+    assert cfg.impact_closure.token_budget == 6000
+    assert cfg.impact_closure.test_patterns == ("custom_tests/**", "e2e/**/*.spec.ts")
+    assert cfg.impact_closure.contract_patterns == ("proto/**", "custom_interfaces/**")
 
     assert cfg.hierarchy.reference_branch == "develop"
     assert cfg.hierarchy.priority_chain == ("develop", "main")

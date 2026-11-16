@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 280" width="100%" height="280">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#64748b" />
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#dc2626" />
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#059669" />
+    </marker>
+    <linearGradient id="grad-site" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="grad-fake-ok" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="grad-crash" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#dc2626" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="450" y="28" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="16">Local Convergence Myopically Masquerading as Global Correctness</text>
+  <text x="450" y="46" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Why site-local merge tools produce locally valid patches that break repository contracts</text>
+
+  <!-- Left: Conflict Site -->
+  <rect x="40" y="80" width="230" height="150" rx="12" fill="url(#grad-site)" stroke="#1e40af" stroke-width="2" />
+  <text x="155" y="112" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">payment_service.py</text>
+  <text x="155" y="135" text-anchor="middle" fill="#dbeafe" font-family="Consolas, monospace" font-size="11">execute_payment()</text>
+  <text x="155" y="165" text-anchor="middle" fill="#eff6ff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Conflict site reconciled.</text>
+  <text x="155" y="185" text-anchor="middle" fill="#bfdbfe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">AST syntax compiles cleanly.</text>
+
+  <!-- Top Right: Traditional Local Merge Illusion -->
+  <rect x="370" y="70" width="220" height="80" rx="10" fill="#f8fafc" stroke="#f59e0b" stroke-width="2" />
+  <text x="480" y="97" text-anchor="middle" fill="#b45309" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">Traditional Merge Tool</text>
+  <text x="480" y="118" text-anchor="middle" fill="#d97706" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="11">Zero Git Conflicts</text>
+  <text x="480" y="136" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="10">Illusion of successful merge</text>
+
+  <!-- Line Site -> Traditional -->
+  <path d="M 270 120 L 370 110" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow)" />
+
+  <!-- Bottom Right: Repository Reality (Global Failure) -->
+  <rect x="370" y="170" width="490" height="90" rx="12" fill="#fef2f2" stroke="#fca5a5" stroke-width="2" />
+  <text x="615" y="195" text-anchor="middle" fill="#991b1b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="12">REPOSITORY REALITY (Global Breakdown)</text>
+
+  <!-- Crash Call Site -->
+  <rect x="390" y="205" width="220" height="42" rx="6" fill="url(#grad-crash)" stroke="#b91c1c" stroke-width="1.5" />
+  <text x="500" y="222" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="10">checkout.py: CRASH</text>
+  <text x="500" y="238" text-anchor="middle" fill="#fee2e2" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">NameError: process_payment undefined</text>
+
+  <!-- Crash Test Site -->
+  <rect x="625" y="205" width="220" height="42" rx="6" fill="url(#grad-crash)" stroke="#b91c1c" stroke-width="1.5" />
+  <text x="735" y="222" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="10">test_payment.py: FAIL</text>
+  <text x="735" y="238" text-anchor="middle" fill="#fee2e2" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9">TypeError: missing required 'currency'</text>
+
+  <!-- Line Site -> Reality -->
+  <path d="M 270 170 L 370 205" fill="none" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-red)" />
+  <text x="320" y="205" text-anchor="middle" fill="#dc2626" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="9" font-weight="700">Ripples</text>
+</svg>
+

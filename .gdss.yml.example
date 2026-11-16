@@ -134,8 +134,61 @@ validation:
   # Maximum duration in seconds allowed for validation runs in the sandbox.
   timeout_seconds: 60
 
+  # Test Anti-Gaming Invariant Policy:
+  # When true (default), strictly forbids the convergence engine from deleting or removing
+  # any test assertions to make a failing suite pass. If assertions are deleted, the patch fails Gate 1.
+  anti_gaming_strict: true
+
+  # Allow Adapting Call Sites in Tests:
+  # When true (default), allows the convergence assistant to update test call sites to match
+  # new function signatures (e.g. adding a new required parameter) without triggering an anti-gaming penalty.
+  allow_callsite_updates: true
+
 # ------------------------------------------------------------------------------
-# 3. Branch Hierarchy & Flight Radar Boundaries
+# 3. Deterministic Semantic Impact Closure (SIC) Engine
+# ------------------------------------------------------------------------------
+# When a conflict occurs at symbol C_0, GDSS deterministically expands the blast radius
+# across the dependency call graph to capture affected callers, contracts, and tests.
+#
+# TWO-TIER RESOLUTION STRATEGY:
+#   Tier 1 (Explicit Configuration): Glob patterns defined here take primary precedence.
+#   Tier 2 (Final Resort / Built-in Heuristics): If omitted or unmatched, GDSS falls back
+#          to automatic multi-language indicators (supporting Python, TS/JS, Go, Rust, C#, Java, C/C++).
+impact_closure:
+  # Maximum depth of transitive caller traversal across the reverse dependency graph (default: 2 hops).
+  # Hop 0 = direct conflict symbol, Hop 1 = direct callers, Hop 2 = transitive callers.
+  max_hops: 2
+
+  # Minimum relevance edge-weight threshold for transitive caller propagation (0.0 to 1.0, default: 0.70).
+  # Higher values prune distant, weak caller edges to keep convergence prompts focused.
+  relevance_threshold: 0.70
+
+  # Context token budget ceiling for semantic closure packaging (default: 4000 tokens).
+  # When closure exceeds this limit, GDSS applies Knapsack priority pruning:
+  # Hop 0 > Tests > Direct Callers > Transitive Callers (pruned lowest-weight first).
+  token_budget: 4000
+
+  # Explicit glob patterns for test suites (Tier 1 Primary Authority).
+  # Matches take precedence over built-in filename heuristics.
+  # If omitted, GDSS automatically detects test files via built-in patterns (*.test.*, *_test.*, etc.).
+  test_patterns:
+    - "tests/**"
+    - "spec/**"
+    - "e2e/**/*.spec.ts"
+    - "test-harness/**"
+
+  # Explicit glob patterns for API schemas, contracts, and interface definitions (Tier 1 Primary Authority).
+  # Matches take precedence over built-in contract indicators.
+  # If omitted, GDSS automatically detects contracts via extensions (.proto, .graphql, .openapi.yaml, .sql, .prisma)
+  # and architectural indicators (controllers, routes, schemas, repositories, C# interfaces).
+  contract_patterns:
+    - "proto/**"
+    - "schemas/**/*.json"
+    - "src/contracts/**"
+    - "internal/interfaces/**"
+
+# ------------------------------------------------------------------------------
+# 4. Branch Hierarchy & Flight Radar Boundaries
 # ------------------------------------------------------------------------------
 hierarchy:
   # Primary reference branch (attractor base)
@@ -169,7 +222,7 @@ hierarchy:
     - "develop"
 
 # ------------------------------------------------------------------------------
-# 4. AST Symbol & Path Filtering
+# 5. AST Symbol & Path Filtering
 # ------------------------------------------------------------------------------
 ast:
   # Additional file extensions to track for AST and semantic analysis
@@ -189,7 +242,7 @@ ast:
     - "coverage/**"
 
 # ------------------------------------------------------------------------------
-# 5. Database Migration Reducer (Universal Multi-Stack DAG Intelligence)
+# 6. Database Migration Reducer (Universal Multi-Stack DAG Intelligence)
 # ------------------------------------------------------------------------------
 migrations:
   # Framework hint (optional):

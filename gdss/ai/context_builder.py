@@ -280,7 +280,28 @@ def extract_3way_symbol_context(
     )
 
     # Impacted callers across branches
-    callers = _find_impacted_callers(context, symbol_name, branch_a, branch_b)
+    callers = list(_find_impacted_callers(context, symbol_name, branch_a, branch_b))
+    extra_ctx: dict[str, Any] = {}
+
+    ctx_graph = getattr(context, "graph", None)
+    if ctx_graph is not None:
+        try:
+            from gdss.graph.impact_closure import compute_semantic_impact_closure
+
+            closure = compute_semantic_impact_closure(
+                ctx_graph,
+                conflict_symbols=[suggestion.symbol_id or symbol_name],
+                max_hops=2,
+            )
+            extra_ctx["impact_closure"] = closure
+            extra_ctx["target_tests"] = list(closure.target_tests)
+            for node in closure.closure_nodes:
+                if node.hop_distance > 0:
+                    callers.append(
+                        f"Hop {node.hop_distance} ({node.node_type}, w={node.weight:.2f}): {node.symbol_id} in {node.file_path}"
+                    )
+        except Exception as exc:
+            logger.debug("Failed computing semantic impact closure for %s: %s", symbol_name, exc)
 
     return SemanticCollisionContext(
         file_path=file_path,
@@ -295,5 +316,6 @@ def extract_3way_symbol_context(
         branch_b_name=branch_b,
         branch_b_code=b_code,
         branch_b_line_range=b_range,
-        impacted_callers=callers,
+        impacted_callers=tuple(sorted(set(callers))),
+        extra_context=extra_ctx,
     )

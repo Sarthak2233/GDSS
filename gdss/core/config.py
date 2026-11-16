@@ -50,6 +50,19 @@ class ValidationConfig:
     mode: str = "targeted"
     symlink_dependencies: bool = True
     timeout_seconds: int = 30
+    anti_gaming_strict: bool = True
+    allow_callsite_updates: bool = True
+
+
+@dataclass(frozen=True)
+class ImpactClosureConfig:
+    """Configuration for deterministic Semantic Impact Closure (SIC)."""
+
+    max_hops: int = 2
+    relevance_threshold: float = 0.70
+    token_budget: int = 4000
+    test_patterns: tuple[str, ...] = ()
+    contract_patterns: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -87,6 +100,7 @@ class GDSSConfig:
     version: int = 1
     radar: RadarConfig = field(default_factory=RadarConfig)
     validation: ValidationConfig = field(default_factory=ValidationConfig)
+    impact_closure: ImpactClosureConfig = field(default_factory=ImpactClosureConfig)
     hierarchy: HierarchyConfig = field(default_factory=HierarchyConfig)
     ast: ASTConfig = field(default_factory=ASTConfig)
     migrations: MigrationsConfig = field(default_factory=MigrationsConfig)
@@ -278,6 +292,24 @@ def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> 
         mode=val_mode,
         symlink_dependencies=symlink_deps,
         timeout_seconds=int(v_data.get("timeout_seconds", 30)),
+        anti_gaming_strict=bool(v_data.get("anti_gaming_strict", True)),
+        allow_callsite_updates=bool(v_data.get("allow_callsite_updates", True)),
+    )
+
+    # 4. Parse impact_closure block
+    ic_data = data.get("impact_closure", {})
+    if not isinstance(ic_data, dict):
+        ic_data = {}
+
+    ic_test_pats = _to_clean_tuple(ic_data.get("test_patterns", ()))
+    ic_contract_pats = _to_clean_tuple(ic_data.get("contract_patterns", ()))
+
+    impact_closure_cfg = ImpactClosureConfig(
+        max_hops=int(ic_data.get("max_hops", 2)),
+        relevance_threshold=float(ic_data.get("relevance_threshold", 0.70)),
+        token_budget=int(ic_data.get("token_budget", 4000)),
+        test_patterns=ic_test_pats,
+        contract_patterns=ic_contract_pats,
     )
 
     # 4. Parse AST block
@@ -328,6 +360,7 @@ def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> 
         version=parsed_version,
         radar=radar_cfg,
         validation=validation_cfg,
+        impact_closure=impact_closure_cfg,
         hierarchy=hierarchy_cfg,
         ast=ast_cfg,
         migrations=migrations_cfg,

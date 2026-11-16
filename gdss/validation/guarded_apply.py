@@ -23,6 +23,9 @@ from gdss.validation.syntax import validate_file_syntax
 logger = get_logger("gdss.validation.apply")
 ROLLBACK_DIR = Path(".gdss") / "rollback"
 _HUNK_RE = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+_DIFF_GIT_RE = re.compile(r"^diff --git a/(.+?) b/(.+)")
+_DIFF_OLD_RE = re.compile(r"^--- (?:a/)?(.+)")
+_DIFF_NEW_RE = re.compile(r"^\+\+\+ (?:b/)?(.+)")
 
 
 @dataclass
@@ -260,6 +263,53 @@ def preflight_check(
     )
 
 
+def parse_multi_file_unified_diff(
+    patch_text: str, default_file: str = ""
+) -> dict[str, str]:
+    """Parse a unified diff string, potentially containing hunks for multiple files.
+
+    Returns a dict mapping relative file path to its individual unified diff text.
+    """
+    lines = patch_text.splitlines(keepends=True)
+    file_diffs: dict[str, list[str]] = {}
+    current_file: str | None = None
+
+    idx = 0
+    num_lines = len(lines)
+    while idx < num_lines:
+        line = lines[idx]
+        m_git = _DIFF_GIT_RE.match(line)
+        if m_git:
+            current_file = m_git.group(1).strip()
+            file_diffs.setdefault(current_file, []).append(line)
+            idx += 1
+            continue
+
+        m_old = _DIFF_OLD_RE.match(line)
+        if m_old and idx + 1 < num_lines and _DIFF_NEW_RE.match(lines[idx + 1]):
+            matched_file = m_old.group(1).strip()
+            if matched_file == "/dev/null":
+                m_new = _DIFF_NEW_RE.match(lines[idx + 1])
+                matched_file = m_new.group(1).strip() if m_new else ""
+            if not current_file or current_file != matched_file:
+                current_file = matched_file
+
+            file_diffs.setdefault(current_file, []).append(line)
+            file_diffs[current_file].append(lines[idx + 1])
+            idx += 2
+            continue
+
+        if current_file:
+            file_diffs[current_file].append(line)
+        idx += 1
+
+    if not file_diffs:
+        target = default_file or "target"
+        return {target: patch_text}
+
+    return {k: "".join(v) for k, v in file_diffs.items() if k and "".join(v).strip()}
+
+
 def apply_unified_diff(original_text: str, patch_text: str) -> str:
     """Apply a unified diff string to original_text, returning modified text.
 
@@ -389,47 +439,78 @@ def apply_suggestion(
 
     target_file = preflight.target_file
     rel_path = str(target_file.relative_to(root_path))
-    original_content = target_file.read_text(encoding="utf-8")
 
-    # 2. Compute patched content
-    try:
-        new_content = apply_unified_diff(original_content, preflight.patch_text)
-    except Exception as e:
-        what = f"Failed to apply patch hunks to '{rel_path}'"
-        why = str(e)
-        fix = "The target file may have diverged. Run 'gdss suggest' to refresh candidate patches."
-        logger.warning("Unified diff application failed for '%s': %s", rel_path, e)
-        return _fail_apply(suggestion_id, rel_path, preflight.strategy or "", what, why, fix)
-
-    # 3. Generate unified diff
-    orig_lines = original_content.splitlines(keepends=True)
-    new_lines = new_content.splitlines(keepends=True)
-    diff = "".join(
-        difflib.unified_diff(
-            orig_lines,
-            new_lines,
-            fromfile=f"a/{rel_path}",
-            tofile=f"b/{rel_path}",
-        )
+    # 2. Parse potential multi-file diff hunks
+    file_diff_map = parse_multi_file_unified_diff(
+        preflight.patch_text, default_file=rel_path
     )
+
+    original_contents: dict[str, str] = {}
+    new_contents: dict[str, str] = {}
+    diff_parts: list[str] = []
+
+    for f_rel, f_patch in file_diff_map.items():
+        f_target = (root_path / f_rel).resolve()
+        try:
+            f_target.relative_to(root_path)
+        except ValueError:
+            what = f"Path traversal detected in patch for file '{f_rel}'"
+            why = f"Resolved path '{f_target}' is outside repository root '{root_path}'."
+            fix = "Multi-file patches can only modify files strictly contained within repository."
+            return _fail_apply(suggestion_id, f_rel, preflight.strategy or "", what, why, fix)
+
+        if not f_target.is_file():
+            what = f"Target file '{f_rel}' not found"
+            why = "One of the files modified by this multi-file patch does not exist."
+            fix = "Verify file paths in suggestion metadata."
+            return _fail_apply(suggestion_id, f_rel, preflight.strategy or "", what, why, fix)
+
+        orig_text = f_target.read_text(encoding="utf-8")
+        original_contents[f_rel] = orig_text
+
+        try:
+            patched_text = apply_unified_diff(orig_text, f_patch)
+            new_contents[f_rel] = patched_text
+        except Exception as e:
+            what = f"Failed to apply patch hunks to '{f_rel}'"
+            why = str(e)
+            fix = "The target file may have diverged. Run 'gdss suggest' to refresh candidate patches."
+            logger.warning("Unified diff application failed for '%s': %s", f_rel, e)
+            return _fail_apply(suggestion_id, f_rel, preflight.strategy or "", what, why, fix)
+
+        orig_lines = orig_text.splitlines(keepends=True)
+        new_lines = patched_text.splitlines(keepends=True)
+        diff_parts.append(
+            "".join(
+                difflib.unified_diff(
+                    orig_lines,
+                    new_lines,
+                    fromfile=f"a/{f_rel}",
+                    tofile=f"b/{f_rel}",
+                )
+            )
+        )
+
+    combined_diff = "\n".join(diff_parts)
 
     if dry_run:
         logger.info("Dry-run apply simulated successfully for suggestion '%s'", suggestion_id)
         return ApplyResult(
             success=True,
             suggestion_id=suggestion_id,
-            target_file=rel_path,
+            target_file=", ".join(new_contents.keys()),
             strategy=preflight.strategy or "",
-            diff=diff,
+            diff=combined_diff,
         )
 
-    # 4. Atomic application with rollback snapshot
+    # 3. Atomic application with multi-file rollback snapshot
     rollback_dir = get_rollback_dir(root_path)
     rollback_dir.mkdir(parents=True, exist_ok=True)
     rb_snapshot = {
         "suggestion_id": suggestion_id,
+        "files": original_contents,
         "file_path": rel_path,
-        "original_content": original_content,
+        "original_content": original_contents.get(rel_path, ""),
         "applied_at": time.time(),
         "strategy": preflight.strategy,
     }
@@ -437,28 +518,38 @@ def apply_suggestion(
     rb_file.write_text(json.dumps(rb_snapshot, indent=2), encoding="utf-8")
     logger.debug("Saved rollback snapshot to %s", rb_file)
 
-    # Write patched content to working file
-    target_file.write_text(new_content, encoding="utf-8")
+    # Write all patched contents to working tree
+    for f_rel, patched_text in new_contents.items():
+        (root_path / f_rel).resolve().write_text(patched_text, encoding="utf-8")
 
-    # 5. Post-apply AST syntax validation
-    syntax_res = validate_file_syntax(target_file)
-    if not syntax_res.valid:
-        # Automatic rollback on syntax corruption!
-        target_file.write_text(original_content, encoding="utf-8")
-        rb_file.unlink(missing_ok=True)
-        what = f"Post-apply syntax validation failed on '{rel_path}'"
-        why = syntax_res.error_message or "Applied patch resulted in invalid language syntax."
-        fix = "The patch was automatically rolled back. Target file was NOT modified."
-        logger.error("Post-apply syntax check failed on %s. Automatically rolled back.", rel_path)
-        return _fail_apply(suggestion_id, rel_path, preflight.strategy or "", what, why, fix)
+    # 4. Post-apply AST syntax validation across ALL modified files
+    for f_rel in new_contents:
+        f_target = (root_path / f_rel).resolve()
+        syntax_res = validate_file_syntax(f_target)
+        if not syntax_res.valid:
+            # Automatic rollback on syntax corruption across ALL files!
+            for roll_rel, roll_orig in original_contents.items():
+                (root_path / roll_rel).resolve().write_text(roll_orig, encoding="utf-8")
+            rb_file.unlink(missing_ok=True)
 
-    logger.info("Successfully applied suggestion '%s' to '%s'", suggestion_id, rel_path)
+            what = f"Post-apply syntax validation failed on '{f_rel}'"
+            why = syntax_res.error_message or "Applied patch resulted in invalid language syntax."
+            fix = "The entire multi-file patch was automatically rolled back. No files were modified."
+            logger.error(
+                "Post-apply syntax check failed on %s. All %d files automatically rolled back.",
+                f_rel,
+                len(original_contents),
+            )
+            return _fail_apply(suggestion_id, f_rel, preflight.strategy or "", what, why, fix)
+
+    all_targets_str = ", ".join(new_contents.keys())
+    logger.info("Successfully applied suggestion '%s' across [%s]", suggestion_id, all_targets_str)
     return ApplyResult(
         success=True,
         suggestion_id=suggestion_id,
-        target_file=rel_path,
+        target_file=all_targets_str,
         strategy=preflight.strategy or "",
-        diff=diff,
+        diff=combined_diff,
         rollback_id=suggestion_id,
     )
 
@@ -480,11 +571,29 @@ def rollback_suggestion(
 
     try:
         data = json.loads(rb_file.read_text(encoding="utf-8"))
+        rb_file.unlink(missing_ok=True)
+        files_map = data.get("files")
+        if files_map and isinstance(files_map, dict):
+            for rel_file, orig_content in files_map.items():
+                target_file = (root_path / rel_file).resolve()
+                target_file.write_text(orig_content, encoding="utf-8")
+            restored_str = ", ".join(files_map.keys())
+            logger.info(
+                "Successfully restored [%s] from rollback snapshot for suggestion '%s'",
+                restored_str,
+                suggestion_id,
+            )
+            return RollbackResult(
+                success=True,
+                suggestion_id=suggestion_id,
+                target_file=restored_str,
+                restored=True,
+            )
+
         rel_path = data.get("file_path", "")
         original_content = data.get("original_content", "")
         target_file = (root_path / rel_path).resolve()
         target_file.write_text(original_content, encoding="utf-8")
-        rb_file.unlink(missing_ok=True)
         logger.info(
             "Successfully restored '%s' from rollback snapshot for suggestion '%s'",
             rel_path,

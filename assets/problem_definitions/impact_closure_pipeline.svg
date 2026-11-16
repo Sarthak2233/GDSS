@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 320" width="100%" height="320">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,1 L8,5 L0,9 z" fill="#64748b" />
+    </marker>
+    <linearGradient id="grad-c0" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#dc2626" />
+    </linearGradient>
+    <linearGradient id="grad-d1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="grad-t1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="grad-k1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#0891b2" />
+    </linearGradient>
+    <linearGradient id="grad-star" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#6d28d9" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="475" y="32" text-anchor="middle" fill="#0f172a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="18">Semantic Impact Closure (SIC) Expansion Pipeline</text>
+  <text x="475" y="52" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="12">Deterministic 2-Hop Graph Traversal from Conflict Sites to Full Validation Coverage</text>
+
+  <!-- Step 1: C0 -->
+  <rect x="25" y="100" width="165" height="130" rx="12" fill="url(#grad-c0)" stroke="#b91c1c" stroke-width="2" />
+  <text x="107" y="130" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">1. Initial Conflict (C₀)</text>
+  <text x="107" y="155" text-anchor="middle" fill="#fee2e2" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Directly modified</text>
+  <text x="107" y="172" text-anchor="middle" fill="#fee2e2" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">conflicting symbols</text>
+  <text x="107" y="205" text-anchor="middle" fill="#fecaca" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="10">Weight: 1.00</text>
+
+  <!-- Arrow 1 -> 2 -->
+  <line x1="190" y1="165" x2="215" y2="165" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Step 2: D(C0) -->
+  <rect x="215" y="100" width="165" height="130" rx="12" fill="url(#grad-d1)" stroke="#b45309" stroke-width="2" />
+  <text x="297" y="130" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">2. Dependencies D(C₀)</text>
+  <text x="297" y="155" text-anchor="middle" fill="#fef3c7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Transitive callers,</text>
+  <text x="297" y="172" text-anchor="middle" fill="#fef3c7" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">re-exports, types</text>
+  <text x="297" y="205" text-anchor="middle" fill="#fde68a" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="10">Weight: 1.00 - 0.95</text>
+
+  <!-- Arrow 2 -> 3 -->
+  <line x1="380" y1="165" x2="405" y2="165" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Step 3: T(C0) -->
+  <rect x="405" y="100" width="165" height="130" rx="12" fill="url(#grad-t1)" stroke="#047857" stroke-width="2" />
+  <text x="487" y="130" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">3. Tests T(C₀)</text>
+  <text x="487" y="155" text-anchor="middle" fill="#d1fae5" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Mapped unit,</text>
+  <text x="487" y="172" text-anchor="middle" fill="#d1fae5" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">integration, E2E</text>
+  <text x="487" y="205" text-anchor="middle" fill="#a7f3d0" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="10">Weight: 0.90</text>
+
+  <!-- Arrow 3 -> 4 -->
+  <line x1="570" y1="165" x2="595" y2="165" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Step 4: K(C0) -->
+  <rect x="595" y="100" width="165" height="130" rx="12" fill="url(#grad-k1)" stroke="#0e7490" stroke-width="2" />
+  <text x="677" y="130" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="13">4. Contracts K(C₀)</text>
+  <text x="677" y="155" text-anchor="middle" fill="#ecfeff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">API routes, DDL,</text>
+  <text x="677" y="172" text-anchor="middle" fill="#ecfeff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">schemas, manifests</text>
+  <text x="677" y="205" text-anchor="middle" fill="#cffafe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="600" font-size="10">Weight: 0.95</text>
+
+  <!-- Arrow 4 -> 5 -->
+  <line x1="760" y1="165" x2="785" y2="165" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Step 5: S* -->
+  <rect x="785" y="90" width="145" height="150" rx="14" fill="url(#grad-star)" stroke="#5b21b6" stroke-width="3" />
+  <text x="857" y="125" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="14">5. Closure (S*)</text>
+  <text x="857" y="152" text-anchor="middle" fill="#ede9fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">Token-budgeted,</text>
+  <text x="857" y="169" text-anchor="middle" fill="#ede9fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">confidence-bounded</text>
+  <text x="857" y="186" text-anchor="middle" fill="#ede9fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11">context package</text>
+  <text x="857" y="215" text-anchor="middle" fill="#ddd6fe" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700" font-size="11">0 Token Core</text>
+
+  <!-- Bottom Summary Caption -->
+  <text x="475" y="280" text-anchor="middle" fill="#475569" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="11" font-style="italic">
+    Mathematical formula: S* = C₀ ∪ D(C₀) ∪ T(C₀) ∪ K(C₀) bounded to 2 hops with relevance filtering (θ ≥ 0.70)
+  </text>
+</svg>
+

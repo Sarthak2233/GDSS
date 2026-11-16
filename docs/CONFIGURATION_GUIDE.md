@@ -553,7 +553,12 @@ When developers ask their AI assistant (*"Are my changes going to collide with t
 Supported MCP Tools:
 - `gdss_find_collisions(repo_path, reference_branch, branches, exclude_branches)`
 - `gdss_get_merge_order(repo_path, reference_branch, branches, exclude_branches)`
-- `gdss_plan_semantic_rebase(repo_path, reference_branch, branches, exclude_branches)`
+- `gdss_inspect_symbol_impact(symbol, file_path, reference_branch, repo_path, max_hops, token_budget, relevance_threshold)`
+- `gdss_get_impact_closure(symbol, file_path, symbols, reference_branch, repo_path, max_hops, token_budget, relevance_threshold)`
+- `gdss_plan_semantic_rebase(source_branch, target_branch, reference_branch, repo_path, branches, exclude_branches)`
+- `gdss_validate_patch(patch, file_path, repo_path)`
+- `gdss_sandbox_validate_patch(patch, repo_path, target_branch, timeout_seconds)`
+- `gdss_check_anti_gaming(patch, file_path, repo_path, strict, allow_callsite_updates)`
 
 ---
 
@@ -652,7 +657,7 @@ Developers frequently ask where model credentials and API keys must be provided 
 | **Mode 4: Web Visual Dashboard & REST API** (`web/` & `gdss serve`) | Inherited by `gdss serve` daemon process from the host shell | `GITHUB_TOKEN` or `OPENAI_API_KEY` in server shell | **Optional** (Deterministic views need 0 keys) | **$0** for all radar, tensor, and drift views. |
 
 > [!IMPORTANT]
-> **MCP Tool Server Zero-Inference Guarantee (Deterministic Core + BYOK)**: When using Cursor, Claude Code, or Copilot with `gdss mcp`, GDSS exposes purely deterministic analysis tools (`find_collisions`, `get_merge_order`, `inspect_symbol_impact`, `validate_patch`). The chat LLM is powered directly by your IDE subscription. GDSS runs 100% locally on CPU and **never requires an external LLM API key in MCP mode**.
+> **MCP Tool Server Zero-Inference Guarantee (Deterministic Core + BYOK)**: When using Cursor, Claude Code, or Copilot with `gdss mcp`, GDSS exposes 8 purely deterministic analysis tools (`find_collisions`, `get_merge_order`, `inspect_symbol_impact`, `get_impact_closure`, `plan_semantic_rebase`, `validate_patch`, `sandbox_validate_patch`, `check_anti_gaming`). The chat LLM is powered directly by your IDE subscription. GDSS runs 100% locally on CPU and **never requires an external LLM API key in MCP mode**.
 >
 > **Team CI Credential Isolation**: You do **not** need each developer on your team to create an API key or configure GitHub secrets. The repository maintainer adds the secret once to GitHub Actions Secrets. All incoming PRs from any team member leverage that secret automatically during CI runs. If no secret is provided, GDSS runs purely deterministically ($0 & 0 tokens).
 

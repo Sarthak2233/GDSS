@@ -68,6 +68,7 @@ class ValidationReport:
     duration_ms: float = 0.0
     error_summary: str | None = None
     diagnostics: Any = None
+    anti_gaming: Any = None
 
     @property
     def is_clean(self) -> bool:

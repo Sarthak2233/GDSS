@@ -216,14 +216,14 @@ claude mcp add gdss -- gdss mcp
 ```
 
 ### 8 Deterministic Tools Exposed to Your AI Agent:
-1. `gdss_detect_collisions`: Pairwise branch collision tensor $\Omega_{ij}$ (overlapping symbols, contractual breaks).
-2. `gdss_explain_topology`: Human-readable explanation of why branches collide and where invariants fail.
-3. `gdss_suggest_merge_order`: Optimal merge ordering minimizing total merge interference.
-4. `gdss_rank_rebase_plan`: Step-by-step rebase order with collision risk scores per rebase step.
-5. `gdss_affected_symbols`: Precise list of classes, functions, and interfaces modified or invalidated.
-6. `gdss_semantic_diff`: AST-level semantic transformations between branches.
-7. `gdss_query_dependencies`: Upstream and downstream call/import dependencies from the semantic graph.
-8. `gdss_symbol_impact`: Blast radius analysis detailing which symbols break if a given symbol changes.
+1. `gdss_find_collisions`: Pairwise branch collision tensor ($\Omega_{ij}$), commutativity violations, and drift magnitudes.
+2. `gdss_get_merge_order`: Optimal topological merge ordering minimizing semantic drift and integration friction.
+3. `gdss_inspect_symbol_impact`: Blast radius analysis detailing downstream callers, contracts, and verifying tests (powered by 2-hop SIC).
+4. `gdss_get_impact_closure`: Transitive 2-hop Semantic Impact Closure with relevance decay, contract detection, and token budget pruning.
+5. `gdss_plan_semantic_rebase`: Commutativity-aware transport rebase plan distinguishing signature shifts from textual noise.
+6. `gdss_validate_patch`: Multi-file, multi-language Tree-sitter AST validation and atomic in-memory diff checks (0 disk writes).
+7. `gdss_sandbox_validate_patch`: Ephemeral Git worktree validation returning structured compiler and test failure diagnostics ($E_k$).
+8. `gdss_check_anti_gaming`: Audits test modifications against assertion-preservation invariants to prevent test cheating.
 
 ---
 

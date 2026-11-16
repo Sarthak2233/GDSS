@@ -1,71 +1,38 @@
-# Session Handoff - 2026-11-16 (Semantic Impact Closure & Validation Feedback Architecture)
+# Session Handoff - 2026-11-16 (IDE MCP Layer 8-Tool Parity & CI Test Pipeline)
 
 ## Completed Work
-1. **Formal Solution Specification & Problem Alignment**:
-   - Authored formal solution architecture document: [`docs/problem-definations/solutions/Semantic Change-Impact Closure and Validation Feedback Solution.md`](../../docs/problem-definations/solutions/Semantic%20Change-Impact%20Closure%20and%20Validation%20Feedback%20Solution.md).
-   - Documented comprehensive plain-English glossary of technical terms ($C_0$, $S^*$, $E_k$, AST, $\Omega_{ij}$, differential baseline, symbol slicing, anti-gaming, all-or-nothing rollback).
-   - Documented mathematical formulation and intuitive explanations for the 3-engine architecture and 10-step protocol.
-   - Saved permanent implementation plan in [`.agents/plans/semantic_impact_closure_and_validation_feedback_plan.md`](../plans/semantic_impact_closure_and_validation_feedback_plan.md).
 
-2. **Vector SVG Documentation Assets (`author-doc-diagrams`)**:
-   - Authored and committed 7 custom vector SVG diagrams in `assets/problem_definitions/`:
-     - `conflict_isolation_problem.svg`
-     - `impact_closure_pipeline.svg`
-     - `closed_loop_convergence_loop.svg`
-     - `two_brain_closure_architecture.svg`
-     - `local_vs_global_consistency.svg`
-     - `three_levels_of_correctness.svg`
-     - `three_engines_architecture.svg`
-   - Embedded all 7 SVGs in `docs/problem-definations/Semantic Change-Impact Closure and Validation Feedback Problem.md` and `docs/problem-definations/solutions/Semantic Change-Impact Closure and Validation Feedback Solution.md` with collapsible `<details><summary>Mermaid source</summary>...` blocks.
+1. **IDE MCP Layer 8-Tool Parity Overhaul (`gdss/mcp/`)**:
+   - Elevated MCP server (`gdss/mcp/server.py`, `v0.2.0`) and tools (`gdss/mcp/tools.py`) to 8 fully registered deterministic tools.
+   - Implemented `gdss_get_impact_closure`: Dedicated 2-hop Semantic Impact Closure (SIC) tool with relevance weighting, contract detection, verifying test detection, and Knapsack token budgeting.
+   - Implemented `gdss_check_anti_gaming`: Dedicated sensor auditing test diffs against assertion-preservation invariants across all languages.
+   - Upgraded `gdss_inspect_symbol_impact`: Replaced naive 1-hop lookup with 2-hop SIC and `.gdss.yml` configuration awareness, preserving backward compatibility.
+   - Upgraded `gdss_validate_patch`: Multi-file, multi-language Tree-sitter AST validation and in-memory diff check (Python, TS, JS, Go, Rust, C#, Java, C, C++) with 0 disk writes.
+   - Upgraded `gdss_sandbox_validate_patch`: Returns structured compiler and test failure diagnostics payload ($E_k$) and anti-gaming audit results directly over JSON-RPC.
+   - Extended `ValidationReport` in `gdss/validation/types.py` and `sandbox.py` with `anti_gaming: Any = None`.
 
-3. **Multi-Language Expansion Across All GDSS Languages**:
-   - Expanded test discovery across all GDSS languages (`is_test_path`): Python, TypeScript/JavaScript (`.spec.ts`, `.test.tsx`, `__tests__/`), Go (`_test.go`, `testdata/`), Rust (`tests/*.rs`, `*_test.rs`), C# (.NET `*Tests.cs`, `*Test.cs`), Java (`*Test.java`), and C/C++ (`test_*.c`, `test_*.cpp`).
-   - Expanded contract discovery (`is_contract_path`): IDLs (`.proto`, `.graphql`, `.openapi.yaml`, `.thrift`, `.sql`, `.prisma`), C# interfaces (`I*.cs`), TypeScript interfaces, routes, controllers, and repositories.
-   - Added dedicated test runner diagnostic parsers for Pytest, Vitest/Jest, Cargo (Rust `panic!`), Go (`go test`), and .NET (`dotnet test` with `Assert.Equal() Failure`).
-   - Added multi-language test anti-gaming invariant checkers for Rust (`assert!`, `assert_eq!`), Go (`assert.*`, `require.*`, `t.Error`), TypeScript/JavaScript (`expect(`, `toBe`, `toEqual`), C# (`Assert.*`), Java (`assertThat`, `assertAll`), plus trivial assertion checks (`assert!(true)`, `expect(true).toBe(true)`, `Assert.True(true)`).
+2. **GitHub Actions CI Test Pipeline (`.github/workflows/ci.yml`)**:
+   - Created `.github/workflows/ci.yml` triggering on `push: branches: [main]`, `pull_request: branches: [main]`, and `workflow_dispatch`.
+   - Parallel multi-job architecture:
+     - `backend-gate`: Runs on Python 3.11 with pip cache; executes Layer 1 (ruff lint, mypy typecheck, architecture fitness, DSA fitness), Layer 2 (pytest 447 tests), and Layer 3 (cli smoke and api smoke).
+     - `frontend-gate`: Runs on Node 20 & pnpm 9 with pnpm cache; executes Layer F1 (eslint, tsc --noEmit, token_fitness.py), Layer F2 (vitest 118 tests), and Layer F3 (Next.js production build & size-limit budget).
+     - `ci-status`: Unified gate aggregating backend and frontend results as a single status check for branch protection.
 
-4. **Tier 1 `.gdss.yml` Configuration & Two-Tier Resolution Architecture**:
-   - Implemented `ImpactClosureConfig` in `gdss/core/config.py` with typed fields: `max_hops` (default: 2), `relevance_threshold` (default: 0.70), `token_budget` (default: 4000), `test_patterns` (tuple[str, ...]), and `contract_patterns` (tuple[str, ...]).
-   - Extended `ValidationConfig` in `gdss/core/config.py` and `gdss/validation/discovery.py` with `anti_gaming_strict: bool = True` and `allow_callsite_updates: bool = True`.
-   - Wired `ImpactClosureConfig` into `GDSSConfig` and `load_gdss_config`.
-   - Upgraded `is_test_path` and `is_contract_path` in `gdss/graph/impact_closure.py` to evaluate explicit user glob patterns from `ImpactClosureConfig` (Tier 1 Primary Authority) using `fnmatch` before falling back to built-in multi-language heuristics (Tier 2 Final Resort).
-   - Wired `ValidationConfig` anti-gaming settings into `ValidationSandbox` and `inspect_test_diff_anti_gaming`.
-   - Documented the full schema and every keyword in `.gdss.yml.example`, `docs/CONFIGURATION_GUIDE.md`, and `docs/problem-definations/solutions/Semantic Change-Impact Closure and Validation Feedback Solution.md`.
-   - Synchronized documentation and `.gdss.yml` templates across `gdss-radar/` and root docs: `gdss-radar/README.md`, `gdss-radar/.gdss.yml.example`, `gdss-radar/docs/CONFIGURATION_GUIDE.md`, `gdss-radar/docs/GITHUB_ACTIONS_GUIDE.md`, `gdss-radar/docs/USER_GUIDE.md`, `README.md`, `docs/GITHUB_ACTIONS_GUIDE.md`, and `docs/USER_GUIDE.md`.
-   - Added unit tests in `tests/core/test_config.py`, `tests/graph/test_impact_closure.py`, and `tests/validation/test_anti_gaming.py` (6 passed).
+3. **Documentation & Sub-Repo Synchronization**:
+   - Synchronized root `README.md` (lines 218–227) with the exact 8 registered tools.
+   - Synchronized `docs/STANDALONE_BINARY_AND_MCP_GUIDE.md` ("The 8 Native MCP Tools Available to AI" with complete schemas and examples).
+   - Synchronized `docs/USER_GUIDE.md` and `docs/CONFIGURATION_GUIDE.md` across both `GDSS` and `gdss-radar/`.
+   - Synchronized `gdss-radar/README.md` with the 8-tool capability list.
 
-5. **Engine 1: Deterministic Semantic Impact Closure (SIC) Engine (`gdss/graph/impact_closure.py`)**:
-   - Implemented `compute_semantic_impact_closure` performing 2-hop weighted reverse call/dependency graph traversal ($O(|V| + |E|)$).
-   - Relevance edge weights: direct invocation ($1.00$), type/contract ($0.95$), test coverage ($0.90$), module import ($0.50$), lexical ($0.25$).
-   - Budget-aware pruning preserving conflict symbols ($C_0$), direct callers ($D(C_0)$), and target tests ($T(C_0)$) while shedding low-confidence 2-hop edges when token ceilings are exceeded.
-   - Implemented automatic test and contract file categorization (`is_test_path`, `is_contract_path`).
-   - Unit tests in `tests/graph/test_impact_closure.py` (6 passed).
-
-6. **Engine 2: Multi-File Coordinated Patch Packaging & Atomic Rollback (`gdss/validation/guarded_apply.py`, `gdss/ai/context_builder.py`)**:
-   - Implemented `parse_multi_file_unified_diff` to parse multi-file Git diffs into per-file diff maps.
-   - Extended `apply_suggestion` to execute all-or-nothing atomic rollback: saves pre-apply snapshots for all affected files, writes patched content, and runs AST syntax validation on all files. If any file fails syntax check, instantly restores all files to original content.
-   - Extended `rollback_suggestion` to restore multi-file snapshots cleanly.
-   - Integrated `ImpactClosureResult` into `SemanticCollisionContext` with proportional token budgeting (50% conflict 3-way, 30% callers/contracts, 20% tests).
-   - Integration tests in `tests/ai/test_multi_file_patch.py` (3 passed).
-
-6. **Engine 3: Closed-Loop Validation Diagnostics & Anti-Gaming Invariants (`gdss/validation/diagnostic_extractor.py`, `gdss/validation/sandbox.py`)**:
-   - Implemented `parse_test_diagnostics` extracting structured diagnostics ($E_k$): failure types, assertions (expected vs. actual), tracebacks, failing lines, and implicated symbols from raw runner outputs across Pytest, Vitest, Cargo, Go, and .NET.
-   - Implemented `compute_differential_diagnostics` to distinguish `INTRODUCED_BY_PATCH` regressions from `PRE_EXISTING_BASELINE` failures.
-   - Implemented `inspect_test_diff_anti_gaming` to enforce anti-gaming invariant policies (allowing test signature/call-site adaptations and additive tests, while quarantining assertion deletions/trivializations for human sign-off).
-   - Integrated diagnostics and anti-gaming verification into `ValidationSandbox` and `ValidationReport`.
-   - Unit tests in `tests/validation/test_diagnostic_extractor.py` (7 passed) and `tests/validation/test_anti_gaming.py` (6 passed).
-
-7. **Harness & Verification Gate**:
-   - `bash harness/verify.sh`: ALL LAYERS GREEN.
+4. **Test Suite & Verification Evidence**:
+   - Expanded `tests/mcp/test_mcp_server.py` to 17 tests (all passing).
+   - Full master verification gate (`bash harness/verify.sh`): **ALL LAYERS GREEN**.
    - Layer 1: lint OK (ruff), typecheck OK (mypy 103 source files), architecture fitness OK, DSA fitness OK (0 unsuppressed violations).
-   - Layer 2: pytest 438 passed, 3 skipped, 1 warning in 52.67s (22 new unit and integration tests across all 3 engines).
+   - Layer 2: pytest 447 passed, 3 skipped, 1 warning in 52.68s.
    - Layer 3: cli-smoke OK, api-smoke OK.
-   - Frontend: F1, F2 (35 vitest files, 118 tests), F3 (Next.js build + size-limit budget) ALL GREEN.
-   - Synchronized `feature_list.json` (Phase 1.18 added) and `progress.md`.
+   - Frontend Gate: F1 lint OK, F1 typecheck OK, F1 token fitness OK, F2 vitest (35 files, 118 tests passed), F3 size-limit OK.
 
-## Current State & Next Steps
-- **Current State**: Semantic Impact Closure, Multi-File Patch Packaging, Validation Diagnostics, and Two-Tier `.gdss.yml` Configuration are fully implemented, verified, and synchronized across GDSS core, validation layers, root docs, and `gdss-radar/`.
-- **Next Backlog Candidates (Single Feature Rule)**:
-  1. `frontend-validation-ui` (Phase F9) — Surface ephemeral worktree sandbox evidence and structured diagnostics ($E_k$) in the Next.js visual dashboard.
-  2. `sp1-telemetry` (Phase 1.7) — Telemetry opt-out flags and privacy schema.
-  3. `sp1-pypi-homebrew` (Phase 1.7b) — PyPI wheel distribution and Homebrew tap formula.
+## Current Repository Status
+- Clean code and test additions.
+- Verified with `bash harness/verify.sh`.
+- Ready for user review, commit, and push.

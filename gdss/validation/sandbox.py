@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 import time
 from pathlib import Path
+from typing import Any
 
 from gdss.logger import get_logger
 from gdss.validation.diagnostic_extractor import (
@@ -204,6 +205,7 @@ class ValidationSandbox:
                     )
 
             # 3b. Multi-language AST Syntax Check & Anti-Gaming Invariant Check
+            anti_gaming_reports: list[dict[str, Any]] = []
             for f in changed_files:
                 target_file = wt_path / f
                 if not target_file.is_file():
@@ -223,6 +225,7 @@ class ValidationSandbox:
                         worktree_path=wt_str,
                         duration_ms=elapsed_ms(),  # dsa:ignore
                         error_summary=f"Syntax error in {f}: {syntax_res.error_message}",
+                        anti_gaming=anti_gaming_reports if anti_gaming_reports else None,
                     )
 
                 if "test" in f.lower() or "spec" in f.lower():
@@ -241,12 +244,23 @@ class ValidationSandbox:
                                 strict=val_config.anti_gaming_strict,
                                 allow_callsite_updates=val_config.allow_callsite_updates,
                             )
+                            anti_gaming_reports.append(
+                                {
+                                    "file": f,
+                                    "passed": anti_res.passed,
+                                    "deleted_assertions_count": anti_res.deleted_assertions_count,
+                                    "modified_assertions_count": anti_res.modified_assertions_count,
+                                    "warnings": list(anti_res.warnings),
+                                }
+                            )
                             if not anti_res.passed:
                                 logger.warning(
                                     "Gate 1 Anti-gaming warning on %s: %s", f, anti_res.warnings
                                 )
                     except Exception as exc:
                         logger.debug("Anti-gaming check skipped for %s: %s", f, exc)
+
+            effective_anti_gaming = anti_gaming_reports if anti_gaming_reports else None
 
             # 4. Gate 2: Targeted Static Type Check
             if run_types:
@@ -268,6 +282,7 @@ class ValidationSandbox:
                         worktree_path=wt_str,
                         duration_ms=elapsed_ms(),  # dsa:ignore
                         error_summary=f"Type check failed: {type_res.output}",
+                        anti_gaming=effective_anti_gaming,
                     )
             else:
                 type_res = TypeCheckResult(checked=False, passed=True, tool="skipped")
@@ -298,6 +313,7 @@ class ValidationSandbox:
                         duration_ms=elapsed_ms(),  # dsa:ignore
                         error_summary=f"Tests failed: {test_res.output}",
                         diagnostics=diag_payload,
+                        anti_gaming=effective_anti_gaming,
                     )
             else:
                 test_res = TestExecutionResult(executed=False, passed=True, tool="skipped")
@@ -311,6 +327,7 @@ class ValidationSandbox:
                 tests=test_res,
                 worktree_path=wt_str,
                 duration_ms=elapsed_ms(),  # dsa:ignore
+                anti_gaming=effective_anti_gaming,
             )
 
 

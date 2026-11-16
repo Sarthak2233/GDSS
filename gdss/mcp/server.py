@@ -8,7 +8,9 @@ from typing import Any, TextIO
 
 from gdss.logger import get_logger
 from gdss.mcp.tools import (
+    check_anti_gaming,
     find_collisions,
+    get_impact_closure,
     get_merge_order,
     inspect_symbol_impact,
     plan_semantic_rebase,
@@ -19,7 +21,7 @@ from gdss.mcp.tools import (
 logger = get_logger("gdss.mcp.server")
 
 SERVER_NAME = "gdss-mcp-server"
-SERVER_VERSION = "0.1.0"
+SERVER_VERSION = "0.2.0"
 PROTOCOL_VERSION = "2024-11-05"
 
 TOOLS = [
@@ -83,13 +85,17 @@ TOOLS = [
     },
     {
         "name": "gdss_inspect_symbol_impact",
-        "description": "Inspects dependency call graph to report downstream callers and branches modifying a symbol.",
+        "description": "Inspects dependency call graph to report downstream callers, verifying tests, and modifying branches for a symbol (powered by 2-hop Semantic Impact Closure).",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "symbol": {
                     "type": "string",
                     "description": "Name or ID of the function/class/variable to inspect",
+                },
+                "file_path": {
+                    "type": "string",
+                    "description": "Optional relative file path being analyzed",
                 },
                 "reference_branch": {
                     "type": "string",
@@ -101,13 +107,74 @@ TOOLS = [
                     "description": "Path to the git repository (default: current directory)",
                     "default": ".",
                 },
+                "max_hops": {
+                    "type": "integer",
+                    "description": "Maximum transitive caller depth (default: 2)",
+                    "default": 2,
+                },
+                "token_budget": {
+                    "type": "integer",
+                    "description": "Maximum token budget for context assembly (default: 4000)",
+                    "default": 4000,
+                },
+                "relevance_threshold": {
+                    "type": "number",
+                    "description": "Edge weight cutoff for transitive propagation (default: 0.70)",
+                    "default": 0.70,
+                },
             },
-            "required": ["symbol"],
+        },
+    },
+    {
+        "name": "gdss_get_impact_closure",
+        "description": "Calculates transitive 2-hop Semantic Impact Closure (SIC): discovers callers, API contracts, and verifying test suites within a token budget.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "symbol": {
+                    "type": "string",
+                    "description": "Primary symbol name or ID to compute closure from",
+                },
+                "file_path": {
+                    "type": "string",
+                    "description": "Target file path to compute closure for (if symbol omitted)",
+                },
+                "symbols": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional list of multiple root symbols to compute joint closure for",
+                },
+                "reference_branch": {
+                    "type": "string",
+                    "description": "Base/target branch to compare against (default: 'main')",
+                    "default": "main",
+                },
+                "repo_path": {
+                    "type": "string",
+                    "description": "Path to the git repository (default: current directory)",
+                    "default": ".",
+                },
+                "max_hops": {
+                    "type": "integer",
+                    "description": "Maximum transitive caller depth (default: 2)",
+                    "default": 2,
+                },
+                "token_budget": {
+                    "type": "integer",
+                    "description": "Maximum token budget for context assembly (default: 4000)",
+                    "default": 4000,
+                },
+                "relevance_threshold": {
+                    "type": "number",
+                    "description": "Edge weight cutoff for transitive propagation (default: 0.70)",
+                    "default": 0.70,
+                },
+            },
         },
     },
     {
         "name": "gdss_validate_patch",
-        "description": "Validates unified diff patch syntax and target boundaries in a sandbox without touching the working tree.",
+        "description": "Validates unified diff patch syntax and target boundaries across multi-file diffs in any supported language without touching the working tree.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -117,7 +184,7 @@ TOOLS = [
                 },
                 "file_path": {
                     "type": "string",
-                    "description": "Relative file path being patched",
+                    "description": "Optional relative file path being patched (inferred from diff headers if omitted)",
                 },
                 "repo_path": {
                     "type": "string",
@@ -125,7 +192,7 @@ TOOLS = [
                     "default": ".",
                 },
             },
-            "required": ["patch", "file_path"],
+            "required": ["patch"],
         },
     },
     {
@@ -168,7 +235,7 @@ TOOLS = [
     },
     {
         "name": "gdss_sandbox_validate_patch",
-        "description": "Applies a candidate patch in an ephemeral Git worktree and validates multi-language AST syntax, targeted typechecking, and regression tests without mutating the working tree.",
+        "description": "Applies a candidate patch in an ephemeral Git worktree and validates multi-language AST syntax, targeted typechecking, regression tests, and anti-gaming invariants, returning structured diagnostic traces.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -193,6 +260,39 @@ TOOLS = [
                 },
             },
             "required": ["patch"],
+        },
+    },
+    {
+        "name": "gdss_check_anti_gaming",
+        "description": "Audits proposed test file modifications against assertion-preservation invariants, detecting deleted assertions or trivial replacements.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "patch": {
+                    "type": "string",
+                    "description": "Unified diff patch or hunk applied to the test file",
+                },
+                "file_path": {
+                    "type": "string",
+                    "description": "Relative path to the test file being checked",
+                },
+                "repo_path": {
+                    "type": "string",
+                    "description": "Path to the git repository (default: current directory)",
+                    "default": ".",
+                },
+                "strict": {
+                    "type": "boolean",
+                    "description": "Enforce strict zero assertion net decrease (default: true)",
+                    "default": True,
+                },
+                "allow_callsite_updates": {
+                    "type": "boolean",
+                    "description": "Permit argument updates inside assertions when signature changes (default: true)",
+                    "default": True,
+                },
+            },
+            "required": ["patch", "file_path"],
         },
     },
 ]
@@ -231,9 +331,40 @@ class MCPServer:
             )
         elif name == "gdss_inspect_symbol_impact":
             sym = arguments.get("symbol", "")
+            fpath = arguments.get("file_path", "")
             ref = arguments.get("reference_branch", "main")
             repo = arguments.get("repo_path", ".")
-            return inspect_symbol_impact(symbol=sym, reference_branch=ref, repo_path=repo)
+            hops_val = int(arguments.get("max_hops", 2))
+            budget_val = int(arguments.get("token_budget", 4000))
+            rel_val = float(arguments.get("relevance_threshold", 0.70))
+            return inspect_symbol_impact(
+                symbol=sym,
+                reference_branch=ref,
+                repo_path=repo,
+                file_path=fpath,
+                max_hops=hops_val,
+                token_budget=budget_val,
+                relevance_threshold=rel_val,
+            )
+        elif name == "gdss_get_impact_closure":
+            sym = arguments.get("symbol", "")
+            fpath = arguments.get("file_path", "")
+            symbols = arguments.get("symbols")
+            ref = arguments.get("reference_branch", "main")
+            repo = arguments.get("repo_path", ".")
+            closure_hops = int(arguments.get("max_hops", 2))
+            closure_budget = int(arguments.get("token_budget", 4000))
+            closure_rel = float(arguments.get("relevance_threshold", 0.70))
+            return get_impact_closure(
+                symbol=sym,
+                file_path=fpath,
+                symbols=symbols,
+                reference_branch=ref,
+                repo_path=repo,
+                max_hops=closure_hops,
+                token_budget=closure_budget,
+                relevance_threshold=closure_rel,
+            )
         elif name == "gdss_plan_semantic_rebase":
             src = arguments.get("source_branch", "")
             tgt = arguments.get("target_branch", "")
@@ -262,6 +393,19 @@ class MCPServer:
                 repo_path=repo,
                 target_branch=target_branch,
                 timeout_seconds=float(timeout) if timeout is not None else None,
+            )
+        elif name == "gdss_check_anti_gaming":
+            patch = arguments.get("patch", "")
+            fpath = arguments.get("file_path", "")
+            repo = arguments.get("repo_path", ".")
+            strict = arguments.get("strict", True)
+            allow_updates = arguments.get("allow_callsite_updates", True)
+            return check_anti_gaming(
+                patch=patch,
+                file_path=fpath,
+                repo_path=repo,
+                strict=bool(strict),
+                allow_callsite_updates=bool(allow_updates),
             )
         else:
             raise ValueError(f"Unknown tool: {name}")

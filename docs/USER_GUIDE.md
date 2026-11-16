@@ -145,9 +145,12 @@ GDSS runs as a local MCP server exposing deterministic analysis tools over stand
 #### Available MCP Tools
 - `gdss_find_collisions`: Scans for semantic collisions across active local branches (supports `branches` and `exclude_branches` parameters).
 - `gdss_get_merge_order`: Computes the mathematically optimal merge sequence to minimize conflicts (supports `branches` and `exclude_branches`).
-- `gdss_inspect_symbol_impact`: Traces callers and dependents affected by a change.
+- `gdss_inspect_symbol_impact`: Traces callers, contract interfaces, and verifying test suites affected by a change (powered by 2-hop Semantic Impact Closure).
+- `gdss_get_impact_closure`: Computes transitive 2-hop Semantic Impact Closure with relevance edge decay, contract discovery, verifying test detection, and Knapsack token budgeting.
 - `gdss_plan_semantic_rebase`: Generates a rebase plan classifying kept, remapped, and blocked operators (supports `branches` and `exclude_branches`).
-- `gdss_validate_patch`: Dry-run validates candidate patch diffs against syntax and type checkers.
+- `gdss_validate_patch`: Multi-file, multi-language Tree-sitter AST validation and atomic in-memory diff check (Python, TS, JS, Go, Rust, C#, Java, C/C++).
+- `gdss_sandbox_validate_patch`: Compiles and tests candidate patches in an ephemeral Git worktree, returning structured compiler and test diagnostics ($E_k$).
+- `gdss_check_anti_gaming`: Audits test modifications against assertion-preservation invariants, flagging deleted assertions or trivial passes.
 
 #### Branch Scoping in MCP Tool Invocations
 When pairing with Cursor or Claude Code, your assistant can filter branches to focus on relevant PRs and ignore experimental spikes:

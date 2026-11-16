@@ -3,6 +3,39 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-16 - IDE MCP Layer Semantic Intelligence & 8-Tool Parity Overhaul
+
+- **Elevated MCP Tool Server to 8 Registered Tools**:
+  - Upgraded `gdss/mcp/server.py` (`SERVER_VERSION = "0.2.0"`) and `gdss/mcp/tools.py` to achieve complete architectural parity with the core deterministic engines.
+  - Resolved historical roadmap discrepancy: previously only 6 tools were registered in `server.py` while documentation and roadmaps promised 8 tools.
+  - Implemented 2 new first-class MCP tools:
+    1. `gdss_get_impact_closure`: Configurable 2-hop Semantic Impact Closure (SIC) engine with token budgeting, contract discovery, and verifying test detection.
+    2. `gdss_check_anti_gaming`: Dedicated audit tool evaluating test file diffs against assertion-preservation invariants across all supported languages.
+  - Upgraded 3 existing MCP tools:
+    1. `gdss_inspect_symbol_impact`: Replaced naive 1-hop lookup with 2-hop SIC, contract discovery ($C_S$), verifying tests ($T_S$), and `.gdss.yml` configuration awareness, while preserving 100% backward compatibility.
+    2. `gdss_validate_patch`: Replaced single-file Python `ast.parse` with multi-file unified diff parsing and Tree-sitter AST validation across Python, TypeScript, JavaScript, Go, Rust, C#, Java, C, and C++ (0 disk writes).
+    3. `gdss_sandbox_validate_patch`: Exposed structured compiler and test diagnostics payload ($E_k$) and anti-gaming audit results directly over JSON-RPC.
+  - Extended `ValidationReport` in `gdss/validation/types.py` and `sandbox.py` with `anti_gaming: Any = None`.
+- **Full Documentation & Multi-Repository Synchronization**:
+  - Updated `README.md` (lines 218–227) to accurately document the exact 8 registered tools and their capabilities.
+  - Updated `docs/STANDALONE_BINARY_AND_MCP_GUIDE.md` (all 8 tools documented with detailed examples and schema descriptions).
+  - Updated `docs/USER_GUIDE.md` and `docs/CONFIGURATION_GUIDE.md` with complete 8-tool lists and zero-inference guarantees.
+  - Synchronized `gdss-radar/` repository docs (`gdss-radar/README.md`, `gdss-radar/docs/STANDALONE_BINARY_AND_MCP_GUIDE.md`, `gdss-radar/docs/USER_GUIDE.md`, `gdss-radar/docs/CONFIGURATION_GUIDE.md`).
+- **Comprehensive Test Suite & Layer Verification**:
+  - Expanded `tests/mcp/test_mcp_server.py` from 12 to 17 tests:
+    - `test_mcp_tools_list`: Asserts `len(tool_names) == 8` and verifies all schemas.
+    - `test_mcp_inspect_symbol_impact_semantic_closure`: Verifies 2-hop closure nodes, target tests, contracts, and token estimation.
+    - `test_mcp_get_impact_closure`: Verifies dedicated SIC tool over JSON-RPC.
+    - `test_mcp_validate_patch_multi_file_multi_language`: Verifies multi-file unified diff (Python + TypeScript) compiles cleanly in-memory.
+    - `test_mcp_check_anti_gaming`: Verifies assertion deletions are flagged and valid updates are passed.
+    - `test_mcp_sandbox_validate_patch_structured_diagnostics`: Verifies structured diagnostics and anti-gaming payload in sandbox execution.
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Layer 1: lint OK (ruff), typecheck OK (mypy 103 source files), architecture fitness OK, DSA fitness OK (0 unsuppressed violations).
+  - Layer 2: pytest 447 passed, 3 skipped, 1 warning in 52.68s.
+  - Layer 3: cli-smoke OK, api-smoke OK.
+  - Frontend Gate: F1 lint OK, F1 typecheck OK, F1 token fitness OK, F2 vitest (35 files, 118 tests passed), F3 size-limit OK.
+
 ## 2026-11-16 - Semantic Change-Impact Closure and Validation Feedback Architecture
 
 - **Tier 1 `.gdss.yml` Configuration & Two-Tier Resolution Architecture**:

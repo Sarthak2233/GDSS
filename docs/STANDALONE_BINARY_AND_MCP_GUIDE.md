@@ -14,7 +14,7 @@
   - [Cursor Setup (`~/.cursor/mcp.json`)](#cursor-setup-cursor-mcpjson)
   - [Claude Code Setup](#claude-code-setup)
   - [VS Code / GitHub Copilot Setup](#vs-code--github-copilot-setup)
-- [🛠️ The 6 Native MCP Tools Available to AI](#️-the-6-native-mcp-tools-available-to-ai)
+- [🛠️ The 8 Native MCP Tools Available to AI](#️-the-8-native-mcp-tools-available-to-ai)
 - [💻 Local CLI Offline Workflows](#-local-cli-offline-workflows)
 - [🛡️ Privacy, Deterministic Core ($0 Tokens) & BYOK Model](#️-privacy-deterministic-core-0-tokens--byok-model)
 
@@ -101,7 +101,7 @@ To enable GDSS across all projects in Cursor:
   }
 }
 ```
-3. Restart Cursor. In the Cursor Settings under **Features ➔ MCP**, verify that `gdss` shows green with 6 active tools.
+3. Restart Cursor. In the Cursor Settings under **Features ➔ MCP**, verify that `gdss` shows green with 8 active tools.
 
 *(Optional per-project config: You can also place this in `.cursor/mcp.json` inside individual git repositories).*
 
@@ -140,18 +140,20 @@ If using the VS Code MCP extension or Copilot Chat with MCP support, add the ser
 
 ---
 
-## 🛠️ The 6 Native MCP Tools Available to AI
+## 🛠️ The 8 Native MCP Tools Available to AI
 
-When connected via MCP, your AI assistant can invoke these 6 deterministic tools:
+When connected via MCP, your AI assistant can invoke these 8 deterministic tools:
 
 | MCP Tool Name | Description | What the AI Uses It For |
 | :--- | :--- | :--- |
-| `gdss_find_collisions` | Computes pairwise collision tensor ($\Omega_{ij}$) and commutativity violations. | Asking: *"Are my branch changes going to conflict with Alice's or Bob's open branches?"* |
+| `gdss_find_collisions` | Computes pairwise collision tensor ($\Omega_{ij}$), drift magnitudes, and commutativity violations. | Asking: *"Are my branch changes going to conflict with Alice's or Bob's open branches?"* |
 | `gdss_get_merge_order` | Calculates the mathematically optimal merge sequence minimizing integration friction. | Asking: *"In what order should our team land these 4 open feature branches?"* |
-| `gdss_inspect_symbol_impact` | Evaluates blast radius, callers, and contractual dependencies of a modified symbol. | Asking: *"If I refactor `validate_token()`, what other files and branches will be affected?"* |
+| `gdss_inspect_symbol_impact` | Evaluates blast radius, callers, API contracts, and verifying test suites (powered by 2-hop SIC). | Asking: *"If I refactor `validate_token()`, what other files, contracts, and tests will be affected?"* |
+| `gdss_get_impact_closure` | Computes transitive 2-hop Semantic Impact Closure with relevance decay and token budget pruning. | Asking: *"Fetch the exact 2-hop blast radius and verifying tests for `execute_payment` within 2,000 tokens."* |
 | `gdss_plan_semantic_rebase` | Proposes commutativity-aware rebase steps distinguishing signature shifts from textual noise. | Asking: *"How should I rebase `feature/billing` onto `main` without breaking changes?"* |
-| `gdss_sandbox_validate_patch` | Compiles and tests a candidate patch in an ephemeral Git worktree sandbox. | Asking: *"Validate this proposed reconciliation patch against our test suite before I commit."* |
-| `gdss_validate_patch` | Rapid syntax and typecheck validation of proposed code changes. | Asking: *"Check if this code block has any syntax or typing errors."* |
+| `gdss_validate_patch` | Multi-file, multi-language Tree-sitter AST validation and atomic in-memory diff check (0 disk writes). | Asking: *"Verify if this multi-file refactor diff compiles cleanly without syntax errors."* |
+| `gdss_sandbox_validate_patch` | Compiles and runs targeted tests in an ephemeral Git worktree, returning structured diagnostics ($E_k$). | Asking: *"Test this candidate patch in an isolated worktree and return exact compiler/test failure traces."* |
+| `gdss_check_anti_gaming` | Audits test file modifications against assertion-preservation invariants to prevent test cheating. | Asking: *"Ensure my proposed test edits don't delete critical assertions or weaken test guarantees."* |
 
 ---
 

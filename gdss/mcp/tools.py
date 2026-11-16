@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ast
 import re
 from collections.abc import Hashable
 from pathlib import Path
@@ -12,15 +11,21 @@ from gdss.conflict.commutativity import CommutativityClass, classify
 from gdss.conflict.merge_order import plan_merge_order
 from gdss.conflict.rebase_plan import build_transport_plan
 from gdss.core.ast_parser import ASTParser
+from gdss.core.config import load_gdss_config
 from gdss.core.trajectory import extract_trajectory_operators
 from gdss.core.transform_extractor import TransformExtractor
 from gdss.core.transform_types import SemanticOperator
 from gdss.drift.context import AnalysisContextError, build_analysis_context, iter_contact_pairs
 from gdss.graph.graph_builder import build_code_graph_from_repo
+from gdss.graph.impact_closure import compute_semantic_impact_closure
 from gdss.logger import get_logger
+from gdss.validation.diagnostic_extractor import inspect_test_diff_anti_gaming
+from gdss.validation.guarded_apply import parse_multi_file_unified_diff
+from gdss.validation.syntax import validate_source_syntax
 from gdss.watcher.git_observer import GitObserver
 
 logger = get_logger("gdss.mcp.tools")
+_HUNK_RE = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 
 
 def find_collisions(
@@ -192,12 +197,40 @@ def get_merge_order(
 
 
 def inspect_symbol_impact(
-    symbol: str, reference_branch: str = "main", repo_path: str = "."
+    symbol: str = "",
+    reference_branch: str = "main",
+    repo_path: str = ".",
+    file_path: str = "",
+    max_hops: int = 2,
+    token_budget: int = 4000,
+    relevance_threshold: float = 0.70,
 ) -> dict[str, Any]:
-    """Inspect dependency graph to find downstream callers and modifying branches for a symbol."""
+    """Inspect dependency graph to find downstream callers, verifying tests, and modifying branches for a symbol."""
     path = str(Path(repo_path).resolve())
     graph = build_code_graph_from_repo(path)
-    impact_ids = graph.get_downstream_impact(symbol)
+    cfg = load_gdss_config(path)
+
+    target_name = symbol or file_path
+    conflict_symbols: list[str] = []
+    if symbol:
+        conflict_symbols.append(symbol)
+    if file_path and not symbol:
+        for node_id, data in graph.g.nodes(data=True):
+            nf = data.get("file") or data.get("chart_location") or ""
+            if nf == file_path:
+                conflict_symbols.append(node_id)
+        if not conflict_symbols:
+            conflict_symbols.append(file_path)
+
+    active_conflicts = conflict_symbols or ([target_name] if target_name else [])
+    closure_res = compute_semantic_impact_closure(
+        code_graph=graph,
+        conflict_symbols=active_conflicts,
+        max_hops=max_hops,
+        relevance_threshold=relevance_threshold,
+        token_budget=token_budget,
+        config=cfg.impact_closure,
+    )
 
     observer = GitObserver(path)
     parser = ASTParser()
@@ -215,30 +248,134 @@ def inspect_symbol_impact(
                 )
                 for op in ops:
                     name = op.get_target_name()
-                    if name == symbol or (op.symbol_id and symbol in op.symbol_id):
+                    if (
+                        (name and (name == target_name or name in active_conflicts))
+                        or (
+                            op.symbol_id
+                            and (
+                                target_name in op.symbol_id
+                                or any(s in op.symbol_id for s in active_conflicts)
+                            )
+                        )
+                    ):
                         modifying_branches.append(branch)
                         break
             except Exception:
                 continue
 
     node_data: dict[str, Any] = {}
-    resolved_id = graph.find_node_by_name(symbol)
+    resolved_id = graph.find_node_by_name(target_name) if target_name else None
     if resolved_id and resolved_id in graph.g:
         raw_data = dict(graph.g.nodes[resolved_id])
         node_data = {
             "node_id": resolved_id,
-            "name": raw_data.get("name", symbol),
+            "name": raw_data.get("name", target_name),
             "type": raw_data.get("type", "unknown"),
             "file": raw_data.get("chart_location") or raw_data.get("file", ""),
             "signature": raw_data.get("signature", ""),
         }
 
+    closure_nodes_serialized = [
+        {
+            "symbol_id": n.symbol_id,
+            "file_path": n.file_path,
+            "node_type": n.node_type,
+            "hop_distance": n.hop_distance,
+            "weight": round(n.weight, 3),
+            "implicated_by": n.implicated_by,
+            "relation": n.relation,
+        }
+        for n in closure_res.closure_nodes
+    ]
+
     return {
-        "symbol": symbol,
+        "symbol": target_name,
         "node_info": node_data,
-        "downstream_impact_count": len(impact_ids),
-        "downstream_impact": sorted(list(impact_ids))[:100],
+        "downstream_impact_count": len(closure_res.closure_nodes),
+        "downstream_impact": [n.symbol_id for n in closure_res.closure_nodes][:100],
+        "closure_nodes": closure_nodes_serialized,
+        "implicated_files": sorted(list(closure_res.implicated_files)),
+        "target_tests": sorted(list(closure_res.target_tests)),
+        "contract_files": sorted(list(closure_res.contract_files)),
+        "total_estimated_tokens": closure_res.total_estimated_tokens,
         "modifying_branches": sorted(modifying_branches),
+    }
+
+
+def get_impact_closure(
+    symbol: str = "",
+    file_path: str = "",
+    symbols: list[str] | None = None,
+    reference_branch: str = "main",
+    repo_path: str = ".",
+    max_hops: int = 2,
+    token_budget: int = 4000,
+    relevance_threshold: float = 0.70,
+) -> dict[str, Any]:
+    """Calculate transitive 2-hop Semantic Impact Closure (SIC) over repository code graph.
+
+    Transitively discovers upstream/downstream callers, contract interfaces, and verifying test suites
+    with relevance edge weighting, token budgeting, and .gdss.yml configuration awareness.
+    """
+    path = str(Path(repo_path).resolve())
+    graph = build_code_graph_from_repo(path)
+    cfg = load_gdss_config(path)
+
+    query_symbols: list[str] = []
+    if symbols:
+        query_symbols.extend(symbols)
+    if symbol and symbol not in query_symbols:
+        query_symbols.append(symbol)
+    if file_path and not query_symbols:
+        for node_id, data in graph.g.nodes(data=True):
+            nf = data.get("file") or data.get("chart_location") or ""
+            if nf == file_path:
+                query_symbols.append(node_id)
+        if not query_symbols:
+            query_symbols.append(file_path)
+
+    if not query_symbols:
+        return {
+            "error": "At least one symbol or file_path must be specified for impact closure.",
+            "conflict_symbols": [],
+            "total_closure_nodes": 0,
+            "closure_nodes": [],
+            "implicated_files": [],
+            "target_tests": [],
+            "contract_files": [],
+            "total_estimated_tokens": 0,
+        }
+
+    closure_res = compute_semantic_impact_closure(
+        code_graph=graph,
+        conflict_symbols=query_symbols,
+        max_hops=max_hops,
+        relevance_threshold=relevance_threshold,
+        token_budget=token_budget,
+        config=cfg.impact_closure,
+    )
+
+    closure_nodes_serialized = [
+        {
+            "symbol_id": n.symbol_id,
+            "file_path": n.file_path,
+            "node_type": n.node_type,
+            "hop_distance": n.hop_distance,
+            "weight": round(n.weight, 3),
+            "implicated_by": n.implicated_by,
+            "relation": n.relation,
+        }
+        for n in closure_res.closure_nodes
+    ]
+
+    return {
+        "conflict_symbols": list(closure_res.conflict_symbols),
+        "total_closure_nodes": len(closure_res.closure_nodes),
+        "closure_nodes": closure_nodes_serialized,
+        "implicated_files": sorted(list(closure_res.implicated_files)),
+        "target_tests": sorted(list(closure_res.target_tests)),
+        "contract_files": sorted(list(closure_res.contract_files)),
+        "total_estimated_tokens": closure_res.total_estimated_tokens,
     }
 
 
@@ -389,60 +526,86 @@ def _apply_unified_diff(
     return True, patched_text, None, added, removed
 
 
-def validate_patch(patch: str, file_path: str, repo_path: str = ".") -> dict[str, Any]:
-    """Validate unified diff patch syntax and target boundaries in a sandbox."""
-    hunk_re = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+def validate_patch(patch: str, file_path: str = "", repo_path: str = ".") -> dict[str, Any]:
+    """Validate unified diff patch syntax and target boundaries across multi-file diffs in any supported language."""
+    root_path = Path(repo_path).resolve()
     lines = patch.splitlines()
-    hunks = [line for line in lines if hunk_re.match(line)]  # dsa:ignore
-    if not hunks and not any(line.startswith("+++ ") for line in lines):
+
+    file_diff_map = parse_multi_file_unified_diff(patch, default_file=file_path)
+    if not file_diff_map and not any(_HUNK_RE.match(line) for line in lines):  # dsa:ignore
         return {
             "valid": False,
             "file_path": file_path,
             "error": "Patch format error: not a valid unified diff (missing hunks or diff headers).",
         }
 
-    full_path = Path(repo_path) / file_path
-    if full_path.exists() and full_path.is_file():
-        original_text = full_path.read_text(encoding="utf-8", errors="ignore")
-    else:
-        implied_lines: list[str] = []
-        in_hunk = False
-        for line in lines:
-            if hunk_re.match(line):  # dsa:ignore
-                in_hunk = True
-                continue
-            if in_hunk and (line.startswith(" ") or line.startswith("-")):
-                implied_lines.append(line[1:])
-        original_text = "\n".join(implied_lines) + ("\n" if implied_lines else "")
+    total_hunks = 0
+    total_added = 0
+    total_removed = 0
+    validated_files: list[str] = []
 
-    success, patched_text, err, added, removed = _apply_unified_diff(original_text, patch)
-    if not success:
-        return {
-            "valid": False,
-            "file_path": file_path,
-            "error": err or "Failed to apply patch hunks.",
-        }
-
-    # If it is a Python file, verify that the resulting patched text has zero syntax errors
-    if Path(file_path).suffix == ".py":
+    for f_rel, f_patch in file_diff_map.items():
+        f_target = (root_path / f_rel).resolve()
         try:
-            ast.parse(patched_text)
-        except SyntaxError as e:
+            f_target.relative_to(root_path)
+        except ValueError:
             return {
                 "valid": False,
-                "file_path": file_path,
-                "error": f"Patched code produces Python syntax error at line {e.lineno}: {e.msg}",
+                "file_path": f_rel,
+                "error": f"Path traversal detected: '{f_rel}' is outside repository root.",
             }
 
+        f_lines = f_patch.splitlines()
+        hunk_count = sum(1 for line in f_lines if _HUNK_RE.match(line))  # dsa:ignore
+        total_hunks += hunk_count
+
+        if f_target.exists() and f_target.is_file():
+            original_text = f_target.read_text(encoding="utf-8", errors="ignore")
+        else:
+            implied_lines: list[str] = []
+            in_hunk = False
+            for line in f_lines:
+                if _HUNK_RE.match(line):  # dsa:ignore
+                    in_hunk = True
+                    continue
+                if in_hunk and (line.startswith(" ") or line.startswith("-")):
+                    implied_lines.append(line[1:])
+            original_text = "\n".join(implied_lines) + ("\n" if implied_lines else "")
+
+        success, patched_text, err, added, removed = _apply_unified_diff(original_text, f_patch)
+        if not success:
+            return {
+                "valid": False,
+                "file_path": f_rel,
+                "error": f"Failed to apply patch hunks for {f_rel}: {err}",
+            }
+
+        total_added += added
+        total_removed += removed
+
+        syntax_res = validate_source_syntax(patched_text, f_rel)
+        if not syntax_res.valid:
+            return {
+                "valid": False,
+                "file_path": f_rel,
+                "error": f"Patched code produces {syntax_res.language} syntax error in {f_rel}: {syntax_res.error_message}",
+                "line_number": syntax_res.line_number,
+                "language": syntax_res.language,
+            }
+
+        validated_files.append(f_rel)
+
+    first_file = file_path or (validated_files[0] if validated_files else "")
     return {
         "valid": True,
-        "file_path": file_path,
+        "file_path": first_file,
+        "files_validated": validated_files,
         "error": None,
-        "hunks_applied": len(hunks),
-        "lines_added": added,
-        "lines_removed": removed,
+        "hunks_applied": total_hunks,
+        "lines_added": total_added,
+        "lines_removed": total_removed,
         "syntax_valid": True,
-        "message": "Patch validated successfully: applied cleanly and passed syntax verification.",
+        "message": f"Patch validated successfully across {len(validated_files)} file(s): applied cleanly and passed syntax verification.",
     }
 
 
@@ -461,6 +624,14 @@ def sandbox_validate_patch(
         target_branch=target_branch,
         timeout_seconds=timeout_seconds,
     )
+
+    diag_data = None
+    if report.diagnostics is not None:
+        if hasattr(report.diagnostics, "to_dict"):
+            diag_data = report.diagnostics.to_dict()
+        elif isinstance(report.diagnostics, dict):
+            diag_data = report.diagnostics
+
     return {
         "status": report.status.value,
         "clean": report.is_clean,
@@ -488,4 +659,68 @@ def sandbox_validate_patch(
             "tests_failed": report.tests.tests_failed,
             "output": report.tests.output,
         },
+        "diagnostics": diag_data,
+        "anti_gaming": report.anti_gaming,
+    }
+
+
+def check_anti_gaming(
+    patch: str,
+    file_path: str,
+    repo_path: str = ".",
+    strict: bool = True,
+    allow_callsite_updates: bool = True,
+    original_content: str | None = None,
+    patched_content: str | None = None,
+) -> dict[str, Any]:
+    """Audit proposed test file modifications against assertion-preservation invariants."""
+    root_path = Path(repo_path).resolve()
+    target_file = (root_path / file_path).resolve()
+
+    orig_text = original_content
+    if orig_text is None:
+        if target_file.exists() and target_file.is_file():
+            orig_text = target_file.read_text(encoding="utf-8", errors="ignore")
+        else:
+            implied_lines: list[str] = []
+            in_hunk = False
+            for line in patch.splitlines():
+                if _HUNK_RE.match(line):
+                    in_hunk = True
+                    continue
+                if in_hunk and (line.startswith(" ") or line.startswith("-")):
+                    implied_lines.append(line[1:])
+            orig_text = "\n".join(implied_lines) + ("\n" if implied_lines else "")
+
+    patched_text = patched_content
+    if patched_text is None:
+        if patch.strip():
+            success, res_text, err, _, _ = _apply_unified_diff(orig_text, patch)
+            if not success:
+                return {
+                    "passed": False,
+                    "file_path": file_path,
+                    "deleted_assertions_count": 0,
+                    "modified_assertions_count": 0,
+                    "warnings": [f"Could not apply patch to test file: {err}"],
+                    "clean": False,
+                }
+            patched_text = res_text
+        else:
+            patched_text = orig_text
+
+    result = inspect_test_diff_anti_gaming(
+        original_content=orig_text,
+        patched_content=patched_text,
+        file_path=file_path,
+        strict=strict,
+        allow_callsite_updates=allow_callsite_updates,
+    )
+    return {
+        "passed": result.passed,
+        "file_path": file_path,
+        "deleted_assertions_count": result.deleted_assertions_count,
+        "modified_assertions_count": result.modified_assertions_count,
+        "warnings": list(result.warnings),
+        "clean": result.passed and len(result.warnings) == 0,
     }

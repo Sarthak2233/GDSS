@@ -49,7 +49,7 @@ FROM python:3.11-slim
 LABEL org.opencontainers.image.title="GDSS PR Collision Radar" \
       org.opencontainers.image.description="Semantic PR collision radar and merge convergence assistant" \
       org.opencontainers.image.source="https://github.com/Sarthak2233/GDSS" \
-      org.opencontainers.image.licenses="Apache-2.0"
+      org.opencontainers.image.licenses="LicenseRef-GSARL-1.0"
 
 # Install git (required for repository observation) and ca-certificates
 RUN apt-get update && apt-get install -y --no-install-recommends \

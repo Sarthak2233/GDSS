@@ -3,6 +3,26 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-16 - Formal Transition to GDSS Source-Available Reciprocal License 1.0 (GSARL 1.0)
+
+- **Official Adoption of GSARL 1.0 (`LICENSE.md`)**:
+  - Replaced ambiguous, non-standard draft with formal **GDSS Source-Available Reciprocal License 1.0 (GSARL 1.0)**.
+  - Established deterministic Community Safe Harbor: free production use for organizations with $\le 20$ qualifying Active Contributors (unique human authors across analyzed repos in preceding 90 days; bots and pure merge commits excluded).
+  - Enforced mandatory reciprocal share-back (Affero/SSPL model) triggered upon production CI/CD deployment of modified versions, with dual-track satisfaction (public publication or secure upstream submission with license-back grant).
+  - Structured explicit 3-tier commercial framework: Community ($0), Team (commercial agreement), and Enterprise (commercial agreement + Private Modification Waiver).
+  - Enforced strict competitive substitution ban (forbidding third-party multi-tenant SaaS resale or commercial tool embedding).
+  - Established permanent source availability with no automatic conversion to Apache 2.0.
+- **Repository Metadata Alignment**:
+  - `README.md`: Updated badge to `[![License: GSARL 1.0](https://img.shields.io/badge/License-Source--Available%20Reciprocal%20(GSARL%201.0)-blue.svg)](LICENSE.md)` and added comprehensive `## 📜 License` section.
+  - `Dockerfile`: Updated OCI label `org.opencontainers.image.licenses="LicenseRef-GSARL-1.0"`.
+  - `pyproject.toml`: Added `license = { text = "LicenseRef-GSARL-1.0" }` and classifier `"License :: Other/Proprietary License"`.
+  - `gdss-radar/README.md`: Documented architecture (MIT Action wrapper invoking GSARL 1.0 runner container) and enterprise private modification waivers.
+  - Confirmed 0 remaining references to `Apache-2.0` across package metadata, badges, and Docker labels.
+- **Verification Evidence**:
+  - `python3 -c "import tomllib; ..."`: `pyproject.toml` valid.
+  - `feature_list.json`: 48 features, 14 findings, DAG valid.
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+
 ## 2026-11-13 - Feature List Realignment & Machine-Readable Scope Synchronization
 
 - **Comprehensive Feature List Realignment (`harness/state/feature_list.json`)**:

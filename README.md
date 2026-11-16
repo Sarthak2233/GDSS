@@ -8,7 +8,7 @@
 ![Core](https://img.shields.io/badge/Deterministic%20Core-0%20Tokens-brightgreen.svg)
 ![Inference](https://img.shields.io/badge/AI%20Convergence-BYOK%20%2F%20BYOC-blue.svg)
 ![Frontend](https://img.shields.io/badge/Frontend-Next.js%2014-black.svg)
-![License](https://img.shields.io/badge/License-Apache--2.0-green.svg)
+[![License: GSARL 1.0](https://img.shields.io/badge/License-Source--Available%20Reciprocal%20(GSARL%201.0)-blue.svg)](LICENSE.md)
 
 </div>
 
@@ -659,6 +659,17 @@ GDSS enforces strict **Two-Brain Purity**:
 The architecture fitness sensor (`python harness/sensors/architecture_fitness.py`) runs on every commit and strictly enforces layer boundaries.
 
 For architecture guidelines and contribution details, see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+---
+
+## 📜 License
+
+GDSS is licensed under the **GDSS Source-Available Reciprocal License 1.0 (GSARL 1.0)**.
+- **Community Safe Harbor**: Free for non-production use and internal production use for organizations with up to **20 active Git contributors** (unique human authors across analyzed repositories in the past 90 days).
+- **Reciprocal Share-Back**: Production deployment of modified GDSS requires sharing modifications under GSARL 1.0 (via public repository or secure upstream submission to the Licensor) or executing an Enterprise Private Modification Waiver.
+- **Commercial & Enterprise**: Inquiries for larger teams, enterprise features, or private modification waivers can be initiated on [GitHub Discussions](https://github.com/sarthak2233/gdss-radar/discussions) or via email to `sarthak.basnet5@gmail.com`.
+
+See [`LICENSE.md`](LICENSE.md) for full terms and conditions.
 
 ---
 

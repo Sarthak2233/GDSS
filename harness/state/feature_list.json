@@ -326,15 +326,15 @@
     {
       "id": "phase1-closed-engine-and-commercial-distribution",
       "phase": "1.16",
-      "title": "Closed-Engine Binary Compilation, Commercial Model & Release v1.1.1",
+      "title": "Closed-Engine Binary Compilation, Commercial Model & Release v1.1.1 (GSARL 1.0)",
       "layer": "cli",
       "status": "done",
       "deps": [
         "phase1-standalone-binary-distribution",
         "phase-d-github-actions"
       ],
-      "done_criteria": "Multi-stage Docker in-place Cython compilation compiles 84 proprietary engine modules into native C shared objects (.so) with 0 plaintext .py files; gdss-radar public documentation fully sanitized (0 internal regexes/paths); commercial pricing model (Free Community $0 vs Team & Org); release v1.1.1 tagged and pushed to both repos.",
-      "evidence": "Updated Dockerfile with in-place Cython build; verified container build (exit code 0) with 84 .so files and 0 engine .py files; gdss audit-pr --dry-run verified; gdss-radar sanitized and tagged v1.1.1; verify.sh ALL LAYERS GREEN."
+      "done_criteria": "Multi-stage Docker in-place Cython compilation compiles 84 proprietary engine modules into native C shared objects (.so) with 0 plaintext .py files; formal transition to GDSS Source-Available Reciprocal License 1.0 (GSARL 1.0) with <=20 active contributor Community tier, mandatory internal-modification share-back, and private modification waiver; gdss-radar public documentation sanitized; release v1.1.1 tagged and pushed to both repos.",
+      "evidence": "Updated Dockerfile with in-place Cython build; verified container build (exit code 0) with 84 .so files and 0 engine .py files; LICENSE.md established with GSARL 1.0; gdss audit-pr --dry-run verified; gdss-radar sanitized and tagged v1.1.1; verify.sh ALL LAYERS GREEN."
     },
     {
       "id": "phase1-multi-language-ast-and-dotnet",

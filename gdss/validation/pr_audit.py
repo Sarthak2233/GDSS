@@ -14,6 +14,7 @@ from __future__ import annotations
 import functools
 import json
 import os
+import re
 import urllib.error
 import urllib.request
 from collections.abc import Sequence
@@ -338,6 +339,329 @@ def _format_ops_description(ops: list[Any], target_file: str) -> str:
             target_name = op.get_target_name() or ""
             parts.append(f"{op_kind} {target_name}".strip())
     return "; ".join(parts)
+
+
+@dataclass(frozen=True)
+class CallSiteEvidence:
+    """A structured call to a symbol found directly in one PR's changed files."""
+
+    target: str
+    file_path: str
+    structure: str
+    arguments: tuple[str, ...] | None
+
+
+@dataclass(frozen=True)
+class _SignatureParameter:
+    name: str
+    kind: str
+    required: bool
+
+
+@dataclass(frozen=True)
+class _CallArgument:
+    name: str | None
+
+
+def _parenthesized_content(value: str) -> str | None:
+    """Return the contents of the first balanced parenthesized expression."""
+    opening = value.find("(")
+    if opening < 0:
+        return None
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index in range(opening, len(value)):
+        char = value[index]
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if quote:
+            if char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return value[opening + 1 : index]
+    return None
+
+
+def _split_top_level(text: str) -> list[str]:
+    """Split comma-separated text without splitting nested calls or literals."""
+    parts: list[str] = []
+    start = 0
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index, char in enumerate(text):
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if quote:
+            if char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char in "([{":
+            depth += 1
+        elif char in ")]}":
+            depth = max(0, depth - 1)
+        elif char == "," and depth == 0:
+            parts.append(text[start:index].strip())
+            start = index + 1
+    tail = text[start:].strip()
+    if tail:
+        parts.append(tail)
+    return parts
+
+
+def _parse_signature_parameters(
+    signature: str,
+) -> tuple[_SignatureParameter, ...] | None:
+    """Parse Python-style positional, keyword-only, and variadic parameters."""
+    contents = _parenthesized_content(signature)
+    if contents is None:
+        return None
+
+    parameters: list[_SignatureParameter] = []
+    keyword_only = False
+    for part in _split_top_level(contents):
+        clean = part.strip()
+        if not clean:
+            continue
+        if clean == "/":
+            parameters = [
+                _SignatureParameter(
+                    parameter.name,
+                    (
+                        "positional_only"
+                        if parameter.kind == "positional_or_keyword"
+                        else parameter.kind
+                    ),
+                    parameter.required,
+                )
+                for parameter in parameters
+            ]
+            continue
+        if clean == "*":
+            keyword_only = True
+            continue
+
+        if clean.startswith("**"):
+            kind = "var_keyword"
+            declaration = clean[2:].strip()
+        elif clean.startswith("*"):
+            kind = "var_positional"
+            declaration = clean[1:].strip()
+            keyword_only = True
+        else:
+            kind = "keyword_only" if keyword_only else "positional_or_keyword"
+            declaration = clean
+
+        declaration, has_default, _default = declaration.partition("=")
+        name_part = declaration.split(":", 1)[0].strip()
+        optional_marker = name_part.endswith("?")
+        name = name_part[:-1].strip() if optional_marker else name_part
+        if not re.fullmatch(r"[A-Za-z_]\w*", name):
+            return None
+        if any(parameter.name == name for parameter in parameters):
+            return None
+        parameters.append(
+            _SignatureParameter(
+                name=name,
+                kind=kind,
+                required=(
+                    kind not in {"var_positional", "var_keyword"}
+                    and not has_default
+                    and not optional_marker
+                ),
+            )
+        )
+    if (
+        parameters
+        and parameters[0].name in {"self", "cls"}
+        and parameters[0].kind
+        in {"positional_only", "positional_or_keyword"}
+    ):
+        parameters = parameters[1:]
+    return tuple(parameters)
+
+
+def _parse_call_arguments(
+    arguments: tuple[str, ...] | None,
+) -> tuple[_CallArgument, ...] | None:
+    """Parse call shape, returning unknown for unpacked dynamic arguments."""
+    if arguments is None:
+        return None
+    parsed: list[_CallArgument] = []
+    for argument in arguments:
+        clean = argument.strip()
+        if not clean or clean.startswith("*"):
+            return None
+        keyword_match = re.match(r"^([A-Za-z_]\w*)\s*=(?!=)", clean)
+        parsed.append(
+            _CallArgument(name=keyword_match.group(1) if keyword_match else None)
+        )
+    return tuple(parsed)
+
+
+def _call_matches_signature(
+    arguments: tuple[_CallArgument, ...],
+    parameters: tuple[_SignatureParameter, ...],
+) -> bool:
+    """Check arity and keyword binding against one parsed signature."""
+    positional_parameters = [
+        parameter
+        for parameter in parameters
+        if parameter.kind in {"positional_only", "positional_or_keyword"}
+    ]
+    has_var_positional = any(
+        parameter.kind == "var_positional" for parameter in parameters
+    )
+    has_var_keyword = any(
+        parameter.kind == "var_keyword" for parameter in parameters
+    )
+    assigned: set[str] = set()
+    positional_count = 0
+
+    for argument in arguments:
+        if argument.name is None:
+            if positional_count < len(positional_parameters):
+                parameter = positional_parameters[positional_count]
+                if parameter.name in assigned:
+                    return False
+                assigned.add(parameter.name)
+            elif not has_var_positional:
+                return False
+            positional_count += 1
+            continue
+
+        named_parameter = next(
+            (
+                parameter
+                for parameter in parameters
+                if parameter.name == argument.name
+                and parameter.kind != "var_keyword"
+            ),
+            None,
+        )
+        if named_parameter is None or named_parameter.kind == "positional_only":
+            if not has_var_keyword:
+                return False
+            continue
+        if argument.name in assigned:
+            return False
+        assigned.add(argument.name)
+
+    return all(
+        not parameter.required or parameter.name in assigned
+        for parameter in parameters
+        if parameter.kind not in {"var_positional", "var_keyword"}
+    )
+
+
+def _normalize_call_arguments(
+    structure: str,
+    target: str,
+) -> tuple[str, ...] | None:
+    """Extract normalized argument values/names from one call expression."""
+    target_call = re.search(rf"\b{re.escape(target)}\s*\(", structure)
+    if not target_call:
+        return None
+    argument_source = _parenthesized_content(structure[target_call.end() - 1 :])
+    if argument_source is None:
+        return None
+    return tuple(
+        " ".join(argument.split())
+        for argument in _split_top_level(argument_source)
+        if argument.strip()
+    )
+
+
+def _classify_call_compatibility(
+    evidence: CallSiteEvidence,
+    old_signature: str,
+    new_signature: str,
+) -> str:
+    """Classify a call as old-only, new-only, common, or uncertain."""
+    old_parameters = _parse_signature_parameters(old_signature)
+    new_parameters = _parse_signature_parameters(new_signature)
+    arguments = _parse_call_arguments(evidence.arguments)
+    if old_parameters is None or new_parameters is None or arguments is None:
+        return "uncertain"
+    old_compatible = _call_matches_signature(arguments, old_parameters)
+    new_compatible = _call_matches_signature(arguments, new_parameters)
+    if old_compatible and new_compatible:
+        return "both"
+    if old_compatible:
+        return "old_only"
+    if new_compatible:
+        return "new_only"
+    return "uncertain"
+
+
+def _collect_commit_call_evidence(
+    observer: Any,
+    parser: Any,
+    commit_ref: str,
+    base_ref: str,
+) -> tuple[CallSiteEvidence, ...]:
+    """Read call symbols only from files changed by one PR; never checkout."""
+    evidence: list[CallSiteEvidence] = []
+    from gdss.core.ast_parser import SOURCE_EXTENSIONS
+
+    try:
+        commit = observer.repo.commit(commit_ref)
+        merge_base = observer.get_merge_base(commit_ref, base_ref)
+        if not merge_base:
+            return ()
+        changes = observer.get_file_diffs_between_commits(
+            merge_base,
+            commit.hexsha,
+        )
+        changed_paths = (
+            list(changes.get("modified", []))
+            + list(changes.get("added", []))
+        )
+        for blob_path in sorted(dict.fromkeys(changed_paths)):
+            blob_path = blob_path.replace("\\", "/")
+            if not blob_path.endswith(tuple(SOURCE_EXTENSIONS)):
+                continue
+            content = observer.get_file_content_at_commit(commit.hexsha, blob_path)
+            if content is None:
+                continue
+            symbols = parser.parse_file(blob_path, content=content)
+            for symbol in symbols:
+                call_sites = getattr(symbol, "call_sites", ()) or ()
+                for call_site in call_sites:
+                    target = str(call_site.get("target", "")).strip()
+                    structure = str(call_site.get("structure", "")).strip()
+                    if not target or not structure:
+                        continue
+                    arguments = _normalize_call_arguments(structure, target)
+                    evidence.append(
+                        CallSiteEvidence(
+                            target=target,
+                            file_path=blob_path,
+                            structure=structure,
+                            arguments=arguments,
+                        )
+                    )
+    except Exception:
+        return ()
+    return tuple(evidence)
 
 
 def generate_pr_convergence_patch(
@@ -800,14 +1124,90 @@ def audit_pr_collisions(
                                     )
                                     entry = tensor.entries.get(pair_key)
                                 risk = float(entry.omega) if entry else 0.0
+                                current_contract_targets: set[str] = set()
+                                contract_signatures: dict[str, tuple[str, str]] = {}
+                                contract_files: dict[str, str] = {}
+                                for op in current_ops:
+                                    if (
+                                        op.details.get("signature_changed") is True
+                                        or op.operator
+                                        in {
+                                            OperatorType.RENAME_FUNCTION,
+                                            OperatorType.DELETE_FUNCTION,
+                                        }
+                                    ):
+                                        target_name = op.get_target_name()
+                                        if target_name:
+                                            current_contract_targets.add(target_name)
+                                            old_signature = str(
+                                                op.details.get(
+                                                    "old_signature",
+                                                    "",
+                                                )
+                                            )
+                                            new_signature = str(
+                                                op.details.get(
+                                                    "new_signature",
+                                                    "",
+                                                )
+                                            )
+                                            contract_signatures[target_name] = (
+                                                old_signature,
+                                                new_signature,
+                                            )
+                                            contract_files[target_name] = op.file
+
+                                call_evidence = _collect_commit_call_evidence(
+                                    observer,
+                                    parser,
+                                    other_ref,
+                                    context.base_ref,
+                                )
+                                stale_targets: set[str] = set()  # dsa:ignore
+                                adapted_targets: set[str] = set()  # dsa:ignore
+                                uncertain_targets: set[str] = set()  # dsa:ignore
+                                stale_evidence: dict[str, CallSiteEvidence] = {}
+                                adapted_evidence: dict[str, CallSiteEvidence] = {}
+                                uncertain_evidence: dict[str, CallSiteEvidence] = {}
+
+                                for evidence in call_evidence:
+                                    if evidence.target not in current_contract_targets:
+                                        continue
+                                    old_signature, new_signature = (
+                                        contract_signatures.get(
+                                            evidence.target,
+                                            ("", ""),
+                                        )
+                                    )
+                                    classification = _classify_call_compatibility(
+                                        evidence,
+                                        old_signature,
+                                        new_signature,
+                                    )
+                                    if classification == "old_only":
+                                        stale_targets.add(evidence.target)
+                                        stale_evidence[evidence.target] = evidence
+                                    elif classification == "new_only":
+                                        adapted_targets.add(evidence.target)
+                                        adapted_evidence[evidence.target] = evidence
+                                    elif classification == "uncertain":
+                                        uncertain_targets.add(evidence.target)
+                                        uncertain_evidence[evidence.target] = evidence
+
+                                if stale_targets:
+                                    risk = max(risk, 0.85)
+                                elif uncertain_targets:
+                                    risk = max(risk, 0.45)
+                                elif adapted_targets:
+                                    risk = max(risk, 0.55)
                                 if risk > 0.1:
-                                    files_current = {op.file for op in current_ops if op.file}
-                                    files_other = {op.file for op in other_ops if op.file}
+                                    files_current = {op.file for op in current_ops if op.file}  # dsa:ignore
+                                    files_other = {op.file for op in other_ops if op.file}  # dsa:ignore
                                     common_files = files_current & files_other
 
-                                    syms_current: set[str] = set()
+                                    syms_current: set[str] = set()  # dsa:ignore
                                     for op in current_ops:
-                                        t = op.get_target_name()
+                                        t = op.get_target_name()  # dsa:ignore
                                         if t:
                                             syms_current.add(t)
 
@@ -823,6 +1223,20 @@ def audit_pr_collisions(
                                         sorted(common_files)[0]
                                         if common_files
                                         else (current_ops[0].file or "code")
+                                    )
+                                    definition_file = str(
+                                        next(
+                                            (
+                                                contract_files[target]
+                                                for target in sorted(
+                                                    stale_targets
+                                                    | adapted_targets
+                                                    | uncertain_targets
+                                                )
+                                                if target in contract_files
+                                            ),
+                                            current_ops[0].file or target_file,
+                                        )  # dsa:ignore
                                     )
                                     fallback_sym = current_ops[0].get_target_name() or "symbol"  # dsa:ignore
                                     sym_name: str = (
@@ -884,7 +1298,71 @@ def audit_pr_collisions(
                                         if op_k == OperatorType.LEXICAL_CHUNK_EDIT or t_name.startswith("chunk::"):
                                             is_lexical = True
 
-                                    if is_migration:
+                                    if stale_targets:
+                                        stale_target = sorted(stale_targets)[0]
+                                        sym_name = stale_target
+                                        caller_evidence = stale_evidence[stale_target]
+                                        caller_file = caller_evidence.file_path
+                                        target_file = definition_file
+                                        topology_kind = "asymmetric"
+                                        description = (
+                                            f"Breaking contract change: PR #{context.pr_number} modifies "
+                                            f"`{stale_target}` in `{definition_file}` while PR #{other_pr['number']} "
+                                            f"still calls the old contract from `{caller_file}` "
+                                            f"(old call shape: `{caller_evidence.structure}`)."
+                                        )
+                                        merge_rec = (
+                                            f"Update the caller in `{caller_file}` in PR "
+                                            f"#{other_pr['number']} before or together with the contract "
+                                            f"change in PR #{context.pr_number}."
+                                        )
+                                    elif adapted_targets:
+                                        adapted_target = sorted(adapted_targets)[0]
+                                        caller_evidence = adapted_evidence[adapted_target]
+                                        caller_file = caller_evidence.file_path
+                                        definition_file_for_target = (
+                                            contract_files.get(
+                                                adapted_target,
+                                                definition_file,
+                                            )
+                                        )
+                                        sym_name = adapted_target
+                                        target_file = definition_file_for_target
+                                        topology_kind = "asymmetric"
+                                        description = (
+                                            f"Contract and caller are aligned: PR #{context.pr_number} modifies "
+                                            f"`{adapted_target}` in `{definition_file_for_target}`, and "
+                                            f"PR #{other_pr['number']} already uses the new call shape "
+                                            f"in `{caller_file}` (`{caller_evidence.structure}`)."
+                                        )
+                                        merge_rec = (
+                                            f"Merge the contract update in PR #{context.pr_number} first, "
+                                            f"then merge the already-adapted caller PR #{other_pr['number']}."
+                                        )
+                                    elif uncertain_targets:
+                                        uncertain_target = sorted(uncertain_targets)[0]
+                                        caller_evidence = uncertain_evidence[uncertain_target]
+                                        caller_file = caller_evidence.file_path
+                                        definition_file_for_target = (
+                                            contract_files.get(
+                                                uncertain_target,
+                                                definition_file,
+                                            )
+                                        )
+                                        sym_name = uncertain_target
+                                        target_file = definition_file_for_target
+                                        topology_kind = "asymmetric"
+                                        description = (
+                                            f"Contract compatibility is uncertain: PR #{context.pr_number} modifies "
+                                            f"`{uncertain_target}` in `{definition_file_for_target}`, while "
+                                            f"PR #{other_pr['number']} calls it from `{caller_file}` "
+                                            f"with `{caller_evidence.structure}`."
+                                        )
+                                        merge_rec = (
+                                            f"Verify the call shape in `{caller_file}` against the new "
+                                            f"`{uncertain_target}` signature before choosing merge order."
+                                        )
+                                    elif is_migration:
                                         topology_kind = "split_head"
                                         description = (
                                             f"Database Migration Split-Head: concurrent migrations branching off identical parent revision "

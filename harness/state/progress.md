@@ -3,6 +3,37 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-23 - TASK-MWNDUWVO-5B6C Correctness Remediation
+
+- Replaced the compatible timeout/caller scenario with an incompatible signature
+  change and an independently modified stale caller branch.
+- Replaced broad callee implication with structured call-target and call-argument
+  evidence, including add/remove call coverage and unrelated-edit false-positive tests.
+- Added commit-tree caller discovery only across files changed by each PR.
+- Replaced dependency directory copying with symlinks or Windows junction reuse;
+  failed reuse skips dependency linking and permits install-command preparation.
+- Added real-repository convergence patch validation coverage for valid and invalid
+  patches, worktree cleanup, and preservation of repository Git state.
+- Evidence: focused suites passed; `bash harness/verify.sh` exit 0 with 456 pytest
+  passed and 1 skipped.
+
+## 2026-11-23 - TASK-MWNDUWVO-5B6C Multi-PR Completion
+
+- Added a real-Git multi-PR acceptance fixture proving no HEAD, branch, index, or
+  working-tree mutation during read-only analysis.
+- Added call-site contractual contacts to AST transform extraction so stale
+  callers to changed signatures are reported as semantic collisions.
+- Fixed historical commit blob lookup for merge-base/head file reads.
+- Added the authoritative root `.gdss.yml` using only fields supported by
+  `gdss/core/config.py`, covering context window, threshold, hierarchy,
+  exclusions, validation timeout, test/typecheck commands, and provider settings.
+- Verified contract-changing, stale-caller, and independent PR behavior across
+  real commits and merge-base/diff objects.
+- Added Windows-compatible harness and validation command handling discovered
+  by the authoritative gate.
+- Evidence: `bash harness/verify.sh` exit 0; 451 pytest passed, 1 skipped;
+  CLI and API smoke passed; frontend gates passed or skipped cleanly.
+
 ## 2026-11-16 - CI Environment Test Failure Remediation (5/5 Fixed)
 
 - **Diagnosed and Resolved 5 CI-Specific Test Failures**:

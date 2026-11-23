@@ -50,3 +50,6 @@ my_graph.dot
 
 
 .agents/teamwork/
+
+# Local test scratch directories
+.scratch/

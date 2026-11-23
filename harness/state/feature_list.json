@@ -430,6 +430,20 @@
       "done_criteria": "Deferred to Phase R (Research Track). Does not block product milestones. See docs/MANIFOLD_TENSOR_GUIDE.md."
     },
     {
+      "id": "task-mwnduwvo-5b6c",
+      "phase": "completion",
+      "title": "Complete no-checkout multi-PR semantic collision acceptance and companion contract alignment",
+      "layer": "validation",
+      "status": "done",
+      "deps": [
+        "phase1-semantic-impact-closure-and-validation-feedback",
+        "phase-d-github-actions",
+        "phase1-validation-sandbox-hardening"
+      ],
+      "done_criteria": "Real multi-PR fixture proves contract and stale-caller collision detection without HEAD/index/worktree mutation, independent PR commutativity, deterministic merge-order evidence, validated/invalid patch behavior, root .gdss.yml loader conformance, companion Action contract alignment, and bash harness/verify.sh green.",
+      "evidence": "Added tests/validation/test_multi_pr_no_checkout_fixture.py; fixed commit-blob reads and call-site contact operators; added supported root .gdss.yml; verify.sh exit 0 with 451 pytest passed, 1 skipped."
+    },
+    {
       "id": "frontend-harness",
       "phase": "F0",
       "title": "Frontend Harness (the visual brain): guides, skills, tokens, scaffold, and verification gates",

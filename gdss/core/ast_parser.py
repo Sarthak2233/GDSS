@@ -477,28 +477,44 @@ class ASTParser:
             )
         return blocks
 
-    def _extract_calls(self, node: Node, content_bytes: bytes, calls: list[str]):
+    def _extract_calls(
+        self,
+        node: Node,
+        content_bytes: bytes,
+        calls: list[str],
+        call_sites: list[dict[str, str]] | None = None,
+    ):
         """Recursively traverses a node to find all function and method call names."""
         if node.type in {"call", "call_expression", "invocation_expression"}:
+            target_name: str | None = None
             func_node = node.child_by_field_name("function")
             if func_node:
                 if func_node.type == "identifier":
-                    calls.append(self._get_node_text(func_node, content_bytes))
+                    target_name = self._get_node_text(func_node, content_bytes)
                 elif func_node.type == "attribute":  # e.g. obj.method() in Python
                     attr_node = func_node.child_by_field_name("attribute")
                     if attr_node:
-                        calls.append(self._get_node_text(attr_node, content_bytes))
+                        target_name = self._get_node_text(attr_node, content_bytes)
                 elif func_node.type == "member_expression":  # e.g. obj.method() in JS/TS
                     prop_node = func_node.child_by_field_name("property")
                     if prop_node:
-                        calls.append(self._get_node_text(prop_node, content_bytes))
+                        target_name = self._get_node_text(prop_node, content_bytes)
                 elif func_node.type == "member_access_expression":  # e.g. obj.Method() in C#
                     name_node = func_node.child_by_field_name("name")
                     if name_node:
-                        calls.append(self._get_node_text(name_node, content_bytes))
+                        target_name = self._get_node_text(name_node, content_bytes)
+            if target_name:
+                calls.append(target_name)
+                if call_sites is not None:
+                    structure = " ".join(
+                        self._get_node_text(node, content_bytes).split()
+                    )
+                    call_sites.append(
+                        {"target": target_name, "structure": structure}
+                    )
 
         for child in node.children:
-            self._extract_calls(child, content_bytes, calls)
+            self._extract_calls(child, content_bytes, calls, call_sites)
 
     def _append_symbol(
         self,
@@ -536,9 +552,10 @@ class ASTParser:
 
                     # Extract calls inside function body
                     calls: list[str] = []
+                    call_sites: list[dict[str, str]] = []
                     docstring = None
                     if body_node:
-                        self._extract_calls(body_node, content_bytes, calls)
+                        self._extract_calls(body_node, content_bytes, calls, call_sites)
                         body_children = body_node.children
                         if body_children:
                             first_stmt = body_children[0]
@@ -564,6 +581,7 @@ class ASTParser:
                         docstring=docstring,
                         parent_class=parent_class,
                         calls=calls,
+                        call_sites=call_sites,
                         structural_tokens=structural_tokens,
                         body_blocks=body_blocks,
                         language=language,
@@ -717,8 +735,9 @@ class ASTParser:
 
                     # Extract calls inside function body
                     calls: list[str] = []
+                    call_sites: list[dict[str, str]] = []
                     if body_node:
-                        self._extract_calls(body_node, content_bytes, calls)
+                        self._extract_calls(body_node, content_bytes, calls, call_sites)
 
                     body_blocks = self._extract_body_blocks(body_node, content_bytes)
                     structural_tokens = (
@@ -734,6 +753,7 @@ class ASTParser:
                         body=body_text,
                         parent_class=parent_class,
                         calls=calls,
+                        call_sites=call_sites,
                         structural_tokens=structural_tokens,
                         body_blocks=body_blocks,
                         language=language,
@@ -867,8 +887,9 @@ class ASTParser:
                     params_node = child.child_by_field_name("parameters")
                     sig = self._get_node_text(params_node, content_bytes) if params_node else "()"
                     calls: list[str] = []
+                    call_sites: list[dict[str, str]] = []
                     if body_node:
-                        self._extract_calls(body_node, content_bytes, calls)
+                        self._extract_calls(body_node, content_bytes, calls, call_sites)
                     body_blocks = self._extract_body_blocks(body_node, content_bytes)
                     structural_tokens = (
                         [b.node_type for b in body_blocks]
@@ -888,6 +909,7 @@ class ASTParser:
                         body=body_text,
                         parent_class=parent,
                         calls=calls,
+                        call_sites=call_sites,
                         structural_tokens=structural_tokens,
                         body_blocks=body_blocks,
                         language=language,
@@ -1004,8 +1026,9 @@ class ASTParser:
                         sig = f"{sig} -> {self._get_node_text(ret_node, content_bytes)}"
 
                     calls: list[str] = []
+                    call_sites: list[dict[str, str]] = []
                     if body_node:
-                        self._extract_calls(body_node, content_bytes, calls)
+                        self._extract_calls(body_node, content_bytes, calls, call_sites)
 
                     structural_tokens = (
                         [b.node_type for b in body_blocks]
@@ -1020,6 +1043,7 @@ class ASTParser:
                         body=body_text,
                         parent_class=parent_class,
                         calls=calls,
+                        call_sites=call_sites,
                         structural_tokens=structural_tokens,
                         body_blocks=body_blocks,
                         language=language,
@@ -1135,8 +1159,9 @@ class ASTParser:
                         sig = f"{self._get_node_text(ret_node, content_bytes)} {name_text}{sig}"
 
                     calls: list[str] = []
+                    call_sites: list[dict[str, str]] = []
                     if body_node:
-                        self._extract_calls(body_node, content_bytes, calls)
+                        self._extract_calls(body_node, content_bytes, calls, call_sites)
 
                     structural_tokens = (
                         [b.node_type for b in body_blocks]
@@ -1151,6 +1176,7 @@ class ASTParser:
                         body=body_text,
                         parent_class=parent_class,
                         calls=calls,
+                        call_sites=call_sites,
                         structural_tokens=structural_tokens,
                         body_blocks=body_blocks,
                         language=language,
@@ -1278,8 +1304,9 @@ class ASTParser:
                     func_name, params_str = self._extract_c_cpp_declarator(decl_node, content_bytes)
                     if func_name:
                         calls: list[str] = []
+                        call_sites: list[dict[str, str]] = []
                         if body_node:
-                            self._extract_calls(body_node, content_bytes, calls)
+                            self._extract_calls(body_node, content_bytes, calls, call_sites)
 
                         structural_tokens = (
                             [b.node_type for b in body_blocks]
@@ -1302,6 +1329,7 @@ class ASTParser:
                             body=body_text,
                             parent_class=parent,
                             calls=calls,
+                            call_sites=call_sites,
                             structural_tokens=structural_tokens,
                             body_blocks=body_blocks,
                             language=language,
@@ -1458,8 +1486,9 @@ class ASTParser:
                         sig = f"{name_text}{sig}"
 
                     calls: list[str] = []
+                    call_sites: list[dict[str, str]] = []
                     if body_node:
-                        self._extract_calls(body_node, content_bytes, calls)
+                        self._extract_calls(body_node, content_bytes, calls, call_sites)
 
                     structural_tokens = (
                         [b.node_type for b in body_blocks]
@@ -1474,6 +1503,7 @@ class ASTParser:
                         body=body_text,
                         parent_class=parent_class,
                         calls=calls,
+                        call_sites=call_sites,
                         structural_tokens=structural_tokens,
                         body_blocks=body_blocks,
                         language=language,
@@ -1633,8 +1663,9 @@ class ASTParser:
                     params_node = child.child_by_field_name("parameters")
                     sig = self._get_node_text(params_node, content_bytes) if params_node else "()"
                     calls: list[str] = []
+                    call_sites: list[dict[str, str]] = []
                     if body_node:
-                        self._extract_calls(body_node, content_bytes, calls)
+                        self._extract_calls(body_node, content_bytes, calls, call_sites)
 
                     structural_tokens = (
                         [b.node_type for b in body_blocks]
@@ -1649,6 +1680,7 @@ class ASTParser:
                         body=body_text,
                         parent_class=parent_class,
                         calls=calls,
+                        call_sites=call_sites,
                         structural_tokens=structural_tokens,
                         body_blocks=body_blocks,
                         language=language,

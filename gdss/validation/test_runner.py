@@ -12,6 +12,7 @@ from gdss.validation.discovery import (
     get_sandbox_timeout,
     group_files_by_package_root,
     load_validation_config,
+    prepare_validation_command,
 )
 from gdss.validation.languages import get_default_registry
 from gdss.validation.types import TestExecutionResult
@@ -198,7 +199,10 @@ def _run_single_test(
         if "{test_file}" in cmd:
             matched = find_targeted_test_files(cwd_path, file_args_list or [])
             if matched:
-                rel_paths = " ".join(str(m.relative_to(cwd_path)) for m in matched)
+                rel_paths = " ".join(
+                    f'"{m.relative_to(cwd_path).as_posix()}"'
+                    for m in matched
+                )
                 cmd = cmd.replace("{test_file}", rel_paths)
                 logger.debug("Filtered test command with targeted test files in %s: %s", cwd_path, rel_paths)
             else:
@@ -212,9 +216,10 @@ def _run_single_test(
         timeout_seconds,
     )
     try:
+        prepared_cmd = prepare_validation_command(cmd)
         proc = subprocess.run(
-            cmd,
-            shell=True,
+            prepared_cmd,
+            shell=not isinstance(prepared_cmd, list),
             cwd=str(cwd_path),
             env=env,
             capture_output=True,

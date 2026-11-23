@@ -69,8 +69,9 @@ class GitObserver:
             rel_path = os.path.relpath(
                 os.path.join(self.repo_path, file_path), self.repo.working_tree_dir
             )
+            rel_path = rel_path.replace("\\", "/")
             commit = self.repo.commit(commit_sha)
-            blob = commit.tree / rel_path
+            blob = commit.tree[rel_path]
             return blob.data_stream.read().decode("utf-8", errors="ignore")
         except Exception:
             return None

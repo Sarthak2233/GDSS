@@ -48,7 +48,8 @@ def test_ephemeral_worktree_lifecycle_and_cleanup(tmp_path):
         res = subprocess.run(
             ["git", "worktree", "list"], cwd=tmp_path, capture_output=True, text=True, check=True
         )
-        assert str(wt) in res.stdout
+        normalized_wt = str(wt).replace("\\", "/")
+        assert normalized_wt in res.stdout.replace("\\", "/")
 
         # Mutate inside worktree
         (wt / "file.txt").write_text("modified in sandbox\n", encoding="utf-8")
@@ -59,7 +60,8 @@ def test_ephemeral_worktree_lifecycle_and_cleanup(tmp_path):
     res = subprocess.run(
         ["git", "worktree", "list"], cwd=tmp_path, capture_output=True, text=True, check=True
     )
-    assert str(worktree_path) not in res.stdout
+    normalized_worktree = str(worktree_path).replace("\\", "/")
+    assert normalized_worktree not in res.stdout.replace("\\", "/")
 
 
 def test_ephemeral_worktree_cleanup_on_exception(tmp_path):
@@ -79,4 +81,5 @@ def test_ephemeral_worktree_cleanup_on_exception(tmp_path):
     res = subprocess.run(
         ["git", "worktree", "list"], cwd=tmp_path, capture_output=True, text=True, check=True
     )
-    assert str(worktree_path) not in res.stdout
+    normalized_worktree = str(worktree_path).replace("\\", "/")
+    assert normalized_worktree not in res.stdout.replace("\\", "/")

@@ -7,6 +7,20 @@ from gdss.logger import get_logger
 logger = get_logger("gdss.storage.db")
 
 
+class _ClosingConnection(sqlite3.Connection):
+    """SQLite connection that closes reliably when used as a context manager."""
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            if exc_type is None:
+                self.commit()
+            else:
+                self.rollback()
+        finally:
+            self.close()
+        return False
+
+
 class RuntimeDB:
     def __init__(self, db_path: str = ".gdss/runtime.db"):
         self.db_path = db_path
@@ -15,7 +29,7 @@ class RuntimeDB:
         logger.debug("RuntimeDB initialized at %s", self.db_path)
 
     def _get_connection(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, factory=_ClosingConnection)
         conn.row_factory = sqlite3.Row
         return conn
 

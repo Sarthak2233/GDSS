@@ -1,0 +1,59 @@
+version: 1
+
+radar:
+  provider: "openrouter"
+  model: "openrouter/free"
+  context_window: 128000
+  risk_threshold: 0.1
+  max_refinements: 2
+  concurrency_limit: 4
+  condensation: "lossless"
+  fail_on_collision: false
+
+validation:
+  mode: "targeted"
+  symlink_dependencies: true
+  syntax_command: "python -m py_compile {file}"
+  test_command: "pytest {test_file}"
+  typecheck_command: "mypy {file}"
+  timeout_seconds: 60
+  anti_gaming_strict: true
+  allow_callsite_updates: true
+
+hierarchy:
+  reference_branch: "main"
+  priority_chain:
+    - "main"
+    - "develop"
+  same_base_only: true
+  include:
+    - "feature/*"
+    - "fix/*"
+  exclude:
+    - "dependabot/*"
+    - "renovate/*"
+    - "spike/*"
+    - "release/*"
+  target_bases:
+    - "main"
+    - "develop"
+
+ast:
+  additional_extensions:
+    - ".vue"
+    - ".svelte"
+  exclude_patterns:
+    - "node_modules/**"
+    - "dist/**"
+    - "build/**"
+    - "vendor/**"
+    - ".venv/**"
+    - "*.min.js"
+    - "coverage/**"
+
+migrations:
+  paths:
+    - "migrations/**"
+    - "alembic/versions/**"
+    - "db/migrate/**"
+    - "prisma/migrations/**"

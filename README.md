@@ -425,6 +425,9 @@ radar:
   context_window: 128000
   # Provider backend: "openrouter" (default), "copilot" (GitHub Copilot CLI), "azure", "openai", "ollama", "vllm"
   provider: "openrouter"
+  # Optional custom env var name for API key (by default matches provider: OPENROUTER_API_KEY, OPENAI_API_KEY, etc.)
+  # Or use GDSS_API_KEY in your local .env as a dedicated universal override:
+  # api_key_env: "OPENROUTER_API_KEY"
   # Maximum agentic self-correction retries when sandbox validation fails
   max_refinements: 2
   # Maximum concurrent worker threads for parallel conflict drafting (default: 4)

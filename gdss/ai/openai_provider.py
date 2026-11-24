@@ -24,13 +24,11 @@ class OpenAICompatibleProvider:
         api_key: str | None = None,
         cache_dir: Path | None = None,
         timeout: float = 120.0,
+        api_key_env: str | None = None,
     ) -> None:
         openrouter_key = os.getenv("OPENROUTER_API_KEY")
         azure_key = os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_AI_API_KEY")
         openai_key = os.getenv("OPENAI_API_KEY")
-        # GITHUB_TOKEN is a GitHub repository management token; it is not an AI inference token post-July 30, 2026.
-        token = api_key or openrouter_key or azure_key or openai_key
-        self.api_key = token
 
         # Base URL resolution
         url = (
@@ -58,6 +56,24 @@ class OpenAICompatibleProvider:
             )
 
         self.base_url = url.rstrip("/")
+
+        # Strict provider-aware API key resolution (prevents cross-key contamination)
+        token = api_key
+        if not token:
+            if api_key_env and os.getenv(api_key_env):
+                token = os.getenv(api_key_env)
+            elif os.getenv("GDSS_API_KEY"):
+                token = os.getenv("GDSS_API_KEY")
+            elif "openrouter.ai" in self.base_url:
+                token = openrouter_key
+            elif "azure.com" in self.base_url:
+                token = azure_key
+            elif "openai.com" in self.base_url:
+                token = openai_key
+            else:
+                token = openrouter_key or azure_key or openai_key
+
+        self.api_key = token
 
         # Model resolution
         if "openrouter.ai" in self.base_url:

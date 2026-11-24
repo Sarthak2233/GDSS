@@ -725,6 +725,7 @@ def get_suggestions(
                 provider = OpenAICompatibleProvider(
                     base_url=radar.base_url or ("https://openrouter.ai/api/v1" if provider_name == "openrouter" else None),
                     model=radar.model,
+                    api_key_env=radar.api_key_env,
                 )
             elif provider_name in {"copilot", "github-copilot"}:
                 from gdss.ai.copilot_provider import CopilotCLIProvider

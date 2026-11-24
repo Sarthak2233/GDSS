@@ -3,21 +3,20 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
-## 2026-11-25 - Cross-Mode Configuration Wiring & .env Auto-Discovery Architecture
+## 2026-11-25 - Cross-Mode Configuration Wiring, .env Auto-Discovery & Strict Provider Key Binding
 
 - **Resolved Configuration & AI Model Discovery Across All 4 Modes**:
   - Implemented `load_env_file` in `gdss/core/config.py`: automatically discovers and reads `.env` at the project repository root without requiring manual shell `export` commands or polluting developer environment files.
-  - Ensured safe credential precedence: existing shell variables and CI runner secrets always take precedence over local `.env` keys.
+  - Implemented strict provider key binding via `resolve_provider_key`: strictly matches API keys to configured provider (`openrouter` -> `OPENROUTER_API_KEY`, `openai` -> `OPENAI_API_KEY`, `azure` -> `AZURE_OPENAI_API_KEY`), eliminating cross-key contamination in cluttered `.env` environments.
+  - Added support for explicit `api_key_env` in `.gdss.yml` (`radar.api_key_env`) and universal isolation override `GDSS_API_KEY`.
   - Implemented bidirectional branch filter synchronization in `load_gdss_config`: branch inclusion/exclusion filters specified in `.gdss.yml` under either `radar` or `hierarchy` automatically synchronize and apply across collision analysis and drift calculations.
-  - Upgraded CLI `gdss suggest` in `gdss/cli/main.py`: resolved hardcoded Typer defaults with proper 4-tier precedence (Explicit CLI flags > `.env`/shell environment > `.gdss.yml` > Sensible defaults), properly picking up `radar.provider`, `radar.model`, `radar.context_window`, `radar.max_refinements`, `radar.concurrency_limit`, `radar.condensation`, `radar.include`, and `radar.exclude`.
-  - Upgraded Web API `get_suggestions` in `gdss/api/service.py`: properly resolves provider, model, and branch filters from `load_gdss_config(repo_path)`.
-  - Maintained strict Two-Brain Purity and confirmed IDE MCP Server zero-token isolation ($0 GDSS tokens).
+  - Upgraded CLI `gdss suggest` in `gdss/cli/main.py` and Web API `get_suggestions` in `gdss/api/service.py` to honor `api_key_env`, `provider`, and `model`.
+  - Updated `gdss/ai/openai_provider.py` and `gdss/validation/pr_audit.py` to route through strict provider-matched key resolution.
 - **Added Comprehensive Unit & CLI Regression Tests**:
-  - Added `test_load_env_file_auto_discovery` and `test_branch_filtering_bidirectional_synchronization` to `tests/core/test_config.py`.
-  - Added `tests/cli/test_suggest_config_wiring.py` (3 tests) covering CLI fallback to `.gdss.yml`, explicit CLI flag overrides, and Web API configuration resolution.
+  - Added `test_load_env_file_auto_discovery`, `test_branch_filtering_bidirectional_synchronization`, `test_resolve_provider_key_strict_matching`, and `test_radar_config_api_key_env_parsing` to `tests/core/test_config.py`.
+  - Added `tests/cli/test_suggest_config_wiring.py` (3 tests).
 - **Documentation & Distribution Alignment**:
-  - Updated `docs/USER_GUIDE.md` with `.gdss.yml` vs `.env` separation of concerns and 4-tier precedence rules.
-  - Updated `gdss-radar/README.md` BYOK section clarifying credential discovery in CI (GitHub Secrets), Local CLI/Web (`.env` auto-discovery), and IDE MCP (zero tokens).
+  - Updated `README.md`, `docs/CONFIGURATION_GUIDE.md`, `docs/USER_GUIDE.md`, `.gdss.yml.example`, `gdss-radar/README.md`, `gdss-radar/docs/CONFIGURATION_GUIDE.md`, and `gdss-radar/.gdss.yml.example`.
 - **Verification Evidence**:
   - `bash harness/verify.sh`: ALL LAYERS GREEN.
   - Layer 1 Static: `ruff` OK, `mypy` OK (103 source files), architecture fitness OK, DSA fitness OK.

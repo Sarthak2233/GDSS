@@ -192,6 +192,7 @@ def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
         "target_bases": list(cfg.radar.target_bases),
         "concurrency_limit": cfg.radar.concurrency_limit,
         "condensation": cfg.radar.condensation,
+        "api_key_env": cfg.radar.api_key_env,
     }
 
 
@@ -566,21 +567,24 @@ def audit_pr_collisions(
                             "Falling back to deterministic AST collision analysis."
                         )
                 else:
-                    effective_token = (
-                        os.environ.get("OPENROUTER_API_KEY")
-                        or os.environ.get("AZURE_OPENAI_API_KEY")
-                        or os.environ.get("OPENAI_API_KEY")
-                    )
+                    from gdss.core.config import resolve_provider_key
+
                     effective_base_url = (
                         (config.get("base_url") if config else None)
                         or os.environ.get("OPENAI_BASE_URL")
                         or os.environ.get("AZURE_OPENAI_ENDPOINT")
+                    )
+                    effective_token = resolve_provider_key(
+                        provider_cfg or "openrouter",
+                        base_url=effective_base_url,
+                        api_key_env=config.get("api_key_env") if config else None,
                     )
                     if effective_token or effective_base_url:
                         provider = OpenAICompatibleProvider(
                             base_url=effective_base_url,
                             model=config.get("model") if config else None,
                             api_key=effective_token,
+                            api_key_env=config.get("api_key_env") if config else None,
                         )
 
                 concurrent_branches = [

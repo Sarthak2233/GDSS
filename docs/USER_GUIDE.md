@@ -306,6 +306,15 @@ GDSS is **zero-config by default**. However, placing a `.gdss.yml` in the root o
 - **`.gdss.yml` (Committed to Git):** Stores shared project rules, model preferences, test runner commands, and branch hierarchies.
 - **`.env` (Never Committed / `.gitignore`):** Stores your private BYOK credentials (e.g. `OPENROUTER_API_KEY`, `OPENAI_API_KEY`). GDSS **automatically discovers and reads `.env`** at your repository root when running CLI commands (`gdss suggest`) or the Web API (`gdss serve`), so you never need to manually export keys or modify `~/.bashrc`.
 
+#### Strict Provider-Aware Key Binding
+To prevent accidental cross-key collisions in projects with many existing `.env` secrets, GDSS matches keys strictly based on your configured `provider`:
+- `provider: openrouter` ➔ automatically checks `OPENROUTER_API_KEY`
+- `provider: openai` ➔ automatically checks `OPENAI_API_KEY`
+- `provider: azure` ➔ automatically checks `AZURE_OPENAI_API_KEY` or `AZURE_AI_API_KEY`
+- `provider: copilot` ➔ automatically checks `GITHUB_TOKEN`
+- **Universal Override:** Setting `GDSS_API_KEY` in `.env` always forces GDSS to use that key regardless of other app keys.
+- **Custom Key Names:** Declare `api_key_env: "YOUR_VAR_NAME"` under `radar:` in `.gdss.yml` if your organization uses custom secret names.
+
 #### Resolution Precedence Order
 When resolving configuration and credentials, GDSS enforces a strict 4-tier precedence:
 1. **Explicit CLI Flags** (e.g. `--model`, `--provider`, `--max-refinements`)
@@ -319,6 +328,7 @@ When resolving configuration and credentials, GDSS enforces a strict 4-tier prec
 radar:
   provider: "openrouter"          # "openrouter", "ollama", "vllm", "copilot", or "openai"
   model: "openrouter/free"        # e.g. "anthropic/claude-3.5-sonnet", "qwen2.5-coder:7b"
+  # api_key_env: "CORP_AI_KEY"   # Optional: custom env var name for API key in .env or CI
   context_window: 128000          # Model context window in tokens
   max_refinements: 2              # Maximum self-healing retry rounds if patch syntax/tests fail
   concurrency_limit: 4            # Parallel worker threads for multi-branch collision drafting

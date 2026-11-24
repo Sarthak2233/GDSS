@@ -176,7 +176,34 @@ def test_mcp_stdio_stream() -> None:
     assert resp["result"] == {}
 
 
-def test_mcp_plan_semantic_rebase() -> None:
+def _setup_mcp_test_repo(path: Path) -> None:
+    from git import Repo
+
+    repo = Repo.init(path)
+    with repo.config_writer() as config:
+        config.set_value("user", "name", "GDSS Test")
+        config.set_value("user", "email", "test@gdss.dev")
+
+    app_file = path / "app.py"
+    app_file.write_text("def run():\n    return 1\n", encoding="utf-8")
+    repo.index.add(["app.py"])
+    repo.index.commit("Initial commit")
+
+    if repo.active_branch.name != "main":
+        repo.create_head("main", "HEAD")
+        repo.heads.main.checkout()
+
+    feature = repo.create_head("feat", "HEAD")
+    feature.checkout()
+    feat_file = path / "feat.py"
+    feat_file.write_text("def feat():\n    return 2\n", encoding="utf-8")
+    repo.index.add(["feat.py"])
+    repo.index.commit("Add feat")
+    repo.heads.main.checkout()
+
+
+def test_mcp_plan_semantic_rebase(tmp_path: Path) -> None:
+    _setup_mcp_test_repo(tmp_path)
     server = MCPServer()
     req = {
         "jsonrpc": "2.0",
@@ -185,9 +212,10 @@ def test_mcp_plan_semantic_rebase() -> None:
         "params": {
             "name": "gdss_plan_semantic_rebase",
             "arguments": {
-                "source_branch": "main",
+                "source_branch": "feat",
                 "target_branch": "main",
-                "repo_path": ".",
+                "reference_branch": "main",
+                "repo_path": str(tmp_path),
             },
         },
     }
@@ -199,7 +227,8 @@ def test_mcp_plan_semantic_rebase() -> None:
     assert "blocked_by_interference_count" in content
 
 
-def test_mcp_find_collisions() -> None:
+def test_mcp_find_collisions(tmp_path: Path) -> None:
+    _setup_mcp_test_repo(tmp_path)
     server = MCPServer()
     req = {
         "jsonrpc": "2.0",
@@ -209,7 +238,7 @@ def test_mcp_find_collisions() -> None:
             "name": "gdss_find_collisions",
             "arguments": {
                 "reference_branch": "main",
-                "repo_path": ".",
+                "repo_path": str(tmp_path),
             },
         },
     }

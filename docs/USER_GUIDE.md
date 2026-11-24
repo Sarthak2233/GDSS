@@ -257,9 +257,9 @@ gdss suggest --repo . --ref main -b feature/auth -b feature/billing
 # With Local LLM (Ollama or vLLM) + Sandbox Validation
 gdss suggest --repo . --ref main --llm --provider ollama --model qwen2.5-coder:7b --validate
 
-# With Cloud Provider (OpenRouter, Azure AI Foundry, or OpenAI)
-export OPENROUTER_API_KEY="sk-or-..."
-gdss suggest --repo . --ref main --llm --provider openrouter --model anthropic/claude-3.5-sonnet --validate
+# With Cloud Provider (Recommended: OpenRouter via .env auto-discovery or GDSS_API_KEY)
+# If GDSS_API_KEY or OPENROUTER_API_KEY is defined in your project's .env, no manual export is needed!
+gdss suggest --repo . --ref main --llm --provider openrouter --model openrouter/free --validate
 ```
 
 ---
@@ -306,14 +306,16 @@ GDSS is **zero-config by default**. However, placing a `.gdss.yml` in the root o
 - **`.gdss.yml` (Committed to Git):** Stores shared project rules, model preferences, test runner commands, and branch hierarchies.
 - **`.env` (Never Committed / `.gitignore`):** Stores your private BYOK credentials (e.g. `OPENROUTER_API_KEY`, `OPENAI_API_KEY`). GDSS **automatically discovers and reads `.env`** at your repository root when running CLI commands (`gdss suggest`) or the Web API (`gdss serve`), so you never need to manually export keys or modify `~/.bashrc`.
 
-#### Strict Provider-Aware Key Binding
+#### Strict Provider-Aware Key Binding & Universal Isolation
 To prevent accidental cross-key collisions in projects with many existing `.env` secrets, GDSS matches keys strictly based on your configured `provider`:
-- `provider: openrouter` ➔ automatically checks `OPENROUTER_API_KEY`
+- **Universal Recommended Standard (`GDSS_API_KEY`):** Setting `GDSS_API_KEY` in your `.env` file or GitHub Secrets is the **explicitly recommended best practice**. It forces GDSS to use this dedicated key with highest priority, completely isolating GDSS from your existing application's API keys (e.g., preventing accidental quota burns on an app-level `OPENAI_API_KEY`).
+- `provider: openrouter` ➔ **Recommended multi-model gateway** ($0 free tier via `openrouter/free` with zero credit card setup). Automatically checks `OPENROUTER_API_KEY` if `GDSS_API_KEY` is not provided.
 - `provider: openai` ➔ automatically checks `OPENAI_API_KEY`
 - `provider: azure` ➔ automatically checks `AZURE_OPENAI_API_KEY` or `AZURE_AI_API_KEY`
 - `provider: copilot` ➔ automatically checks `GITHUB_TOKEN`
-- **Universal Override:** Setting `GDSS_API_KEY` in `.env` always forces GDSS to use that key regardless of other app keys.
-- **Custom Key Names:** Declare `api_key_env: "YOUR_VAR_NAME"` under `radar:` in `.gdss.yml` if your organization uses custom secret names.
+- `provider: deepseek` ➔ automatically checks `DEEPSEEK_API_KEY`
+- `provider: groq` ➔ automatically checks `GROQ_API_KEY`
+- **Custom Key Names (`api_key_env`):** If your organization uses custom secret names (e.g. `TEAM_OPENROUTER_SECRET`), declare `api_key_env: "TEAM_OPENROUTER_SECRET"` under `radar:` in `.gdss.yml`.
 
 #### Resolution Precedence Order
 When resolving configuration and credentials, GDSS enforces a strict 4-tier precedence:
@@ -326,7 +328,7 @@ When resolving configuration and credentials, GDSS enforces a strict 4-tier prec
 # .gdss.yml - Project-level semantic intelligence configuration
 
 radar:
-  provider: "openrouter"          # "openrouter", "deepseek", "groq", "together", "mistral", "anthropic", "openai", "azure", "copilot", "ollama", "vllm", "lm-studio", "localai", or "openai-compatible"
+  provider: "openrouter"          # "openrouter", "deepseek", "groq", "together", "mistral", "anthropic", "gemini", "cohere", "perplexity", "openai", "azure", "copilot", "ollama", "vllm", "lm-studio", "localai", or "openai-compatible"
   model: "openrouter/free"        # e.g. "anthropic/claude-3.5-sonnet", "qwen2.5-coder:7b"
   # api_key_env: "CORP_AI_KEY"   # Optional: custom env var name for API key in .env or CI
   context_window: 128000          # Model context window in tokens
@@ -408,7 +410,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }} # Optional BYOK key for AI patch synthesis (all collision analysis runs at $0 with 0 tokens)
+          # Optional BYOK key for AI patch synthesis (all collision analysis runs at $0 with 0 tokens)
+          GDSS_API_KEY: ${{ secrets.GDSS_API_KEY }} # Recommended: OpenRouter or BYOK key (isolates from app secrets)
+          # or: OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
 > [!TIP]

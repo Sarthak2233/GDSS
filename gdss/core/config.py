@@ -203,6 +203,83 @@ def load_env_file(repo_root: Path | str | os.PathLike[str] | None = None) -> dic
         return {}
 
 
+def resolve_provider_base_url(
+    provider_name: str | None = None,
+    base_url: str | None = None,
+) -> str | None:
+    """Resolve the default OpenAI-compatible API base URL for an inference provider backend."""
+    if base_url:
+        return base_url.strip()
+
+    target = (provider_name or "").lower().strip()
+    if target == "openrouter":
+        return "https://openrouter.ai/api/v1"
+    if target == "deepseek":
+        return "https://api.deepseek.com/v1"
+    if target == "groq":
+        return "https://api.groq.com/openai/v1"
+    if target == "together":
+        return "https://api.together.ai/v1"
+    if target == "mistral":
+        return "https://api.mistral.ai/v1"
+    if target == "anthropic":
+        return "https://api.anthropic.com/v1"
+    if target in {"gemini", "google"}:
+        return "https://generativelanguage.googleapis.com/v1beta/openai"
+    if target == "cohere":
+        return "https://api.cohere.ai/compatibility/v1"
+    if target == "perplexity":
+        return "https://api.perplexity.ai/orchestrator/v1"
+    if target in {"lm-studio", "localai"}:
+        return "http://localhost:1234/v1"
+    if target == "ollama":
+        return "http://localhost:11434/v1"
+    if target == "vllm":
+        return "http://localhost:8000/v1"
+    if target in {"openai", "azure"}:
+        return "https://api.openai.com/v1"
+
+    # Auto-detection from environment variables
+    env_base = (
+        os.getenv("OPENAI_BASE_URL")
+        or os.getenv("AZURE_OPENAI_ENDPOINT")
+        or os.getenv("AZURE_AI_ENDPOINT")
+    )
+    if env_base:
+        return env_base
+
+    openrouter_k = os.getenv("OPENROUTER_API_KEY")
+    if openrouter_k:
+        return "https://openrouter.ai/api/v1"
+    deepseek_k = os.getenv("DEEPSEEK_API_KEY")
+    if deepseek_k:
+        return "https://api.deepseek.com/v1"
+    groq_k = os.getenv("GROQ_API_KEY")
+    if groq_k:
+        return "https://api.groq.com/openai/v1"
+    together_k = os.getenv("TOGETHER_API_KEY")
+    if together_k:
+        return "https://api.together.ai/v1"
+    mistral_k = os.getenv("MISTRAL_API_KEY")
+    if mistral_k:
+        return "https://api.mistral.ai/v1"
+    anthropic_k = os.getenv("ANTHROPIC_API_KEY")
+    if anthropic_k:
+        return "https://api.anthropic.com/v1"
+    gemini_k = os.getenv("GEMINI_API_KEY")
+    if gemini_k:
+        return "https://generativelanguage.googleapis.com/v1beta/openai"
+    cohere_k = os.getenv("COHERE_API_KEY")
+    if cohere_k:
+        return "https://api.cohere.ai/compatibility/v1"
+    perplexity_k = os.getenv("PERPLEXITY_API_KEY")
+    if perplexity_k:
+        return "https://api.perplexity.ai/orchestrator/v1"
+
+    has_openai = os.getenv("OPENAI_API_KEY") or os.getenv("AZURE_OPENAI_API_KEY")
+    return "https://api.openai.com/v1" if has_openai else None
+
+
 def resolve_provider_key(
     provider_name: str,
     base_url: str | None = None,
@@ -217,9 +294,12 @@ def resolve_provider_key(
        - 'openrouter' (or base_url containing openrouter.ai) -> OPENROUTER_API_KEY
        - 'deepseek' (or base_url containing deepseek.com) -> DEEPSEEK_API_KEY
        - 'groq' (or base_url containing groq.com) -> GROQ_API_KEY
-       - 'together' (or base_url containing together.xyz) -> TOGETHER_API_KEY
+       - 'together' (or base_url containing together.xyz / together.ai) -> TOGETHER_API_KEY
        - 'mistral' (or base_url containing mistral.ai) -> MISTRAL_API_KEY
        - 'anthropic' (or base_url containing anthropic.com) -> ANTHROPIC_API_KEY
+       - 'gemini' / 'google' (or base_url containing generativelanguage.googleapis.com) -> GEMINI_API_KEY
+       - 'cohere' (or base_url containing cohere.ai) -> COHERE_API_KEY
+       - 'perplexity' (or base_url containing perplexity.ai) -> PERPLEXITY_API_KEY
        - 'openai' (or base_url containing openai.com) -> OPENAI_API_KEY
        - 'azure' (or base_url containing azure.com) -> AZURE_OPENAI_API_KEY or AZURE_AI_API_KEY
        - 'copilot' / 'github' -> GITHUB_TOKEN
@@ -244,6 +324,9 @@ def resolve_provider_key(
     together_key = os.getenv("TOGETHER_API_KEY")
     mistral_key = os.getenv("MISTRAL_API_KEY")
     anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    cohere_key = os.getenv("COHERE_API_KEY")
+    perplexity_key = os.getenv("PERPLEXITY_API_KEY")
     openai_key = os.getenv("OPENAI_API_KEY")
     azure_key = os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_AI_API_KEY")
     github_key = os.getenv("GITHUB_TOKEN")
@@ -256,12 +339,18 @@ def resolve_provider_key(
         return deepseek_key
     if target == "groq" or "groq.com" in url:
         return groq_key
-    if target == "together" or "together.xyz" in url:
+    if target == "together" or "together.xyz" in url or "together.ai" in url:
         return together_key
     if target == "mistral" or "mistral.ai" in url:
         return mistral_key
     if target == "anthropic" or "anthropic.com" in url:
         return anthropic_key
+    if target in {"gemini", "google"} or "generativelanguage.googleapis.com" in url:
+        return gemini_key
+    if target == "cohere" or "cohere.ai" in url:
+        return cohere_key
+    if target == "perplexity" or "perplexity.ai" in url:
+        return perplexity_key
     if target == "openai" or "api.openai.com" in url:
         return openai_key
     if target == "azure" or "azure.com" in url:
@@ -279,6 +368,9 @@ def resolve_provider_key(
         or together_key
         or mistral_key
         or anthropic_key
+        or gemini_key
+        or cohere_key
+        or perplexity_key
     )
 
 

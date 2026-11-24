@@ -455,17 +455,21 @@ def generate_pr_convergence_patch(
         from gdss.ai.llm_patch import AnyProvider, LLMProvider
         from gdss.ai.openai_provider import OpenAICompatibleProvider
         from gdss.ai.patch_parser import extract_patch_or_replacement
+        from gdss.core.config import resolve_provider_base_url, resolve_provider_key
 
-        effective_base_url = (
+        effective_base_url = resolve_provider_base_url(
+            None,
             base_url
             or os.environ.get("OPENAI_BASE_URL")
-            or os.environ.get("AZURE_OPENAI_ENDPOINT")
+            or os.environ.get("AZURE_OPENAI_ENDPOINT"),
         )
         effective_token = (
             token
-            or os.environ.get("OPENROUTER_API_KEY")
-            or os.environ.get("AZURE_OPENAI_API_KEY")
-            or os.environ.get("OPENAI_API_KEY")
+            if token and token != "copilot"
+            else resolve_provider_key(
+                "openrouter",
+                base_url=effective_base_url,
+            )
         )
         provider: AnyProvider | LLMProvider | None = None
         if token == "copilot":
@@ -567,12 +571,13 @@ def audit_pr_collisions(
                             "Falling back to deterministic AST collision analysis."
                         )
                 else:
-                    from gdss.core.config import resolve_provider_key
+                    from gdss.core.config import resolve_provider_base_url, resolve_provider_key
 
-                    effective_base_url = (
+                    effective_base_url = resolve_provider_base_url(
+                        provider_cfg,
                         (config.get("base_url") if config else None)
                         or os.environ.get("OPENAI_BASE_URL")
-                        or os.environ.get("AZURE_OPENAI_ENDPOINT")
+                        or os.environ.get("AZURE_OPENAI_ENDPOINT"),
                     )
                     effective_token = resolve_provider_key(
                         provider_cfg or "openrouter",

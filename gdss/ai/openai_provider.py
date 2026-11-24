@@ -6,6 +6,7 @@ import hashlib
 import os
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 import httpx
 
@@ -15,7 +16,7 @@ logger = get_logger("gdss.ai.openai_provider")
 
 
 class OpenAICompatibleProvider:
-    """Provider for OpenAI-compatible Chat Completion APIs (OpenRouter, Azure AI, OpenAI, vLLM, Ollama)."""
+    """Provider for OpenAI-compatible Chat Completion APIs (OpenRouter, DeepSeek, Groq, Together, Mistral, Anthropic, Gemini, Cohere, Perplexity, Azure AI, OpenAI, vLLM, Ollama)."""
 
     def __init__(
         self,
@@ -34,6 +35,9 @@ class OpenAICompatibleProvider:
         together_key = os.getenv("TOGETHER_API_KEY")
         mistral_key = os.getenv("MISTRAL_API_KEY")
         anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        cohere_key = os.getenv("COHERE_API_KEY")
+        perplexity_key = os.getenv("PERPLEXITY_API_KEY")
 
         # Base URL resolution
         url = (
@@ -43,18 +47,9 @@ class OpenAICompatibleProvider:
             or os.getenv("AZURE_AI_ENDPOINT")
         )
         if not url:
-            if openrouter_key and not openai_key and not azure_key:
-                url = "https://openrouter.ai/api/v1"
-            elif deepseek_key and not openai_key:
-                url = "https://api.deepseek.com/v1"
-            elif groq_key and not openai_key:
-                url = "https://api.groq.com/openai/v1"
-            elif openai_key:
-                url = "https://api.openai.com/v1"
-            elif azure_key:
-                url = "https://api.openai.com/v1"
-            else:
-                url = "https://openrouter.ai/api/v1" if openrouter_key else "https://api.openai.com/v1"
+            from gdss.core.config import resolve_provider_base_url
+
+            url = resolve_provider_base_url(None) or "https://api.openai.com/v1"
 
         if "models.inference.ai.azure.com" in url or "models.github.ai" in url:
             logger.warning(
@@ -81,12 +76,18 @@ class OpenAICompatibleProvider:
                 token = deepseek_key
             elif "groq.com" in self.base_url:
                 token = groq_key
-            elif "together.xyz" in self.base_url:
+            elif "together.xyz" in self.base_url or "together.ai" in self.base_url:
                 token = together_key
             elif "mistral.ai" in self.base_url:
                 token = mistral_key
             elif "anthropic.com" in self.base_url:
                 token = anthropic_key
+            elif "generativelanguage.googleapis.com" in self.base_url:
+                token = gemini_key
+            elif "cohere.ai" in self.base_url:
+                token = cohere_key
+            elif "perplexity.ai" in self.base_url:
+                token = perplexity_key
             elif "azure.com" in self.base_url:
                 token = azure_key
             elif "openai.com" in self.base_url:
@@ -101,13 +102,32 @@ class OpenAICompatibleProvider:
                     or together_key
                     or mistral_key
                     or anthropic_key
+                    or gemini_key
+                    or cohere_key
+                    or perplexity_key
                 )
 
         self.api_key = token
 
-        # Model resolution
+        # Model resolution defaults per provider
         if "openrouter.ai" in self.base_url:
             default_model = "openrouter/free"
+        elif "deepseek.com" in self.base_url:
+            default_model = "deepseek-chat"
+        elif "groq.com" in self.base_url:
+            default_model = "llama-3.3-70b-versatile"
+        elif "together" in self.base_url:
+            default_model = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+        elif "mistral.ai" in self.base_url:
+            default_model = "codestral-latest"
+        elif "anthropic.com" in self.base_url:
+            default_model = "claude-3-5-sonnet-20241022"
+        elif "generativelanguage.googleapis.com" in self.base_url:
+            default_model = "gemini-2.0-flash"
+        elif "cohere.ai" in self.base_url:
+            default_model = "command-r-plus"
+        elif "perplexity.ai" in self.base_url:
+            default_model = "sonar-pro"
         elif "azure.com" in self.base_url or "openai.com" in self.base_url:
             default_model = "gpt-4o-mini"
         else:
@@ -123,6 +143,25 @@ class OpenAICompatibleProvider:
         self.cache_dir = cache_dir or Path(".gdss/llm_cache")
         self.timeout = timeout
 
+    def _build_api_url(self) -> str:
+        """Construct the exact chat completions endpoint URL with query params support."""
+        url = self.base_url.strip()
+        parsed = urlparse(url)
+        path = parsed.path.rstrip("/")
+
+        if "/chat/completions" in path:
+            new_path = path
+        elif path.endswith("/v1") or path.endswith("/openai") or "/v1/" in path or "/openai/" in path:
+            new_path = f"{path}/chat/completions"
+        elif path == "" or path == "/":
+            new_path = "/v1/chat/completions"
+        else:
+            new_path = f"{path}/v1/chat/completions"
+
+        return urlunparse(
+            (parsed.scheme, parsed.netloc, new_path, parsed.params, parsed.query, parsed.fragment)
+        )
+
     def complete(self, prompt: str, *, temperature: float = 0.0, max_tokens: int = -1) -> str:
         """Call OpenAI-compatible chat endpoint and return reply."""
         cache_key = hashlib.sha256(f"{self.model}:{prompt}".encode()).hexdigest()
@@ -131,11 +170,7 @@ class OpenAICompatibleProvider:
             logger.debug("LLM cache hit for model %s (key: %s)", self.model, cache_key[:8])
             return cache_path.read_text(encoding="utf-8")
 
-        endpoint = self.base_url
-        if endpoint.endswith("/v1"):
-            api_url = f"{endpoint}/chat/completions"
-        else:
-            api_url = f"{endpoint}/v1/chat/completions"
+        api_url = self._build_api_url()
 
         headers: dict[str, str] = {"Content-Type": "application/json"}
         if self.api_key:

@@ -116,18 +116,22 @@ radar:
   context_window: 128000
 
   # Inference provider backend
-  # Options: "openrouter" (default, recommended free tier), "deepseek", "groq", "together", "mistral", "anthropic", "openai", "azure", "copilot" (GitHub Copilot CLI), "ollama", "vllm", "lm-studio", "localai", or "openai-compatible"
+  # Options: "openrouter" (default, recommended free tier), "deepseek", "groq", "together", "mistral", "anthropic", "gemini", "cohere", "perplexity", "openai", "azure", "copilot" (GitHub Copilot CLI), "ollama", "vllm", "lm-studio", "localai", or "openai-compatible"
   provider: "openrouter"
 
   # Optional custom OpenAI-compatible base URL (Universal Protocol)
-  # When provider is set to "deepseek", "groq", "together", "mistral", "openrouter", "openai", "azure", "lm-studio", etc.,
+  # When provider is set to "deepseek", "groq", "together", "mistral", "anthropic", "gemini", "cohere", "perplexity", "openrouter", "openai", "azure", "lm-studio", etc.,
   # GDSS automatically configures the appropriate canonical base_url if left unset.
   # Set this explicitly to override or when using private gateways / enterprise proxies.
   # Examples:
   # - DeepSeek: "https://api.deepseek.com/v1"
   # - Groq: "https://api.groq.com/openai/v1"
-  # - Together AI: "https://api.together.xyz/v1"
+  # - Together AI: "https://api.together.ai/v1"
   # - Mistral AI: "https://api.mistral.ai/v1"
+  # - Anthropic (OpenAI Compat): "https://api.anthropic.com/v1"
+  # - Google Gemini: "https://generativelanguage.googleapis.com/v1beta/openai"
+  # - Cohere: "https://api.cohere.ai/compatibility/v1"
+  # - Perplexity: "https://api.perplexity.ai/orchestrator/v1"
   # - LM Studio (Local): "http://localhost:1234/v1"
   # - Ollama (Local): "http://localhost:11434/v1"
   # If omitted, GDSS resolves base_url automatically from provider and API keys.
@@ -141,6 +145,9 @@ radar:
   #   - provider: "together"   -> checks TOGETHER_API_KEY
   #   - provider: "mistral"    -> checks MISTRAL_API_KEY
   #   - provider: "anthropic"  -> checks ANTHROPIC_API_KEY
+  #   - provider: "gemini"     -> checks GEMINI_API_KEY
+  #   - provider: "cohere"     -> checks COHERE_API_KEY
+  #   - provider: "perplexity" -> checks PERPLEXITY_API_KEY
   #   - provider: "openai"     -> checks OPENAI_API_KEY
   #   - provider: "azure"      -> checks AZURE_OPENAI_API_KEY / AZURE_AI_API_KEY
   #   - provider: "copilot"    -> checks GITHUB_TOKEN
@@ -339,7 +346,7 @@ migrations:
 | `radar.context_window` | `integer` | *Dynamic* | **Required best practice.** The exact context window capacity in tokens (e.g. `1000000` for Gemini Flash, `128000` for GPT-4o). Precludes fallback guessing and maximizes lossless code budget. |
 | `radar.concurrency_limit` | `integer` | `4` | Maximum concurrent worker threads for parallel conflict drafting. |
 | `radar.condensation` | `string` | `"lossless"` | Context condensation policy: `"lossless"` (preserves 100% of code when budget allows), `"ast_minimal"`, or `"off"`. See [`PARALLEL_ORCHESTRATION_AND_CONTEXT_GUIDE.md`](PARALLEL_ORCHESTRATION_AND_CONTEXT_GUIDE.md). |
-| `radar.provider` | `string` | `"openrouter"` | Target provider: `"openrouter"`, `"deepseek"`, `"groq"`, `"together"`, `"mistral"`, `"anthropic"`, `"openai"`, `"azure"`, `"copilot"`, `"ollama"`, `"vllm"`, `"lm-studio"`, `"localai"`, or `"openai-compatible"`. |
+| `radar.provider` | `string` | `"openrouter"` | Target provider: `"openrouter"`, `"deepseek"`, `"groq"`, `"together"`, `"mistral"`, `"anthropic"`, `"gemini"`, `"cohere"`, `"perplexity"`, `"openai"`, `"azure"`, `"copilot"`, `"ollama"`, `"vllm"`, `"lm-studio"`, `"localai"`, or `"openai-compatible"`. |
 | `radar.base_url` | `string \| null` | `null` | Custom OpenAI-compatible base URL (e.g. `https://api.deepseek.com/v1`). Connects GDSS to any standard compliant endpoint. |
 | `radar.max_refinements` | `integer` | `2` | Number of automated self-correction retries inside the ephemeral sandbox worktree before halting. |
 | `radar.risk_threshold` | `float` | `0.8` | Semantic interaction threshold ($\Omega_{ij} \in [0.0, 1.0]$) determining when a collision is flagged. |
@@ -713,9 +720,12 @@ Used in CI/CD secrets management, automated deployment containers, and personal 
 | `OPENROUTER_API_KEY` | OpenRouter gateway secret | Automatically defaults base URL to `https://openrouter.ai/api/v1` |
 | `DEEPSEEK_API_KEY` | DeepSeek AI API secret | Automatically defaults base URL to `https://api.deepseek.com/v1` |
 | `GROQ_API_KEY` | Groq high-speed LPU secret | Automatically defaults base URL to `https://api.groq.com/openai/v1` |
-| `TOGETHER_API_KEY` | Together AI API secret | Automatically defaults base URL to `https://api.together.xyz/v1` |
+| `TOGETHER_API_KEY` | Together AI API secret | Automatically defaults base URL to `https://api.together.ai/v1` |
 | `MISTRAL_API_KEY` | Mistral AI API secret | Automatically defaults base URL to `https://api.mistral.ai/v1` |
-| `ANTHROPIC_API_KEY` | Anthropic Claude API secret | API key for Anthropic Claude endpoints |
+| `ANTHROPIC_API_KEY` | Anthropic Claude API secret | API key for Anthropic Claude endpoints (OpenAI-compatible) |
+| `GEMINI_API_KEY` | Google AI Studio Gemini API secret | Automatically defaults base URL to `https://generativelanguage.googleapis.com/v1beta/openai` |
+| `COHERE_API_KEY` | Cohere API secret | Automatically defaults base URL to `https://api.cohere.ai/compatibility/v1` |
+| `PERPLEXITY_API_KEY` | Perplexity AI API secret | Automatically defaults base URL to `https://api.perplexity.ai/orchestrator/v1` |
 | `AZURE_OPENAI_API_KEY` | Microsoft Azure AI Foundry / Azure OpenAI key | API key for Azure AI Foundry model deployments |
 | `AZURE_OPENAI_ENDPOINT` | Azure AI Foundry endpoint | e.g. `https://<resource>.openai.azure.com/openai/v1` |
 | `GITHUB_TOKEN` | GitHub repository token | Exclusively for GitHub REST API (fetching PRs, posting sticky comments) |
@@ -806,11 +816,11 @@ For $0-cost or ultra-low-cost CI collision radar and local development, use the 
   • OPENROUTER_API_KEY          • OPENAI_API_KEY / BASE_URL   • Zero cloud dependency
 ```
 
-#### A. Option 1: OpenRouter Free Tier (Recommended CI Default)
+#### A. Option 1: OpenRouter Free Tier (Explicitly Recommended Gateway)
 OpenRouter provides automated zero-cost routing to active free models via its meta-router (`openrouter/free`):
 
 1. **Sign Up**: Create an account at [OpenRouter.ai](https://openrouter.ai).
-2. **Generate API Key**: Create an API key under Account Settings.
+2. **Generate API Key**: Create an API key under Account Settings (no credit card required for free tier models).
 3. **In `.gdss.yml`**:
    ```yaml
    radar:
@@ -818,21 +828,27 @@ OpenRouter provides automated zero-cost routing to active free models via its me
      model: "openrouter/free"   # Automatically routes to active free coding models
      context_window: 32768
      max_refinements: 2
+     api_key_env: "GDSS_API_KEY" # Recommended: dedicated secret variable isolates GDSS credentials
    ```
-   *(Note: Endpoints without a `:free` suffix, such as `qwen/qwen-2.5-coder-32b-instruct`, are billed at standard token rates on OpenRouter.)*
+   *(Note: Endpoints without a `:free` suffix, such as `qwen/qwen-2.5-coder-32b-instruct` or `anthropic/claude-3.5-sonnet`, are billed at standard token rates on OpenRouter.)*
 4. **In GitHub Actions CI (`.github/workflows/gdss-radar.yml`)**:
-   Add `OPENROUTER_API_KEY` to repository secrets (**Settings ➔ Secrets and variables ➔ Actions**):
+   Add `GDSS_API_KEY` (or `OPENROUTER_API_KEY`) to repository secrets (**Settings ➔ Secrets and variables ➔ Actions**):
    ```yaml
    - name: Run GDSS PR Collision Radar
      env:
        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Used for GitHub PR comments & checkout
-       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }} # Used for free AI patch synthesis
+       GDSS_API_KEY: ${{ secrets.GDSS_API_KEY }} # Recommended: isolated secret for AI convergence
      run: |
        gdss audit-pr --repo . --pr-number ${{ github.event.pull_request.number }}
    ```
-5. **In Local CLI**:
+5. **In Local CLI & Web Dashboard**:
+   GDSS **automatically discovers and reads `.env`** at your repository root. Simply put your key in `.env`:
    ```bash
-   export OPENROUTER_API_KEY="sk-or-v1-..."
+   # In project root .env:
+   GDSS_API_KEY="sk-or-v1-..."
+   ```
+   Then run:
+   ```bash
    gdss suggest --validate
    ```
 
@@ -1051,19 +1067,22 @@ export AZURE_OPENAI_API_KEY="your-azure-key"
 
 ---
 
-#### Recipe F: OpenRouter (Multi-Model Gateway & Free Tier)
+#### Recipe F: OpenRouter (Explicitly Recommended Gateway & Free Tier)
 Single API key for Claude 3.5 Sonnet, DeepSeek, and free open-source models:
 
 ```yaml
 # .gdss.yml
 radar:
-  provider: "openrouter"
-  model: "openrouter/free"   # Automated free router (or paid models like "deepseek/deepseek-chat")
-  context_window: 32768
+  provider: "openrouter"      # Explicitly recommended multi-model provider
+  model: "openrouter/free"   # Automated free router (or paid models like "anthropic/claude-3.5-sonnet")
+  context_window: 128000
+  api_key_env: "GDSS_API_KEY" # Dedicated secret variable (isolates GDSS from other app keys)
   max_refinements: 2
 ```
 ```bash
-# In shell or GitHub Secret:
+# In your project root .env (auto-discovered) or GitHub Actions Secret:
+GDSS_API_KEY="sk-or-v1-..."
+# or standard:
 export OPENROUTER_API_KEY="sk-or-v1-..."
 ```
 
@@ -1179,9 +1198,12 @@ GDSS supports standard environment variables to override `.gdss.yml` settings, p
 | `OPENROUTER_API_KEY` | `sk-or-v1-...` | High | API key for OpenRouter multi-model gateway. Automatically binds base URL to `https://openrouter.ai/api/v1`. |
 | `DEEPSEEK_API_KEY` | `sk-...` | High | API key for DeepSeek Direct API. Automatically binds base URL to `https://api.deepseek.com/v1`. |
 | `GROQ_API_KEY` | `gsk_...` | High | API key for Groq LPU high-speed inference. Automatically binds base URL to `https://api.groq.com/openai/v1`. |
-| `TOGETHER_API_KEY` | `together-...` | High | API key for Together AI endpoints. Automatically binds base URL to `https://api.together.xyz/v1`. |
+| `TOGETHER_API_KEY` | `together-...` | High | API key for Together AI endpoints. Automatically binds base URL to `https://api.together.ai/v1`. |
 | `MISTRAL_API_KEY` | `mistral-...` | High | API key for Mistral AI endpoints. Automatically binds base URL to `https://api.mistral.ai/v1`. |
-| `ANTHROPIC_API_KEY` | `sk-ant-...` | High | API key for Anthropic Claude direct or gateway endpoints. |
+| `ANTHROPIC_API_KEY` | `sk-ant-...` | High | API key for Anthropic Claude direct or gateway endpoints (OpenAI-compatible). |
+| `GEMINI_API_KEY` | `AIza...` | High | API key for Google AI Studio Gemini models. Automatically binds base URL to `https://generativelanguage.googleapis.com/v1beta/openai`. |
+| `COHERE_API_KEY` | `co-...` | High | API key for Cohere Command models. Automatically binds base URL to `https://api.cohere.ai/compatibility/v1`. |
+| `PERPLEXITY_API_KEY` | `pplx-...` | High | API key for Perplexity Sonar models. Automatically binds base URL to `https://api.perplexity.ai/orchestrator/v1`. |
 | `OPENAI_API_KEY` | `sk-...` | High | API key for OpenAI direct or generic OpenAI-compatible providers. |
 | `AZURE_OPENAI_API_KEY` | Azure secret key | High | API key for Microsoft Azure AI Foundry / Azure OpenAI Service deployments. |
 | `AZURE_OPENAI_ENDPOINT` | `https://<resource>.openai.azure.com/openai/v1` | High | Endpoint URL for Microsoft Azure AI Foundry deployments. |

@@ -128,6 +128,17 @@ radar:
   # If omitted, GDSS resolves base_url automatically from provider and API keys.
   base_url: ~
 
+  # Optional explicit environment variable name for model authentication
+  # By default, GDSS auto-discovers keys from your project root .env matching your provider:
+  #   - provider: "openrouter" -> checks OPENROUTER_API_KEY
+  #   - provider: "openai"     -> checks OPENAI_API_KEY
+  #   - provider: "azure"      -> checks AZURE_OPENAI_API_KEY / AZURE_AI_API_KEY
+  #   - provider: "copilot"    -> checks GITHUB_TOKEN
+  # Universal override: Setting GDSS_API_KEY in .env always applies to GDSS regardless of other keys.
+  # If your team or CI uses a custom secret name, declare it here:
+  # api_key_env: "CORP_LLM_SECRET"
+  api_key_env: ~
+
   # Maximum agentic self-correction iterations when sandboxed validation fails
   # If the initial patch fails syntax, typecheck, or tests, the error trace is fed
   # back to the model up to this limit to iteratively heal the patch.
@@ -685,8 +696,9 @@ Used in CI/CD secrets management, automated deployment containers, and personal 
 
 | Environment Variable | Purpose | Supported Values |
 | :--- | :--- | :--- |
+| `GDSS_API_KEY` | Dedicated universal override | Sets the inference key specifically for GDSS, ignoring unrelated application keys |
 | `OPENAI_BASE_URL` | Universal endpoint URL override | Any HTTP/HTTPS URL (e.g. `https://api.groq.com/openai/v1`) |
-| `OPENAI_API_KEY` | Universal Bearer token | API key for OpenAI, DeepSeek, Groq, or enterprise proxies |
+| `OPENAI_API_KEY` | OpenAI Bearer token | API key for OpenAI endpoints |
 | `OPENROUTER_API_KEY` | OpenRouter gateway secret | Automatically defaults base URL to `https://openrouter.ai/api/v1` |
 | `AZURE_OPENAI_API_KEY` | Microsoft Azure AI Foundry / Azure OpenAI key | API key for Azure AI Foundry model deployments |
 | `AZURE_OPENAI_ENDPOINT` | Azure AI Foundry endpoint | e.g. `https://<resource>.openai.azure.com/openai/v1` |

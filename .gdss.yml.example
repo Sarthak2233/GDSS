@@ -33,6 +33,16 @@ radar:
   #   - "qwen2.5-coder:7b" (Local Ollama / vLLM)
   model: "openrouter/free"
 
+  # Optional environment variable name for API inference authentication:
+  # By default, GDSS auto-discovers keys from your project root '.env' matching the provider:
+  #   - provider: "openrouter" -> checks OPENROUTER_API_KEY
+  #   - provider: "openai"     -> checks OPENAI_API_KEY
+  #   - provider: "azure"      -> checks AZURE_OPENAI_API_KEY or AZURE_AI_API_KEY
+  #   - provider: "copilot"    -> checks GITHUB_TOKEN
+  # Universal override: Setting GDSS_API_KEY in .env always applies to GDSS regardless of other keys.
+  # If your team or CI runner uses a custom secret name, declare it here:
+  # api_key_env: "CORP_LLM_SECRET"
+
   # Custom API base URL (optional, for self-hosted LLM endpoints or OpenAI-compatible proxies):
   # base_url: "https://openrouter.ai/api/v1"
 

@@ -335,11 +335,13 @@ def suggest(
                 provider = OpenAICompatibleProvider(
                     base_url=radar.base_url or "https://openrouter.ai/api/v1",
                     model=resolved_model if (resolved_model != "qwen2.5-coder:7b" or (has_custom_radar and "model" in cfg.raw_data["radar"])) else None,
+                    api_key_env=radar.api_key_env,
                 )
             elif resolved_provider_name in {"openai", "github", "github-models"}:
                 provider = OpenAICompatibleProvider(
                     base_url=radar.base_url,
                     model=resolved_model if (resolved_model != "qwen2.5-coder:7b" or (has_custom_radar and "model" in cfg.raw_data["radar"])) else None,
+                    api_key_env=radar.api_key_env,
                 )
             elif resolved_provider_name in {"copilot", "github-copilot"}:
                 from gdss.ai.copilot_provider import CopilotCLIProvider

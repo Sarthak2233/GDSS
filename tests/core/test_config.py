@@ -343,3 +343,52 @@ radar:
     assert cfg.hierarchy.exclude == ("spike/*",)
 
 
+def test_resolve_provider_key_strict_matching(monkeypatch) -> None:
+    """Verifies that provider key resolution strictly matches provider without cross-contamination."""
+    from gdss.core.config import resolve_provider_key
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "openrouter-secret-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-secret-key")
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "azure-secret-key")
+    monkeypatch.delenv("GDSS_API_KEY", raising=False)
+
+    # 1. Matching by provider name
+    assert resolve_provider_key("openrouter") == "openrouter-secret-key"
+    assert resolve_provider_key("openai") == "openai-secret-key"
+    assert resolve_provider_key("azure") == "azure-secret-key"
+
+    # 2. Matching by base_url
+    assert resolve_provider_key("auto", base_url="https://openrouter.ai/api/v1") == "openrouter-secret-key"
+    assert resolve_provider_key("auto", base_url="https://api.openai.com/v1") == "openai-secret-key"
+    assert resolve_provider_key("auto", base_url="https://myresource.openai.azure.com") == "azure-secret-key"
+
+    # 3. Explicit api_key_env takes priority over provider-default key
+    monkeypatch.setenv("CUSTOM_CORP_KEY", "corp-secret-token")
+    assert resolve_provider_key("openrouter", api_key_env="CUSTOM_CORP_KEY") == "corp-secret-token"
+    assert resolve_provider_key("openai", api_key_env="CUSTOM_CORP_KEY") == "corp-secret-token"
+
+    # 4. GDSS_API_KEY universal override
+    monkeypatch.setenv("GDSS_API_KEY", "universal-gdss-override")
+    assert resolve_provider_key("openrouter") == "universal-gdss-override"
+    assert resolve_provider_key("openai") == "universal-gdss-override"
+    assert resolve_provider_key("azure") == "universal-gdss-override"
+
+
+def test_radar_config_api_key_env_parsing(tmp_path: Path) -> None:
+    """Verifies that api_key_env is parsed from .gdss.yml."""
+    config_file = tmp_path / ".gdss.yml"
+    config_file.write_text(
+        """
+radar:
+  provider: "openrouter"
+  api_key_env: "MY_CUSTOM_AI_SECRET"
+""",
+        encoding="utf-8",
+    )
+
+    cfg = load_gdss_config(tmp_path)
+    assert cfg.radar.provider == "openrouter"
+    assert cfg.radar.api_key_env == "MY_CUSTOM_AI_SECRET"
+
+
+

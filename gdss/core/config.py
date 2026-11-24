@@ -37,6 +37,7 @@ class RadarConfig:
     include: tuple[str, ...] = ()
     exclude: tuple[str, ...] = ()
     target_bases: tuple[str, ...] = ()
+    api_key_env: str | None = None
 
 
 @dataclass(frozen=True)
@@ -202,6 +203,99 @@ def load_env_file(repo_root: Path | str | os.PathLike[str] | None = None) -> dic
         return {}
 
 
+def resolve_provider_key(
+    provider_name: str,
+    base_url: str | None = None,
+    api_key_env: str | None = None,
+) -> str | None:
+    """Resolve the appropriate API key for a given provider without cross-key contamination.
+
+    Resolution Precedence:
+    1. Explicit environment variable configured in .gdss.yml (radar.api_key_env)
+    2. GDSS-specific universal override: GDSS_API_KEY
+    3. Strict provider-matched key:
+       - 'openrouter' (or base_url containing openrouter.ai) -> OPENROUTER_API_KEY
+       - 'openai' (or base_url containing openai.com) -> OPENAI_API_KEY
+       - 'azure' (or base_url containing azure.com) -> AZURE_OPENAI_API_KEY or AZURE_AI_API_KEY
+       - 'copilot' / 'github' -> GITHUB_TOKEN
+    """
+    if api_key_env:
+        val = os.getenv(api_key_env)
+        if val:
+            return val
+
+    gdss_override = os.getenv("GDSS_API_KEY")
+    if gdss_override:
+        return gdss_override
+
+    target = provider_name.lower().strip()
+    url = (base_url or "").lower()
+
+    if target == "openrouter" or "openrouter.ai" in url:
+        return os.getenv("OPENROUTER_API_KEY")
+    if target == "openai" or "api.openai.com" in url:
+        return os.getenv("OPENAI_API_KEY")
+    if target == "azure" or "azure.com" in url:
+        return os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_AI_API_KEY")
+    if target in {"copilot", "github", "github-copilot"}:
+        return os.getenv("GITHUB_TOKEN")
+
+    # Fallback to general keys only for generic unspecified providers
+    return (
+        os.getenv("OPENROUTER_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
+        or os.getenv("AZURE_OPENAI_API_KEY")
+        or os.getenv("AZURE_AI_API_KEY")
+        or os.getenv("GROQ_API_KEY")
+    )
+
+
+def resolve_provider_key(
+    provider_name: str,
+    base_url: str | None = None,
+    api_key_env: str | None = None,
+) -> str | None:
+    """Resolve the appropriate API key for a given provider without cross-key contamination.
+
+    Resolution Precedence:
+    1. Explicit environment variable configured in .gdss.yml (radar.api_key_env)
+    2. GDSS-specific universal override: GDSS_API_KEY
+    3. Strict provider-matched key:
+       - 'openrouter' (or base_url containing openrouter.ai) -> OPENROUTER_API_KEY
+       - 'openai' (or base_url containing openai.com) -> OPENAI_API_KEY
+       - 'azure' (or base_url containing azure.com) -> AZURE_OPENAI_API_KEY or AZURE_AI_API_KEY
+       - 'copilot' / 'github' -> GITHUB_TOKEN
+    """
+    if api_key_env:
+        val = os.getenv(api_key_env)
+        if val:
+            return val
+
+    gdss_override = os.getenv("GDSS_API_KEY")
+    if gdss_override:
+        return gdss_override
+
+    target = provider_name.lower().strip()
+    url = (base_url or "").lower()
+
+    if target == "openrouter" or "openrouter.ai" in url:
+        return os.getenv("OPENROUTER_API_KEY")
+    if target == "openai" or "api.openai.com" in url:
+        return os.getenv("OPENAI_API_KEY")
+    if target == "azure" or "azure.com" in url:
+        return os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_AI_API_KEY")
+    if target in {"copilot", "github", "github-copilot"}:
+        return os.getenv("GITHUB_TOKEN")
+
+    # Fallback to general keys only for generic unspecified providers
+    return (
+        os.getenv("OPENROUTER_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
+        or os.getenv("AZURE_OPENAI_API_KEY")
+        or os.getenv("AZURE_AI_API_KEY")
+    )
+
+
 def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> GDSSConfig:
     """Load and normalize .gdss.yml or .gdss.yaml from repo_root if present."""
     empty_cfg = GDSSConfig()
@@ -296,6 +390,7 @@ def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> 
 
     base_url_raw = r_data.get("base_url")
     base_url = str(base_url_raw).strip() if base_url_raw else None
+    r_api_key_env = str(r_data.get("api_key_env") or "").strip() or None
 
     radar_cfg = RadarConfig(
         provider=str(r_data.get("provider", "openrouter")).strip() or "openrouter",
@@ -311,6 +406,7 @@ def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> 
         include=effective_inc,
         exclude=effective_exc,
         target_bases=effective_targets,
+        api_key_env=r_api_key_env,
     )
 
     # 3. Parse validation block

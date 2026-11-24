@@ -1,6 +1,6 @@
 # GDSS Harness
 
-This folder, together with `AGENTS.md` and `.cursor/`, is the **harness** for
+This folder, together with `AGENTS.md` and `.cagents/`, is the **harness** for
 GDSS: the engineered environment that lets AI coding agents extend this project
 safely and reliably. It does not change GDSS's behavior; it governs how changes
 are made.

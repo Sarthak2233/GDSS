@@ -3,6 +3,24 @@
 Append a dated entry each session. Newest at the top. Record evidence (verify
 output), not just claims.
 
+## 2026-11-25 - Cross-Mode Multi-Provider Support & Strict Key Matching (All Providers)
+
+- **Comprehensive Multi-Provider Dispatch & Key Binding**:
+  - Expanded native provider support across `gdss/core/config.py`, `gdss/cli/main.py`, `gdss/api/service.py`, `gdss/ai/openai_provider.py`, and `gdss/validation/pr_audit.py` to cover all providers:
+    - Cloud Gateways & Direct APIs: `openrouter` (default), `deepseek`, `groq`, `together`, `mistral`, `anthropic`, `openai`, `azure`, `openai-compatible`.
+    - Keyless Local Workstations ($0): `ollama`, `vllm`, `lm-studio`, `localai`.
+    - Integrated CI: `copilot` (`GITHUB_TOKEN` with `copilot-requests: write`).
+  - Added strict environment key resolution for each provider: `OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `TOGETHER_API_KEY`, `MISTRAL_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, `GITHUB_TOKEN`, and universal isolation override `GDSS_API_KEY`.
+  - Added DSA fitness caching to eliminate redundant `os.getenv` invocations.
+- **Documentation & Sync**:
+  - Synchronized `docs/CONFIGURATION_GUIDE.md`, `README.md`, `docs/USER_GUIDE.md`, `.gdss.yml.example`, `gdss-radar/README.md`, `gdss-radar/docs/CONFIGURATION_GUIDE.md`, and `gdss-radar/.gdss.yml.example`.
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Layer 1 Static: ruff OK, mypy OK (103 source files), architecture fitness OK, DSA fitness OK.
+  - Layer 2 Runtime: 462 pytest passed, 1 skipped.
+  - Layer 3 Smoke: CLI smoke OK, API smoke OK.
+  - Frontend Gate: ESLint OK, tsc OK, token fitness OK, vitest (118 tests across 35 files) OK, size-limit OK.
+
 ## 2026-11-25 - Cross-Mode Configuration Wiring, .env Auto-Discovery & Strict Provider Key Binding
 
 - **Resolved Configuration & AI Model Discovery Across All 4 Modes**:

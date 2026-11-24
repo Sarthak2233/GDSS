@@ -17,10 +17,16 @@ version: 1
 radar:
   # LLM Provider:
   #   - "openrouter" (Recommended free tier & multi-model gateway via OPENROUTER_API_KEY)
+  #   - "deepseek" (uses DEEPSEEK_API_KEY, defaults base_url to https://api.deepseek.com/v1)
+  #   - "groq" (uses GROQ_API_KEY, defaults base_url to https://api.groq.com/openai/v1)
+  #   - "together" (uses TOGETHER_API_KEY, defaults base_url to https://api.together.xyz/v1)
+  #   - "mistral" (uses MISTRAL_API_KEY, defaults base_url to https://api.mistral.ai/v1)
+  #   - "anthropic" (uses ANTHROPIC_API_KEY)
   #   - "openai" (uses OPENAI_API_KEY)
-  #   - "deepseek" (uses DEEPSEEK_API_KEY)
+  #   - "azure" (uses AZURE_OPENAI_API_KEY or AZURE_AI_API_KEY)
   #   - "copilot" (GitHub Copilot CLI in CI via GITHUB_TOKEN & copilot-requests: write)
-  #   - "ollama" / "vllm" (for self-hosted local setups)
+  #   - "ollama" / "vllm" / "lm-studio" / "localai" (keyless offline local inference)
+  #   - "openai-compatible" (generic OpenAI protocol with custom base_url)
   provider: "openrouter"
 
   # The LLM model used for semantic patch reconciliation & contract synthesis.
@@ -36,9 +42,15 @@ radar:
   # Optional environment variable name for API inference authentication:
   # By default, GDSS auto-discovers keys from your project root '.env' matching the provider:
   #   - provider: "openrouter" -> checks OPENROUTER_API_KEY
+  #   - provider: "deepseek"   -> checks DEEPSEEK_API_KEY
+  #   - provider: "groq"       -> checks GROQ_API_KEY
+  #   - provider: "together"   -> checks TOGETHER_API_KEY
+  #   - provider: "mistral"    -> checks MISTRAL_API_KEY
+  #   - provider: "anthropic"  -> checks ANTHROPIC_API_KEY
   #   - provider: "openai"     -> checks OPENAI_API_KEY
   #   - provider: "azure"      -> checks AZURE_OPENAI_API_KEY or AZURE_AI_API_KEY
   #   - provider: "copilot"    -> checks GITHUB_TOKEN
+  #   - provider: "ollama" / "vllm" / "lm-studio" / "localai" -> Keyless ($0 local offline inference)
   # Universal override: Setting GDSS_API_KEY in .env always applies to GDSS regardless of other keys.
   # If your team or CI runner uses a custom secret name, declare it here:
   # api_key_env: "CORP_LLM_SECRET"

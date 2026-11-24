@@ -423,7 +423,7 @@ radar:
   model: "gpt-4o"
   # Explicit context window in tokens (MANDATORY BEST PRACTICE to prevent heuristic fallback)
   context_window: 128000
-  # Provider backend: "openrouter" (default), "copilot" (GitHub Copilot CLI), "azure", "openai", "ollama", "vllm"
+  # Provider backend: "openrouter" (default), "deepseek", "groq", "together", "mistral", "anthropic", "openai", "azure", "copilot", "ollama", "vllm", "lm-studio", "localai", "openai-compatible"
   provider: "openrouter"
   # Optional custom env var name for API key (by default matches provider: OPENROUTER_API_KEY, OPENAI_API_KEY, etc.)
   # Or use GDSS_API_KEY in your local .env as a dedicated universal override:

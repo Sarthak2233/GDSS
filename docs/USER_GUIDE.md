@@ -326,7 +326,7 @@ When resolving configuration and credentials, GDSS enforces a strict 4-tier prec
 # .gdss.yml - Project-level semantic intelligence configuration
 
 radar:
-  provider: "openrouter"          # "openrouter", "ollama", "vllm", "copilot", or "openai"
+  provider: "openrouter"          # "openrouter", "deepseek", "groq", "together", "mistral", "anthropic", "openai", "azure", "copilot", "ollama", "vllm", "lm-studio", "localai", or "openai-compatible"
   model: "openrouter/free"        # e.g. "anthropic/claude-3.5-sonnet", "qwen2.5-coder:7b"
   # api_key_env: "CORP_AI_KEY"   # Optional: custom env var name for API key in .env or CI
   context_window: 128000          # Model context window in tokens

@@ -215,9 +215,15 @@ def resolve_provider_key(
     2. GDSS-specific universal override: GDSS_API_KEY
     3. Strict provider-matched key:
        - 'openrouter' (or base_url containing openrouter.ai) -> OPENROUTER_API_KEY
+       - 'deepseek' (or base_url containing deepseek.com) -> DEEPSEEK_API_KEY
+       - 'groq' (or base_url containing groq.com) -> GROQ_API_KEY
+       - 'together' (or base_url containing together.xyz) -> TOGETHER_API_KEY
+       - 'mistral' (or base_url containing mistral.ai) -> MISTRAL_API_KEY
+       - 'anthropic' (or base_url containing anthropic.com) -> ANTHROPIC_API_KEY
        - 'openai' (or base_url containing openai.com) -> OPENAI_API_KEY
        - 'azure' (or base_url containing azure.com) -> AZURE_OPENAI_API_KEY or AZURE_AI_API_KEY
        - 'copilot' / 'github' -> GITHUB_TOKEN
+       - 'ollama' / 'vllm' / 'lm-studio' / 'localai' -> None (local offline inference)
     """
     if api_key_env:
         val = os.getenv(api_key_env)
@@ -229,70 +235,50 @@ def resolve_provider_key(
         return gdss_override
 
     target = provider_name.lower().strip()
+    if target in {"ollama", "vllm", "lm-studio", "localai"}:
+        return None
+
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    deepseek_key = os.getenv("DEEPSEEK_API_KEY")
+    groq_key = os.getenv("GROQ_API_KEY")
+    together_key = os.getenv("TOGETHER_API_KEY")
+    mistral_key = os.getenv("MISTRAL_API_KEY")
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    openai_key = os.getenv("OPENAI_API_KEY")
+    azure_key = os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_AI_API_KEY")
+    github_key = os.getenv("GITHUB_TOKEN")
+
     url = (base_url or "").lower()
 
     if target == "openrouter" or "openrouter.ai" in url:
-        return os.getenv("OPENROUTER_API_KEY")
+        return openrouter_key
+    if target == "deepseek" or "deepseek.com" in url:
+        return deepseek_key
+    if target == "groq" or "groq.com" in url:
+        return groq_key
+    if target == "together" or "together.xyz" in url:
+        return together_key
+    if target == "mistral" or "mistral.ai" in url:
+        return mistral_key
+    if target == "anthropic" or "anthropic.com" in url:
+        return anthropic_key
     if target == "openai" or "api.openai.com" in url:
-        return os.getenv("OPENAI_API_KEY")
+        return openai_key
     if target == "azure" or "azure.com" in url:
-        return os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_AI_API_KEY")
+        return azure_key
     if target in {"copilot", "github", "github-copilot"}:
-        return os.getenv("GITHUB_TOKEN")
+        return github_key
 
     # Fallback to general keys only for generic unspecified providers
     return (
-        os.getenv("OPENROUTER_API_KEY")
-        or os.getenv("OPENAI_API_KEY")
-        or os.getenv("AZURE_OPENAI_API_KEY")
-        or os.getenv("AZURE_AI_API_KEY")
-        or os.getenv("GROQ_API_KEY")
-    )
-
-
-def resolve_provider_key(
-    provider_name: str,
-    base_url: str | None = None,
-    api_key_env: str | None = None,
-) -> str | None:
-    """Resolve the appropriate API key for a given provider without cross-key contamination.
-
-    Resolution Precedence:
-    1. Explicit environment variable configured in .gdss.yml (radar.api_key_env)
-    2. GDSS-specific universal override: GDSS_API_KEY
-    3. Strict provider-matched key:
-       - 'openrouter' (or base_url containing openrouter.ai) -> OPENROUTER_API_KEY
-       - 'openai' (or base_url containing openai.com) -> OPENAI_API_KEY
-       - 'azure' (or base_url containing azure.com) -> AZURE_OPENAI_API_KEY or AZURE_AI_API_KEY
-       - 'copilot' / 'github' -> GITHUB_TOKEN
-    """
-    if api_key_env:
-        val = os.getenv(api_key_env)
-        if val:
-            return val
-
-    gdss_override = os.getenv("GDSS_API_KEY")
-    if gdss_override:
-        return gdss_override
-
-    target = provider_name.lower().strip()
-    url = (base_url or "").lower()
-
-    if target == "openrouter" or "openrouter.ai" in url:
-        return os.getenv("OPENROUTER_API_KEY")
-    if target == "openai" or "api.openai.com" in url:
-        return os.getenv("OPENAI_API_KEY")
-    if target == "azure" or "azure.com" in url:
-        return os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_AI_API_KEY")
-    if target in {"copilot", "github", "github-copilot"}:
-        return os.getenv("GITHUB_TOKEN")
-
-    # Fallback to general keys only for generic unspecified providers
-    return (
-        os.getenv("OPENROUTER_API_KEY")
-        or os.getenv("OPENAI_API_KEY")
-        or os.getenv("AZURE_OPENAI_API_KEY")
-        or os.getenv("AZURE_AI_API_KEY")
+        openrouter_key
+        or deepseek_key
+        or groq_key
+        or openai_key
+        or azure_key
+        or together_key
+        or mistral_key
+        or anthropic_key
     )
 
 

@@ -719,11 +719,40 @@ def get_suggestions(
                 from gdss.ai.ollama_provider import OllamaProvider
 
                 provider = OllamaProvider(model=radar.model)
-            elif provider_name in {"openrouter", "openai", "azure", "openai-compatible"}:
+            elif provider_name in {
+                "openrouter",
+                "openai",
+                "azure",
+                "deepseek",
+                "groq",
+                "together",
+                "mistral",
+                "anthropic",
+                "lm-studio",
+                "localai",
+                "openai-compatible",
+            }:
                 from gdss.ai.openai_provider import OpenAICompatibleProvider
 
+                base_url = radar.base_url
+                if not base_url:
+                    if provider_name == "openrouter":
+                        base_url = "https://openrouter.ai/api/v1"
+                    elif provider_name == "deepseek":
+                        base_url = "https://api.deepseek.com/v1"
+                    elif provider_name == "groq":
+                        base_url = "https://api.groq.com/openai/v1"
+                    elif provider_name == "together":
+                        base_url = "https://api.together.xyz/v1"
+                    elif provider_name == "mistral":
+                        base_url = "https://api.mistral.ai/v1"
+                    elif provider_name in {"lm-studio", "localai"}:
+                        base_url = "http://localhost:1234/v1"
+                    elif provider_name in {"openai", "azure"}:
+                        base_url = "https://api.openai.com/v1"
+
                 provider = OpenAICompatibleProvider(
-                    base_url=radar.base_url or ("https://openrouter.ai/api/v1" if provider_name == "openrouter" else None),
+                    base_url=base_url,
                     model=radar.model,
                     api_key_env=radar.api_key_env,
                 )

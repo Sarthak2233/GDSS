@@ -350,16 +350,31 @@ def test_resolve_provider_key_strict_matching(monkeypatch) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "openrouter-secret-key")
     monkeypatch.setenv("OPENAI_API_KEY", "openai-secret-key")
     monkeypatch.setenv("AZURE_OPENAI_API_KEY", "azure-secret-key")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-secret-key")
+    monkeypatch.setenv("GROQ_API_KEY", "groq-secret-key")
+    monkeypatch.setenv("TOGETHER_API_KEY", "together-secret-key")
+    monkeypatch.setenv("MISTRAL_API_KEY", "mistral-secret-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-secret-key")
     monkeypatch.delenv("GDSS_API_KEY", raising=False)
 
-    # 1. Matching by provider name
+    # 1. Matching by provider name across all supported providers
     assert resolve_provider_key("openrouter") == "openrouter-secret-key"
     assert resolve_provider_key("openai") == "openai-secret-key"
     assert resolve_provider_key("azure") == "azure-secret-key"
+    assert resolve_provider_key("deepseek") == "deepseek-secret-key"
+    assert resolve_provider_key("groq") == "groq-secret-key"
+    assert resolve_provider_key("together") == "together-secret-key"
+    assert resolve_provider_key("mistral") == "mistral-secret-key"
+    assert resolve_provider_key("anthropic") == "anthropic-secret-key"
+    assert resolve_provider_key("ollama") is None
+    assert resolve_provider_key("vllm") is None
+    assert resolve_provider_key("lm-studio") is None
 
     # 2. Matching by base_url
     assert resolve_provider_key("auto", base_url="https://openrouter.ai/api/v1") == "openrouter-secret-key"
     assert resolve_provider_key("auto", base_url="https://api.openai.com/v1") == "openai-secret-key"
+    assert resolve_provider_key("auto", base_url="https://api.deepseek.com/v1") == "deepseek-secret-key"
+    assert resolve_provider_key("auto", base_url="https://api.groq.com/openai/v1") == "groq-secret-key"
     assert resolve_provider_key("auto", base_url="https://myresource.openai.azure.com") == "azure-secret-key"
 
     # 3. Explicit api_key_env takes priority over provider-default key

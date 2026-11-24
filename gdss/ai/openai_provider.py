@@ -29,6 +29,11 @@ class OpenAICompatibleProvider:
         openrouter_key = os.getenv("OPENROUTER_API_KEY")
         azure_key = os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_AI_API_KEY")
         openai_key = os.getenv("OPENAI_API_KEY")
+        deepseek_key = os.getenv("DEEPSEEK_API_KEY")
+        groq_key = os.getenv("GROQ_API_KEY")
+        together_key = os.getenv("TOGETHER_API_KEY")
+        mistral_key = os.getenv("MISTRAL_API_KEY")
+        anthropic_key = os.getenv("ANTHROPIC_API_KEY")
 
         # Base URL resolution
         url = (
@@ -40,6 +45,10 @@ class OpenAICompatibleProvider:
         if not url:
             if openrouter_key and not openai_key and not azure_key:
                 url = "https://openrouter.ai/api/v1"
+            elif deepseek_key and not openai_key:
+                url = "https://api.deepseek.com/v1"
+            elif groq_key and not openai_key:
+                url = "https://api.groq.com/openai/v1"
             elif openai_key:
                 url = "https://api.openai.com/v1"
             elif azure_key:
@@ -60,18 +69,39 @@ class OpenAICompatibleProvider:
         # Strict provider-aware API key resolution (prevents cross-key contamination)
         token = api_key
         if not token:
-            if api_key_env and os.getenv(api_key_env):
-                token = os.getenv(api_key_env)
-            elif os.getenv("GDSS_API_KEY"):
-                token = os.getenv("GDSS_API_KEY")
+            custom_key = os.getenv(api_key_env) if api_key_env else None
+            gdss_key = os.getenv("GDSS_API_KEY")
+            if custom_key:
+                token = custom_key
+            elif gdss_key:
+                token = gdss_key
             elif "openrouter.ai" in self.base_url:
                 token = openrouter_key
+            elif "deepseek.com" in self.base_url:
+                token = deepseek_key
+            elif "groq.com" in self.base_url:
+                token = groq_key
+            elif "together.xyz" in self.base_url:
+                token = together_key
+            elif "mistral.ai" in self.base_url:
+                token = mistral_key
+            elif "anthropic.com" in self.base_url:
+                token = anthropic_key
             elif "azure.com" in self.base_url:
                 token = azure_key
             elif "openai.com" in self.base_url:
                 token = openai_key
             else:
-                token = openrouter_key or azure_key or openai_key
+                token = (
+                    openrouter_key
+                    or deepseek_key
+                    or groq_key
+                    or openai_key
+                    or azure_key
+                    or together_key
+                    or mistral_key
+                    or anthropic_key
+                )
 
         self.api_key = token
 

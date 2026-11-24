@@ -699,14 +699,52 @@ def get_suggestions(
     max_candidates: int = 50,
 ) -> dict[str, Any]:
     from gdss.ai.suggester import suggest
+    from gdss.core.config import load_gdss_config
 
     if not ref:
         ref = "main"
     try:
+        cfg = load_gdss_config(repo_path)
+        radar = cfg.radar
+        from gdss.ai.llm_patch import AnyProvider, LLMProvider
+
+        provider: AnyProvider | LLMProvider | None = None
+        if llm:
+            provider_name = radar.provider
+            if provider_name == "vllm":
+                from gdss.ai.vllm_provider import VLLMProvider
+
+                provider = VLLMProvider()
+            elif provider_name == "ollama":
+                from gdss.ai.ollama_provider import OllamaProvider
+
+                provider = OllamaProvider(model=radar.model)
+            elif provider_name in {"openrouter", "openai", "azure", "openai-compatible"}:
+                from gdss.ai.openai_provider import OpenAICompatibleProvider
+
+                provider = OpenAICompatibleProvider(
+                    base_url=radar.base_url or ("https://openrouter.ai/api/v1" if provider_name == "openrouter" else None),
+                    model=radar.model,
+                )
+            elif provider_name in {"copilot", "github-copilot"}:
+                from gdss.ai.copilot_provider import CopilotCLIProvider
+
+                provider = CopilotCLIProvider(model=radar.model)
+            else:
+                from gdss.ai.suggester import _pick_provider
+
+                provider = _pick_provider(llm=True, provider=None)
+
+        branches = list(radar.include) if radar.include else None
+        exclude = list(radar.exclude) if radar.exclude else None
+
         suggestions = suggest(
             repo_path=repo_path,
             reference_branch=ref,
+            branches=branches,
+            exclude_branches=exclude,
             llm=llm,
+            provider=provider,
             combos=combos,
             max_candidates=max_candidates,
         )

@@ -298,22 +298,39 @@ When an incoming pull request (e.g., PR #42) is opened while 5 other PRs are con
 
 This pairwise 3-way batching guarantees that adding 5 or 50 concurrent PRs never creates prompt explosion or cross-feature hallucination.
 
-## ⚙️ Repository Configuration (`.gdss.yml`) Overview
+## ⚙️ Repository Configuration (`.gdss.yml`) & `.env` Auto-Discovery
 
-GDSS is **zero-config by default**. However, placing a `.gdss.yml` in the root of your repository ensures consistent behavior across developer laptops and CI runners:
+GDSS is **zero-config by default**. However, placing a `.gdss.yml` in the root of your repository ensures consistent collision analysis, model selection, and branch filters across developer laptops and CI runners.
+
+### Configuration vs. Secrets Separation
+- **`.gdss.yml` (Committed to Git):** Stores shared project rules, model preferences, test runner commands, and branch hierarchies.
+- **`.env` (Never Committed / `.gitignore`):** Stores your private BYOK credentials (e.g. `OPENROUTER_API_KEY`, `OPENAI_API_KEY`). GDSS **automatically discovers and reads `.env`** at your repository root when running CLI commands (`gdss suggest`) or the Web API (`gdss serve`), so you never need to manually export keys or modify `~/.bashrc`.
+
+#### Resolution Precedence Order
+When resolving configuration and credentials, GDSS enforces a strict 4-tier precedence:
+1. **Explicit CLI Flags** (e.g. `--model`, `--provider`, `--max-refinements`)
+2. **Environment Variables & Local `.env`** (Shell `export` > local `.env` file > CI runner secrets)
+3. **Repository Configuration (`.gdss.yml`)** (Project defaults committed in Git)
+4. **Offline Local Fallback** (Local Ollama / vLLM if reachable, or 100% deterministic $0 analysis)
 
 ```yaml
 # .gdss.yml - Project-level semantic intelligence configuration
 
 radar:
-  model: "gpt-4o"
-  context_window: 128000
-  provider: "github"
-  max_refinements: 2
-  concurrency_limit: 4
-  condensation: "lossless"
-  risk_threshold: 0.8
-  fail_on_collision: false
+  provider: "openrouter"          # "openrouter", "ollama", "vllm", "copilot", or "openai"
+  model: "openrouter/free"        # e.g. "anthropic/claude-3.5-sonnet", "qwen2.5-coder:7b"
+  context_window: 128000          # Model context window in tokens
+  max_refinements: 2              # Maximum self-healing retry rounds if patch syntax/tests fail
+  concurrency_limit: 4            # Parallel worker threads for multi-branch collision drafting
+  condensation: "lossless"        # "lossless", "ast_minimal", or "off"
+  risk_threshold: 0.8             # Collision risk threshold to trigger review
+  fail_on_collision: false        # Set true to fail CI on critical non-commutative collisions
+  include:                        # Branch inclusion patterns (synchronizes with hierarchy)
+    - "feature/*"
+    - "fix/*"
+  exclude:                        # Branch exclusion patterns (synchronizes with hierarchy)
+    - "spike/*"
+    - "dependabot/*"
 
 validation:
   test_command: "pytest {test_file}"
@@ -346,12 +363,6 @@ hierarchy:
     - "develop"
   # Only audit PRs that share the exact same base landing branch (eliminates cross-target false alarms)
   same_base_only: true
-  include:
-    - "feature/*"
-    - "fix/*"
-  exclude:
-    - "spike/*"
-    - "dependabot/*"
   target_bases:
     - "main"
     - "develop"

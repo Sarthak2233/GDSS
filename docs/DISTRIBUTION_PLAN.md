@@ -1,6 +1,6 @@
 # 🚀 GDSS Distribution & Go-to-Market Plan
 
-> **Strategic roadmap for closed-source distribution, beta tester onboarding, and progressive scaling from GitHub Marketplace Actions & Standalone Binaries (Phase 1) to an Enterprise Hosted SaaS App (Phase 2).**
+> **Strategic roadmap for source-available distribution (GSARL 1.0), developer onboarding, and progressive scaling from GitHub Marketplace Actions & Standalone Binaries (Phase 1) to an Enterprise Hosted SaaS App (Phase 2).**
 
 ---
 
@@ -9,23 +9,23 @@
 - [Executive Summary: Strategic Decision & Verdict](#executive-summary-strategic-decision--verdict)
 - [Phased Distribution Matrix](#phased-distribution-matrix)
 - [Phase 1: Immediate Implementation](#phase-1-immediate-implementation)
-  - [Approach A: Closed-Source GitHub Marketplace Action](#approach-a-closed-source-github-marketplace-action)
-    - [Architecture: Thin Public Wrapper + Closed Container](#architecture-thin-public-wrapper--closed-container)
-    - [Container Packaging & IP Protection](#container-packaging--ip-protection)
+  - [Approach A: Source-Available GitHub Marketplace Action](#approach-a-source-available-github-marketplace-action)
+    - [Architecture: Public Action Repo + Container Image](#architecture-public-action-repo--container-image)
+    - [Container Packaging & Automated Deployment](#container-packaging--automated-deployment)
     - [`action.yml` Specification](#actionyml-specification)
     - [Marketplace Publishing Workflow](#marketplace-publishing-workflow)
     - [End-User Experience (BYOC Model)](#end-user-experience-byoc-model)
   - [Approach C: Standalone Compiled Binary for CLI & IDE MCP](#approach-c-standalone-compiled-binary-for-cli--ide-mcp)
-    - [Native Compilation Pipeline (PyInstaller / Nuitka)](#native-compilation-pipeline-pyinstaller--nuitka)
+    - [Native Compilation Pipeline (Zero-Dependency Portability)](#native-compilation-pipeline-zero-dependency-portability)
     - [Multi-Platform Matrix](#multi-platform-matrix)
-    - [Tester Distribution Channels](#tester-distribution-channels)
+    - [Distribution Channels](#distribution-channels)
     - [IDE MCP Zero-Config Setup (Cursor, Claude Code, Copilot)](#ide-mcp-zero-config-setup-cursor-claude-code-copilot)
 - [Phase 2: Growth & Enterprise Expansion](#phase-2-growth--enterprise-expansion)
   - [Approach B: Hosted GitHub App SaaS](#approach-b-hosted-github-app-saas)
     - [Transition Triggers & Thresholds](#transition-triggers--thresholds)
     - [Hosted Architecture & Dedicated LLM Fleet](#hosted-architecture--dedicated-llm-fleet)
     - [Enterprise Gating & Marketplace Billing](#enterprise-gating--marketplace-billing)
-- [Intellectual Property (IP) Protection & Obfuscation Playbook](#intellectual-property-ip-protection--obfuscation-playbook)
+- [Intellectual Property (IP) & Commercial Governance Playbook](#intellectual-property-ip--commercial-governance-playbook)
 - [Immediate Execution Checklist (Sprint Roadmap)](#immediate-execution-checklist-sprint-roadmap)
 
 ---
@@ -33,7 +33,7 @@
 ## Executive Summary: Strategic Decision & Verdict
 
 ### The Decision
-**Deploy Approach A (Dockerized GitHub Action) and Approach C (Standalone Binary CLI/MCP) immediately for beta testing and Marketplace launch, while deferring Approach B (Hosted GitHub App SaaS) until traction, demand, and volume justify running dedicated cloud GPU infrastructure.**
+**Deploy Approach A (GitHub Marketplace Action) and Approach C (Standalone Binary CLI/MCP) immediately under the GDSS Source-Available Reciprocal License 1.0 (GSARL 1.0), while deferring Approach B (Hosted GitHub App SaaS) until traction, customer demand, and volume justify operating dedicated cloud GPU infrastructure.**
 
 ### Why This Strategy Is Superior
 
@@ -44,8 +44,8 @@
                    └───────┬───────────────────────────────┬───────┘
                            │                               │
              ┌─────────────▼─────────────┐   ┌─────────────▼─────────────┐
-             │   $0 Hosting OpEx (BYOC)  │   │  Total Code IP Protection │
-             │  GitHub Actions / Laptop  │   │ Compiled Binary/Container │
+             │   $0 Hosting OpEx (BYOC)  │   │  Source-Available IP      │
+             │  GitHub Actions / Laptop  │   │  GSARL 1.0 Legal Defense  │
              └─────────────┬─────────────┘   └─────────────┬─────────────┘
                            │                               │
                            └───────────────┬───────────────┘
@@ -63,10 +63,15 @@
 
 1. **Zero Cloud Infrastructure Burn ($0 OpEx):**
    - Approaches A & C leverage **Bring Your Own Compute (BYOC)**. GitHub Actions runners execute the analysis, and users supply their own tokens or use free OpenRouter / Azure AI Foundry. You incur **$0 in server or GPU hosting bills** while proving product-market fit.
-2. **Total Code Confidentiality (Closed Source):**
-   - The core GDSS engine remains 100% closed source. In Approach A, it is compiled into a stripped Docker container distributed via GitHub Container Registry (`ghcr.io`). In Approach C, it is compiled into a single stripped native executable with no exposed `.py` source.
+2. **Public Transparency with Legally Enforceable Commercial Reciprocity (GSARL 1.0):**
+   - Both the core engine ([`GDSS`](https://github.com/Sarthak2233/GDSS)) and the action wrapper ([`gdss-radar`](https://github.com/sarthak2233/gdss-radar)) are **public on GitHub**. Full source availability builds immediate developer credibility, peer auditing, and technical trust.
+   - Commercial IP is legally secured via **GSARL 1.0**:
+     - **Community Safe Harbor:** 100% free production usage for organizations with $\le 20$ active Git contributors.
+     - **Commercial Licensing Requirement:** Organizations with $> 20$ active Git contributors must purchase a commercial agreement.
+     - **Mandatory Reciprocal Share-Back:** Internal production modifications deployed in CI/CD must be contributed back under GSARL 1.0, or covered by an Enterprise Private Modification Waiver.
+     - **Anti-Competitive SaaS Clause:** Third-party cloud providers and aggregators cannot repackage or resell GDSS as a hosted SaaS.
 3. **High Security Trust from Early Adopters:**
-   - Security-conscious developers and enterprises are hesitant to install closed-source, multi-tenant third-party apps that clone private code to unknown external cloud servers. Running GDSS **inside their existing GitHub Actions environment or on their local machine** builds immediate trust.
+   - Security-conscious developers and enterprise teams are hesitant to install closed-box, multi-tenant third-party apps that ingest proprietary code into unverified external cloud servers. Running GDSS **locally in their existing GitHub Actions environment or on their developer laptop** with full source code transparency builds instantaneous trust.
 4. **Captures Both Developer & Team Personas:**
    - **Approach A** serves engineering leads and PR reviewers (team collision radar, sticky PR comments, 1-click merge suggestions).
    - **Approach C** serves individual contributors inside their daily editor (Cursor / Claude Code / Copilot MCP server, local `gdss status`, `gdss apply`).
@@ -80,26 +85,26 @@
 | Capability / Attribute | Phase 1: Approach A (Action) | Phase 1: Approach C (Binary / MCP) | Phase 2: Approach B (Hosted App) |
 | :--- | :--- | :--- | :--- |
 | **Target Surface** | GitHub Marketplace / CI/CD | Developer Laptops & IDEs | GitHub Marketplace SaaS |
-| **Delivery Mechanism** | Docker Container (`ghcr.io`) | Native Single Executable | Multi-Tenant Cloud Webhooks |
-| **Source Code State** | Closed (Compiled in Container) | Closed (Compiled ELF/Mach-O) | Closed (Hosted on Private Cloud) |
+| **Delivery Mechanism** | GitHub Action (`gdss-radar`) + Container | Native Single Executable | Multi-Tenant Cloud Webhooks |
+| **Source Code State** | **Source-Available (GSARL 1.0)** | **Source-Available (GSARL 1.0)** | Source-Available Engine + Hosted SaaS |
 | **Compute Cost to You** | **$0** (Runs on GitHub Runners) | **$0** (Runs on User Laptops) | Paid (Your Cloud / GPU Fleet) |
 | **LLM Inference** | OpenRouter / Azure AI / User Keys | Local Ollama/vLLM or User Keys | Self-Hosted vLLM GPU Cluster |
 | **Setup Friction** | Low (5-line `.github/workflows`) | Minimal (1-line install script) | Zero-Config (1-click app install) |
 | **Target Audience** | PR reviewers, team leads | Individual developers, IDE users | Large enterprises, CTOs |
-| **Monetization Mode** | Free beta / Seat-based Action license | Free IDE tool / Developer edition | Paid Organization SaaS / Team plans |
+| **Monetization Mode** | Free for $\le 20$ devs; Paid commercial $> 20$ | Free IDE tool; Paid Enterprise waiver | Paid Organization SaaS / Team plans |
 
 ---
 
 ## Phase 1: Immediate Implementation
 
-### Approach A: Closed-Source GitHub Marketplace Action
+### Approach A: Source-Available GitHub Marketplace Action
 
-#### Architecture: Thin Public Wrapper + Closed Container
-GitHub Marketplace requires the repository containing `action.yml` to be public. However, the proprietary engine does **not** reside in that public repository.
+#### Architecture: Public Action Repo + Container Image
+The action repository `sarthak2233/gdss-radar` is public and distributed on the GitHub Marketplace. It pulls the container image built directly from the public `GDSS` repository under GSARL 1.0:
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│ PUBLIC GITHUB REPO: sarthak2233/gdss-radar             │
+│ PUBLIC REPOSITORY: sarthak2233/gdss-radar (GSARL 1.0)  │
 │  - action.yml (metadata, inputs, marketplace branding) │
 │  - README.md (documentation & quickstart examples)     │
 └───────────────────────────┬────────────────────────────┘
@@ -107,18 +112,18 @@ GitHub Marketplace requires the repository containing `action.yml` to be public.
                             ▼
 ┌────────────────────────────────────────────────────────┐
 │ PUBLIC CONTAINER: ghcr.io/sarthak2233/gdss-runner:v1   │
-│  (Built from private GDSS repository)                  │
-│  - Compiled Python binary / bytecode                   │
-│  - Tree-sitter parsers & NetworkX engine               │
-│  - Source code (.py) completely stripped               │
+│  (Built automatically from public GDSS repository)     │
+│  - Zero-dependency runtime environment                 │
+│  - Tree-sitter parsers & NetworkX collision tensor     │
+│  - Licensed under GSARL 1.0                            │
 └────────────────────────────────────────────────────────┘
 ```
 
-#### Container Packaging & IP Protection
-In the private GDSS repository, a CI workflow builds and pushes the production container:
+#### Container Packaging & Automated Deployment
+In the `GDSS` repository, a GitHub Actions release workflow builds and publishes the production runner container:
 
 ```dockerfile
-# Multi-stage build for closed-source container packaging
+# Multi-stage container build for GDSS PR Collision Radar
 FROM python:3.11-slim AS builder
 
 WORKDIR /build
@@ -127,7 +132,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY . /build
 RUN pip install --no-cache-dir pyinstaller
-# Compile GDSS CLI into a stripped standalone binary
 RUN pyinstaller --onefile --clean \
     --name gdss \
     --hidden-import=tree_sitter \
@@ -141,7 +145,7 @@ RUN pyinstaller --onefile --clean \
     --hidden-import=tree_sitter_cpp \
     gdss/cli/main.py
 
-# Final minimal runtime image (contains NO source code)
+# Final minimal runtime image
 FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -150,7 +154,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /build/dist/gdss /usr/local/bin/gdss
 RUN chmod +x /usr/local/bin/gdss
 
-# Entrypoint accepts CLI arguments
 ENTRYPOINT ["/usr/local/bin/gdss"]
 CMD ["audit-pr"]
 ```
@@ -184,9 +187,9 @@ inputs:
     required: false
     default: 'gpt-4o'
   provider:
-    description: 'LLM provider (github-models, openai, openrouter)'
+    description: 'LLM provider (openai, openrouter, azure, copilot)'
     required: false
-    default: 'github-models'
+    default: 'openai'
 
 runs:
   using: 'docker'
@@ -204,8 +207,8 @@ runs:
 ```
 
 #### Marketplace Publishing Workflow
-1. Create a public repository: `https://github.com/sarthak2233/gdss-radar`.
-2. Commit `action.yml`, [`docs/USER_GUIDE.md`](USER_GUIDE.md), and standard MIT/Commercial license notice.
+1. Public repository: `https://github.com/sarthak2233/gdss-radar`.
+2. Commit `action.yml`, [`docs/USER_GUIDE.md`](USER_GUIDE.md), and the `LICENSE` (GSARL 1.0).
 3. Click **Releases** ➔ **Draft a new release**.
 4. Check **"Publish this Action to the GitHub Marketplace"**.
 5. Select categories: **Code quality**, **Continuous integration**.
@@ -242,25 +245,22 @@ jobs:
 
 ### Approach C: Standalone Compiled Binary for CLI & IDE MCP
 
-#### Native Compilation Pipeline (PyInstaller / Nuitka)
-Testers who want to use GDSS locally should not have to configure Python 3.11, set up `.venv`, or run `pip install`. We compile the CLI and MCP server into a standalone executable.
+#### Native Compilation Pipeline (Zero-Dependency Portability)
+Developers who use GDSS locally should not have to install Python 3.11, create virtual environments, or compile Tree-sitter bindings manually. We compile the CLI and MCP server into a single standalone binary.
 
-Using **PyInstaller** or **Nuitka** (which translates Python directly into C for maximum obfuscation and execution speed):
+The compilation is designed for **instant portability and performance** rather than artificial obfuscation:
 
 ```bash
 # Compilation command for release distribution
-nuitka --standalone --onefile \
-    --remove-output \
-    --lto=yes \
-    --enable-plugin=pkg-resources \
-    --include-package=tree_sitter \
-    --include-package=tree_sitter_python \
-    --include-package=tree_sitter_javascript \
-    --include-package=tree_sitter_typescript \
-    --include-package=tree_sitter_go \
-    --include-package=tree_sitter_rust \
-    --include-package=networkx \
-    --output-filename=gdss \
+pyinstaller --onefile --clean \
+    --name gdss \
+    --hidden-import=tree_sitter \
+    --hidden-import=tree_sitter_python \
+    --hidden-import=tree_sitter_javascript \
+    --hidden-import=tree_sitter_typescript \
+    --hidden-import=tree_sitter_go \
+    --hidden-import=tree_sitter_rust \
+    --hidden-import=networkx \
     gdss/cli/main.py
 ```
 
@@ -270,10 +270,10 @@ A GitHub Actions release workflow compiles binaries across 3 major developer tar
 2. `gdss-darwin-arm64` (macOS Apple Silicon M1/M2/M3/M4)
 3. `gdss-darwin-amd64` (macOS Intel)
 
-#### Tester Distribution Channels
+#### Distribution Channels
 
 ##### Channel 1: Universal 1-Line Installer Script
-Hosted on GitHub Pages or custom domain:
+Hosted directly in the public repository:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sarthak2233/GDSS/main/install.sh | bash
 ```
@@ -284,15 +284,15 @@ The script:
 4. Verifies installation with `gdss --help`.
 
 ##### Channel 2: Homebrew Tap (macOS Developers)
-Create a lightweight tap repository `homebrew-tap`:
+Lightweight tap repository `homebrew-tap`:
 ```ruby
 class Gdss < Formula
   desc "Semantic PR collision radar & merge convergence assistant"
   homepage "https://github.com/Sarthak2233/GDSS"
-  version "1.0.0"
+  version "1.1.1"
 
   if OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/sarthak2233/GDSS/releases/download/v1.0.0/gdss-darwin-arm64.tar.gz"
+    url "https://github.com/sarthak2233/GDSS/releases/download/v1.1.1/gdss-darwin-arm64.tar.gz"
     sha256 "..."
   end
 
@@ -301,14 +301,14 @@ class Gdss < Formula
   end
 end
 ```
-Testers install with:
+Installed with:
 ```bash
 brew tap sarthak2233/tap
 brew install gdss
 ```
 
 #### IDE MCP Zero-Config Setup (Cursor, Claude Code, Copilot)
-Once installed, testers add GDSS to their IDE configuration with zero environment variables:
+Once installed, developers register the GDSS Model Context Protocol (MCP) server directly:
 
 **In Cursor (`~/.cursor/mcp.json`):**
 ```json
@@ -327,9 +327,9 @@ Once installed, testers add GDSS to their IDE configuration with zero environmen
 claude mcp add gdss -- gdss mcp
 ```
 
-**What the Tester Gets:**
-- The AI inside Cursor or Claude Code gains deterministic collision inspection tools (`gdss_find_collisions`, `gdss_validate_patch`).
-- Runs at **$0 token cost** to you; the developer's existing IDE subscription powers the chat.
+**What the Developer Gets:**
+- The AI inside Cursor or Claude Code gains 8 native deterministic tools (`gdss_get_impact_closure`, `gdss_validate_patch`, `gdss_sandbox_validate_patch`, `gdss_check_anti_gaming`, `gdss_get_omega_matrix`, `gdss_inspect_symbol_impact`, `gdss_find_similar_symbols`, `gdss_predict_conflicts`).
+- Operates at **$0 token cost** from GDSS; powered entirely by the developer's local CPU and IDE subscription.
 
 ---
 
@@ -337,14 +337,14 @@ claude mcp add gdss -- gdss mcp
 
 ### Approach B: Hosted GitHub App SaaS
 
-When the product gains traction and organizations express willingness to pay for a managed solution, transition to **Approach B**.
+When the product gains traction and large organizations request a managed enterprise solution, transition to **Approach B**.
 
 #### Transition Triggers & Thresholds
 Do not build Approach B until at least 3 of the following milestones are met:
 1. **50+ active repositories** actively running the GitHub Action.
 2. **User requests for zero-configuration:** Teams managing 20+ microservices who say *"We don't want to add a YAML file to every repo; we want a single organization-level switch."*
 3. **Inbound enterprise requests** for cross-repository collision radar, team drift dashboards, or automated merge gating.
-4. **Sufficient capital/revenue** to finance dedicated GPU inference ($500–$2,000/month for cloud H100/A100 instances).
+4. **Sufficient capital/revenue** to finance dedicated GPU inference ($500–$2,000/month for cloud instances).
 
 #### Hosted Architecture & Dedicated LLM Fleet
 
@@ -356,7 +356,7 @@ Do not build Approach B until at least 3 of the following milestones are met:
               ▼                                               ▼
 ┌───────────────────────────┐                   ┌───────────────────────────┐
 │ GitHub App Ingestion      │                   │ Multi-Tenant Web Cockpit  │
-│ FastAPI + Celery + Redis  │                   │ Next.js 14 (app.gdss.dev) │
+│ FastAPI + Celery + Redis  │                   │ Next.js 14 (web/)         │
 └─────────────┬─────────────┘                   └─────────────┬─────────────┘
               │                                               │
               ▼                                               ▼
@@ -390,36 +390,57 @@ Do not build Approach B until at least 3 of the following milestones are met:
 
 ---
 
-## Intellectual Property (IP) Protection & Obfuscation Playbook
+## Intellectual Property (IP) & Commercial Governance Playbook
 
-Because GDSS is written in Python, protecting proprietary algorithms ($\Omega_{ij}$ tensor computation, commutativity brackets, AST condensation) requires deliberate packaging:
+Because GDSS is public on GitHub, its intellectual property is protected by **clear legal license boundaries** under the **GDSS Source-Available Reciprocal License 1.0 (GSARL 1.0)** rather than relying on source code obscurity:
 
-| Obfuscation Level | Method | Protection Strength | Performance Impact | Recommended Stage |
-| :--- | :--- | :--- | :--- | :--- |
-| **Level 1** | PyInstaller Archive | Moderate (decompilable with pyinstxtractor) | Zero | Internal Alpha |
-| **Level 2** | Bytecode Stripping (`.pyc` only) | Moderate (uncompyle6 can decompile simple bytecode) | Zero | Alpha Testing |
-| **Level 3 (Recommended)** | **Nuitka C Compilation** | **Extremely High** (transpiles Python to native C/C++ machine code; symbols stripped) | **+20% to +50% faster** | **Public Beta & Action Release** |
-| **Level 4** | Hosted SaaS (Phase 2) | **100% Absolute** (code never leaves your server) | N/A | **Enterprise / Approach B** |
+```mermaid
+graph TD
+    A["Public Repository (GDSS / gdss-radar)"] --> B{"Usage Type"}
 
-### Guidelines for Level 3 Nuitka Hardening:
-- Transpile all core modules (`gdss/conflict`, `gdss/core`, `gdss/ai`, `gdss/graph`) into native `.so` / `.pyd` shared libraries or a single unified C binary.
-- Run `strip --strip-all` on the output binary to remove all debug and symbol tables.
-- This renders standard Python decompilers completely ineffective.
+    B -->|Local Sandbox / Personal / Academic| C["100% Free & Unrestricted (No Share-Back Trigger)"]
+    
+    B -->|Production CI/CD / PR Review| D{"Active Contributors (Past 90 Days)"}
+    D -->|<= 20 Active Contributors| E["Community Safe Harbor: Free Production Use"]
+    D -->|> 20 Active Contributors| F["Commercial Agreement Required (Team / Org Tier)"]
+
+    B -->|Modified GDSS in Production CI| G{"Modification Status"}
+    G -->|Reciprocal Track| H["Mandatory Share-Back within 30 Days:<br/>Public Repo under GSARL 1.0 OR Secure Upstream Submission to Licensor"]
+    G -->|Proprietary / Private Track| I["Enterprise License with Private Modification Waiver"]
+
+    B -->|Commercial Hosting / Resale| J["Competitive Substitution:<br/>Strictly Prohibited without Commercial Contract"]
+```
+
+### The 4 Commercial Pillars of GSARL 1.0
+
+| Pillar | Scope | Commercial Rule |
+| :--- | :--- | :--- |
+| **Community Safe Harbor** | Teams $\le 20$ Active Git Contributors | **100% Free Forever** for internal repository intelligence, local MCP, and PR auditing. |
+| **Commercial Enterprise Tier** | Teams $> 20$ Active Git Contributors | Requires an executed written commercial agreement with Sarthak Basnet. |
+| **Reciprocal Share-Back** | Production CI/CD Modifications | Any modification to GDSS deployed in production CI/CD must be shared back within 30 days (public repo or upstream submission) unless an Enterprise Private Modification Waiver is purchased. |
+| **Anti-Competitive SaaS Protection** | Third-party cloud resale & hosting | Reselling, sublicensing, or offering GDSS as a competing multi-tenant hosted SaaS is strictly prohibited. |
+
+### Source-Available vs. Open Source Clarity
+GDSS is **Source-Available**, not "Open Source" under the Open Source Initiative (OSI) definition:
+- The Open Source Definition (OSD Clause 6) forbids discrimination against commercial fields of endeavor.
+- GSARL 1.0 deliberately imposes commercial boundaries (contributor caps, anti-competitive SaaS clauses, and paid enterprise private modification waivers).
+- Like **MongoDB (SSPL)**, **CockroachDB (BSL)**, **Sentry (FSL)**, and **Elastic (ELv2)**, GDSS provides complete source code visibility while preserving the founder's commercial rights.
 
 ---
 
 ## Immediate Execution Checklist (Sprint Roadmap)
 
-### Sprint 1: Packaging & Closed-Source Binaries (Current Focus)
-- [ ] Create Dockerfile with multi-stage compilation for the CLI runner.
-- [ ] Set up GitHub Actions workflow in private repo to build and push `ghcr.io/sarthak2233/gdss-runner:v1`.
-- [ ] Set up Nuitka/PyInstaller build matrix for Linux (x86_64) and macOS (ARM64).
-- [ ] Create simple installation script (`install.sh`) fetching compiled release binaries.
+### Sprint 1: Source-Available Packaging & Release Automation (Current Focus)
+- [x] Establish GDSS Source-Available Reciprocal License 1.0 (`LICENSE` & `LICENSE.md`).
+- [x] Synchronize `gdss-radar` repository with GSARL 1.0 license and badges.
+- [ ] Set up GitHub Actions workflow in `GDSS` to build and publish `ghcr.io/sarthak2233/gdss-runner:v1`.
+- [ ] Set up standalone binary build matrix for Linux (x86_64) and macOS (ARM64).
+- [ ] Create automated installation script (`install.sh`) fetching compiled release binaries.
 
 ### Sprint 2: GitHub Marketplace Action Launch
 - [x] Create public wrapper repository `sarthak2233/gdss-radar`.
 - [x] Author `action.yml` referencing `docker://ghcr.io/sarthak2233/gdss-runner:v1`.
-- [ ] Add branding assets (icon `git-merge`, color `blue`).
+- [x] Add branding assets (icon `git-merge`, color `blue`).
 - [ ] Tag release `v1.0.0` and submit to GitHub Marketplace.
 
 ### Sprint 3: Beta Testing Onboarding
@@ -434,4 +455,3 @@ Because GDSS is written in Python, protecting proprietary algorithms ($\Omega_{i
 - [ ] Analyze PR audit telemetry and user feedback.
 - [ ] Evaluate transition triggers for Approach B (Hosted GitHub App).
 - [ ] Determine pricing tiers and enterprise feature requirements.
-

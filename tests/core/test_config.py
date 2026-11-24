@@ -278,3 +278,68 @@ ast:
     assert "src/app.py" in affected_files
     assert not any("dist" in f for f in affected_files)
 
+
+def test_load_env_file_auto_discovery(tmp_path: Path) -> None:
+    """Verifies that .env files are automatically discovered and populated into os.environ."""
+    import os
+
+    from gdss.core.config import load_env_file
+
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        """
+# Comment line
+TEST_GDSS_VAR_ONE=value1
+TEST_GDSS_VAR_TWO="quoted_value2"
+TEST_GDSS_VAR_THREE='single_quoted3'
+INVALID_LINE_WITHOUT_EQUALS
+""",
+        encoding="utf-8",
+    )
+
+    # Ensure clean state
+    for k in ("TEST_GDSS_VAR_ONE", "TEST_GDSS_VAR_TWO", "TEST_GDSS_VAR_THREE"):
+        os.environ.pop(k, None)
+
+    loaded = load_env_file(tmp_path)
+    assert loaded["TEST_GDSS_VAR_ONE"] == "value1"
+    assert loaded["TEST_GDSS_VAR_TWO"] == "quoted_value2"
+    assert loaded["TEST_GDSS_VAR_THREE"] == "single_quoted3"
+
+    assert os.environ.get("TEST_GDSS_VAR_ONE") == "value1"
+    assert os.environ.get("TEST_GDSS_VAR_TWO") == "quoted_value2"
+    assert os.environ.get("TEST_GDSS_VAR_THREE") == "single_quoted3"
+
+    # Pre-existing environment variables must not be overwritten
+    os.environ["TEST_GDSS_VAR_ONE"] = "existing_shell_value"
+    loaded_second = load_env_file(tmp_path)
+    assert "TEST_GDSS_VAR_ONE" not in loaded_second
+    assert os.environ.get("TEST_GDSS_VAR_ONE") == "existing_shell_value"
+
+    # Cleanup
+    for k in ("TEST_GDSS_VAR_ONE", "TEST_GDSS_VAR_TWO", "TEST_GDSS_VAR_THREE"):
+        os.environ.pop(k, None)
+
+
+def test_branch_filtering_bidirectional_synchronization(tmp_path: Path) -> None:
+    """Verifies that branch inclusion/exclusion filters synchronize between radar and hierarchy."""
+    config_file = tmp_path / ".gdss.yml"
+    config_file.write_text(
+        """
+radar:
+  include:
+    - "feature/*"
+  exclude:
+    - "spike/*"
+""",
+        encoding="utf-8",
+    )
+
+    cfg = load_gdss_config(tmp_path)
+    assert cfg.radar.include == ("feature/*",)
+    assert cfg.radar.exclude == ("spike/*",)
+    # Hierarchy must inherit from radar when omitted
+    assert cfg.hierarchy.include == ("feature/*",)
+    assert cfg.hierarchy.exclude == ("spike/*",)
+
+

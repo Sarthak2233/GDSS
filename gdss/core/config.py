@@ -168,13 +168,50 @@ def is_generated_or_excluded(rel_path: str, user_excludes: Sequence[str] = ()) -
     return is_path_excluded(rel_path, tuple(user_excludes) + DEFAULT_GENERATED_EXCLUDE_PATTERNS)
 
 
+def load_env_file(repo_root: Path | str | os.PathLike[str] | None = None) -> dict[str, str]:
+    """Parse key=value pairs from a project .env file without external dependencies.
+
+    Loaded keys are populated into os.environ only if not already present,
+    ensuring that existing shell environment variables and CI runner secrets
+    always take precedence.
+    """
+    if repo_root is None:
+        try:
+            repo_root = Path.cwd()
+        except Exception:
+            return {}
+    try:
+        root_path = Path(repo_root).resolve()
+        env_file = root_path / ".env"
+        if not env_file.is_file():
+            return {}
+        loaded: dict[str, str] = {}
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k = k.strip()
+            v = v.strip().strip("'\"")
+            if k and k not in os.environ:
+                os.environ[k] = v
+                loaded[k] = v
+        return loaded
+    except Exception as exc:
+        logger.debug("Failed to read .env from %s: %s", repo_root, exc)
+        return {}
+
+
 def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> GDSSConfig:
     """Load and normalize .gdss.yml or .gdss.yaml from repo_root if present."""
     empty_cfg = GDSSConfig()
     if repo_root is None:
+        load_env_file()
         return empty_cfg
 
     root_path = Path(repo_root).resolve()
+    load_env_file(root_path)
+
     config_file = root_path / ".gdss.yml"
     has_config = config_file.is_file()
     if not has_config:
@@ -226,6 +263,11 @@ def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> 
     if not isinstance(h_data, dict):
         h_data = {}
 
+    # 2. Parse radar block
+    r_data = data.get("radar", {})
+    if not isinstance(r_data, dict):
+        r_data = {}
+
     h_ref = str(h_data.get("reference_branch", "main")).strip() or "main"
     h_chain = _to_clean_tuple(h_data.get("priority_chain", ["main", "develop"])) or ("main", "develop")
     h_same_base = bool(h_data.get("same_base_only", True))
@@ -233,25 +275,24 @@ def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> 
     h_exc = _to_clean_tuple(h_data.get("exclude", ()))
     h_targets = _to_clean_tuple(h_data.get("target_bases", ()))
 
+    r_inc_raw = _to_clean_tuple(r_data.get("include", ()))
+    r_exc_raw = _to_clean_tuple(r_data.get("exclude", ()))
+    r_targets_raw = _to_clean_tuple(r_data.get("target_bases", ()))
+
+    # Bidirectional fallback: branch filters in either block apply across analysis
+    effective_inc = h_inc or r_inc_raw
+    effective_exc = h_exc or r_exc_raw
+    effective_targets = h_targets or r_targets_raw
+    r_same_base = bool(r_data.get("same_base_only", h_same_base))
+
     hierarchy_cfg = HierarchyConfig(
         reference_branch=h_ref,
         priority_chain=h_chain,
         same_base_only=h_same_base,
-        include=h_inc,
-        exclude=h_exc,
-        target_bases=h_targets,
+        include=effective_inc,
+        exclude=effective_exc,
+        target_bases=effective_targets,
     )
-
-    # 2. Parse radar block
-    r_data = data.get("radar", {})
-    if not isinstance(r_data, dict):
-        r_data = {}
-
-    # Support fallback of branch filtering keys under radar or hierarchy
-    r_same_base = bool(r_data.get("same_base_only", h_same_base))
-    r_inc = _to_clean_tuple(r_data.get("include", h_inc))
-    r_exc = _to_clean_tuple(r_data.get("exclude", h_exc))
-    r_targets = _to_clean_tuple(r_data.get("target_bases", h_targets))
 
     base_url_raw = r_data.get("base_url")
     base_url = str(base_url_raw).strip() if base_url_raw else None
@@ -267,9 +308,9 @@ def load_gdss_config(repo_root: Path | str | os.PathLike[str] | None = None) -> 
         condensation=str(r_data.get("condensation", "lossless")).strip() or "lossless",
         fail_on_collision=bool(r_data.get("fail_on_collision", False)),
         same_base_only=r_same_base,
-        include=r_inc,
-        exclude=r_exc,
-        target_bases=r_targets,
+        include=effective_inc,
+        exclude=effective_exc,
+        target_bases=effective_targets,
     )
 
     # 3. Parse validation block

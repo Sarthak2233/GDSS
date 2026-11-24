@@ -221,8 +221,27 @@ def _pick_provider(
             return OllamaProvider()  # dsa:ignore
         if target_kind == "vllm":
             return VLLMProvider()  # dsa:ignore
-        if target_kind in {"openai", "openrouter", "azure", "openai-compatible"}:
-            return OpenAICompatibleProvider()  # dsa:ignore
+        if target_kind in {
+            "openai",
+            "openrouter",
+            "azure",
+            "deepseek",
+            "groq",
+            "together",
+            "mistral",
+            "anthropic",
+            "gemini",
+            "google",
+            "cohere",
+            "perplexity",
+            "lm-studio",
+            "localai",
+            "openai-compatible",
+        }:
+            from gdss.core.config import resolve_provider_base_url
+
+            base_url = resolve_provider_base_url(target_kind)
+            return OpenAICompatibleProvider(base_url=base_url)  # dsa:ignore
         return None
 
     if provider is not None:
@@ -231,9 +250,18 @@ def _pick_provider(
         return None
 
     if (
-        os.getenv("OPENROUTER_API_KEY")
-        or os.getenv("AZURE_OPENAI_API_KEY")
+        os.getenv("GDSS_API_KEY")
+        or os.getenv("OPENROUTER_API_KEY")
+        or os.getenv("DEEPSEEK_API_KEY")
+        or os.getenv("GROQ_API_KEY")
+        or os.getenv("TOGETHER_API_KEY")
+        or os.getenv("MISTRAL_API_KEY")
+        or os.getenv("ANTHROPIC_API_KEY")
+        or os.getenv("GEMINI_API_KEY")
+        or os.getenv("COHERE_API_KEY")
+        or os.getenv("PERPLEXITY_API_KEY")
         or os.getenv("OPENAI_API_KEY")
+        or os.getenv("AZURE_OPENAI_API_KEY")
         or os.getenv("OPENAI_BASE_URL")
     ):
         return OpenAICompatibleProvider()  # dsa:ignore

@@ -355,6 +355,9 @@ def test_resolve_provider_key_strict_matching(monkeypatch) -> None:
     monkeypatch.setenv("TOGETHER_API_KEY", "together-secret-key")
     monkeypatch.setenv("MISTRAL_API_KEY", "mistral-secret-key")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-secret-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-secret-key")
+    monkeypatch.setenv("COHERE_API_KEY", "cohere-secret-key")
+    monkeypatch.setenv("PERPLEXITY_API_KEY", "perplexity-secret-key")
     monkeypatch.delenv("GDSS_API_KEY", raising=False)
 
     # 1. Matching by provider name across all supported providers
@@ -366,6 +369,10 @@ def test_resolve_provider_key_strict_matching(monkeypatch) -> None:
     assert resolve_provider_key("together") == "together-secret-key"
     assert resolve_provider_key("mistral") == "mistral-secret-key"
     assert resolve_provider_key("anthropic") == "anthropic-secret-key"
+    assert resolve_provider_key("gemini") == "gemini-secret-key"
+    assert resolve_provider_key("google") == "gemini-secret-key"
+    assert resolve_provider_key("cohere") == "cohere-secret-key"
+    assert resolve_provider_key("perplexity") == "perplexity-secret-key"
     assert resolve_provider_key("ollama") is None
     assert resolve_provider_key("vllm") is None
     assert resolve_provider_key("lm-studio") is None
@@ -375,6 +382,10 @@ def test_resolve_provider_key_strict_matching(monkeypatch) -> None:
     assert resolve_provider_key("auto", base_url="https://api.openai.com/v1") == "openai-secret-key"
     assert resolve_provider_key("auto", base_url="https://api.deepseek.com/v1") == "deepseek-secret-key"
     assert resolve_provider_key("auto", base_url="https://api.groq.com/openai/v1") == "groq-secret-key"
+    assert resolve_provider_key("auto", base_url="https://api.together.ai/v1") == "together-secret-key"
+    assert resolve_provider_key("auto", base_url="https://generativelanguage.googleapis.com/v1beta/openai") == "gemini-secret-key"
+    assert resolve_provider_key("auto", base_url="https://api.cohere.ai/compatibility/v1") == "cohere-secret-key"
+    assert resolve_provider_key("auto", base_url="https://api.perplexity.ai/orchestrator/v1") == "perplexity-secret-key"
     assert resolve_provider_key("auto", base_url="https://myresource.openai.azure.com") == "azure-secret-key"
 
     # 3. Explicit api_key_env takes priority over provider-default key
@@ -387,6 +398,39 @@ def test_resolve_provider_key_strict_matching(monkeypatch) -> None:
     assert resolve_provider_key("openrouter") == "universal-gdss-override"
     assert resolve_provider_key("openai") == "universal-gdss-override"
     assert resolve_provider_key("azure") == "universal-gdss-override"
+
+
+def test_resolve_provider_base_url_and_api_builder() -> None:
+    """Verifies that provider base URLs and OpenAI endpoint URL construction are accurate."""
+    from gdss.ai.openai_provider import OpenAICompatibleProvider
+    from gdss.core.config import resolve_provider_base_url
+
+    # Canonical base URLs for all supported providers
+    assert resolve_provider_base_url("openrouter") == "https://openrouter.ai/api/v1"
+    assert resolve_provider_base_url("deepseek") == "https://api.deepseek.com/v1"
+    assert resolve_provider_base_url("groq") == "https://api.groq.com/openai/v1"
+    assert resolve_provider_base_url("together") == "https://api.together.ai/v1"
+    assert resolve_provider_base_url("mistral") == "https://api.mistral.ai/v1"
+    assert resolve_provider_base_url("anthropic") == "https://api.anthropic.com/v1"
+    assert resolve_provider_base_url("gemini") == "https://generativelanguage.googleapis.com/v1beta/openai"
+    assert resolve_provider_base_url("google") == "https://generativelanguage.googleapis.com/v1beta/openai"
+    assert resolve_provider_base_url("cohere") == "https://api.cohere.ai/compatibility/v1"
+    assert resolve_provider_base_url("perplexity") == "https://api.perplexity.ai/orchestrator/v1"
+    assert resolve_provider_base_url("lm-studio") == "http://localhost:1234/v1"
+    assert resolve_provider_base_url("localai") == "http://localhost:1234/v1"
+    assert resolve_provider_base_url("ollama") == "http://localhost:11434/v1"
+    assert resolve_provider_base_url("vllm") == "http://localhost:8000/v1"
+    assert resolve_provider_base_url("openai") == "https://api.openai.com/v1"
+
+    # Endpoint URL builder verification
+    prov = OpenAICompatibleProvider(base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
+    assert prov._build_api_url() == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+
+    prov_azure = OpenAICompatibleProvider(base_url="https://res.openai.azure.com/openai/deployments/gpt-4o?api-version=2024-06-01")
+    assert prov_azure._build_api_url() == "https://res.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-06-01"
+
+    prov_full = OpenAICompatibleProvider(base_url="https://res.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-06-01")
+    assert prov_full._build_api_url() == "https://res.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-06-01"
 
 
 def test_radar_config_api_key_env_parsing(tmp_path: Path) -> None:

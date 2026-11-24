@@ -305,20 +305,23 @@ gdss ▶ quit              # 8. exit (or press Ctrl+D)
 GDSS can generate minimal conflict-free patches and plain-English risk assessments using provider-neutral LLMs, verified in isolated ephemeral worktrees before presentation.
 
 ### Supported LLM Providers:
-- **vLLM (Local, Recommended):** High-throughput local inference.
+- **OpenRouter (Explicitly Recommended Gateway & $0 Free Tier):** Access Claude 3.5 Sonnet, DeepSeek V3/R1, or GPT-4o with a single API key, or use zero-cost routing via `openrouter/free` with zero credit card setup.
+  ```bash
+  # In your project root .env: GDSS_API_KEY="sk-or-..." (or OPENROUTER_API_KEY="sk-or-...")
+  # GDSS automatically discovers and loads .env from your project root:
+  gdss suggest --llm --provider openrouter --model openrouter/free --repo .
+  ```
+  > [!TIP]
+  > **Credential Isolation**: Setting `GDSS_API_KEY` in `.env` (or GitHub Secrets) isolates GDSS from your existing application keys, preventing quota collisions. Custom secret names can also be mapped via `api_key_env` in `.gdss.yml`.
+- **vLLM (Local, High Throughput):** High-throughput local inference.
   ```bash
   vllm serve Qwen/Qwen2.5-Coder-7B-Instruct --port 8000
   gdss suggest --llm --provider vllm --repo .
   ```
-- **Ollama (Local):** Lightweight local runner.
+- **Ollama (Local Offline):** Lightweight local runner.
   ```bash
   ollama pull qwen2.5-coder:7b
   gdss suggest --llm --provider ollama --model qwen2.5-coder:7b --repo .
-  ```
-- **OpenRouter (Cloud / Multi-model):** Access Claude 3.5 Sonnet, DeepSeek V3/R1, or GPT-4o.
-  ```bash
-  export OPENROUTER_API_KEY="sk-or-..."
-  gdss suggest --llm --provider openrouter --model anthropic/claude-3.5-sonnet --repo .
   ```
 - **GitHub Copilot CLI in CI (Copilot Business / Enterprise Organizations):**
   ```bash
@@ -423,7 +426,7 @@ radar:
   model: "gpt-4o"
   # Explicit context window in tokens (MANDATORY BEST PRACTICE to prevent heuristic fallback)
   context_window: 128000
-  # Provider backend: "openrouter" (default), "deepseek", "groq", "together", "mistral", "anthropic", "openai", "azure", "copilot", "ollama", "vllm", "lm-studio", "localai", "openai-compatible"
+  # Provider backend: "openrouter" (default), "deepseek", "groq", "together", "mistral", "anthropic", "gemini", "cohere", "perplexity", "openai", "azure", "copilot", "ollama", "vllm", "lm-studio", "localai", "openai-compatible"
   provider: "openrouter"
   # Optional custom env var name for API key (by default matches provider: OPENROUTER_API_KEY, OPENAI_API_KEY, etc.)
   # Or use GDSS_API_KEY in your local .env as a dedicated universal override:

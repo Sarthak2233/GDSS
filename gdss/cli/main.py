@@ -344,28 +344,19 @@ def suggest(
                 "together",
                 "mistral",
                 "anthropic",
+                "gemini",
+                "google",
+                "cohere",
+                "perplexity",
                 "lm-studio",
                 "localai",
                 "openai-compatible",
                 "github",
                 "github-models",
             }:
-                base_url = radar.base_url
-                if not base_url:
-                    if resolved_provider_name == "openrouter":
-                        base_url = "https://openrouter.ai/api/v1"
-                    elif resolved_provider_name == "deepseek":
-                        base_url = "https://api.deepseek.com/v1"
-                    elif resolved_provider_name == "groq":
-                        base_url = "https://api.groq.com/openai/v1"
-                    elif resolved_provider_name == "together":
-                        base_url = "https://api.together.xyz/v1"
-                    elif resolved_provider_name == "mistral":
-                        base_url = "https://api.mistral.ai/v1"
-                    elif resolved_provider_name in {"lm-studio", "localai"}:
-                        base_url = "http://localhost:1234/v1"
-                    elif resolved_provider_name in {"openai", "azure"}:
-                        base_url = "https://api.openai.com/v1"
+                from gdss.core.config import resolve_provider_base_url
+
+                base_url = resolve_provider_base_url(resolved_provider_name, radar.base_url)
                 provider = OpenAICompatibleProvider(
                     base_url=base_url,
                     model=resolved_model if (resolved_model != "qwen2.5-coder:7b" or (has_custom_radar and "model" in cfg.raw_data["radar"])) else None,

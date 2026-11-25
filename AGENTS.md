@@ -192,6 +192,8 @@ See the `tdd` skill in `.cursor/skills/tdd/` for the full loop.
 - **DSA-first coding.** Choose data structures deliberately. Every public function
   should have justifiable time/space complexity. See `.cursor/rules/35-dsa-optimization.mdc`
   for the selection matrix and `.cursor/skills/dsa-optimize/` for the workflow.
+- **The Ratchet Principle:** Whenever a bug slips through or a design mistake is repeated, **tighten the harness**: add a guide or a sensor so the mistake is caught automatically forever.
+
 
 ---
 

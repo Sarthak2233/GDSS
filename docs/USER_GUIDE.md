@@ -303,6 +303,7 @@ This pairwise 3-way batching guarantees that adding 5 or 50 concurrent PRs never
 GDSS is **zero-config by default**. However, placing a `.gdss.yml` in the root of your repository ensures consistent collision analysis, model selection, and branch filters across developer laptops and CI runners.
 
 ### Configuration vs. Secrets Separation
+These usage differs, when you integrate in the CI/CD mode then the api key for the LLM is taken from your github secrets as mentioned before. The .env auto discovery form the installed project root is only for the users using the CLI from the terminal.
 - **`.gdss.yml` (Committed to Git):** Stores shared project rules, model preferences, test runner commands, and branch hierarchies.
 - **`.env` (Never Committed / `.gitignore`):** Stores your private BYOK credentials (e.g. `OPENROUTER_API_KEY`, `OPENAI_API_KEY`). GDSS **automatically discovers and reads `.env`** at your repository root when running CLI commands (`gdss suggest`) or the Web API (`gdss serve`), so you never need to manually export keys or modify `~/.bashrc`.
 

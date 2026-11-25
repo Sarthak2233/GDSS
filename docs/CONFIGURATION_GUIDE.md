@@ -973,6 +973,7 @@ $$\text{Character Capacity} \approx \text{Tokens} \times 4$$
 ---
 
 ### 7. Provider-Specific Recipes
+These recipies usage differs, when you integrate in the CI/CD mode then the api key for the LLM is taken from your github secrets as mentioned before. The .env auto discovery form the installed project root is only for the users using the CLI from the terminal.
 
 #### Recipe A: DeepSeek Direct (High Performance, Ultra-Low Cost)
 Direct connection to DeepSeek’s official API for state-of-the-art coding at minimal cost:

@@ -212,6 +212,9 @@ def test_render_radar_markdown_no_collisions():
     assert "🛰️ GDSS PR Collision Radar" in md
     assert "✅ **All Clear**" in md
     assert "Audited 3 open pull request(s)" in md
+    assert "Last Evaluated:" in md
+    assert "**Target Base:** `main`" in md
+    assert "commit [`sha42`]" in md
 
 
 def test_render_radar_markdown_with_collisions():

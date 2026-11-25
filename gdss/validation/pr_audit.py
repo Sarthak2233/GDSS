@@ -18,6 +18,7 @@ import urllib.error
 import urllib.request
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -1014,8 +1015,23 @@ def _get_topology_badge(kind: str) -> str:
     return f"⚡ {kind.capitalize()}"
 
 
-def render_radar_markdown(context: PRAuditContext, result: PRCollisionResult) -> str:
+def render_radar_markdown(
+    context: PRAuditContext,
+    result: PRCollisionResult,
+    timestamp: datetime | None = None,
+) -> str:
     """Render sticky radar report markdown with GitHub suggestions and audited commands."""
+    ts = timestamp or datetime.now(timezone.utc)
+    ts_str = ts.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    short_sha = context.head_sha[:7] if context.head_sha else ""
+    if short_sha and context.repo_owner != "local":
+        commit_ref = f"[`{short_sha}`](https://github.com/{context.repo_owner}/{context.repo_name}/commit/{context.head_sha})"
+    elif short_sha:
+        commit_ref = f"`{short_sha}`"
+    else:
+        commit_ref = f"`{context.head_ref}`"
+
     lines: list[str] = [
         STICKY_SIGNATURE,
         "## 🛰️ GDSS PR Collision Radar",
@@ -1025,9 +1041,13 @@ def render_radar_markdown(context: PRAuditContext, result: PRCollisionResult) ->
     if not result.has_collisions:
         lines.extend(
             [
-                "✅ **All Clear**: No semantic collisions or contractual breakages detected with other open pull requests.",
+                f"> **Audit Status:** ✅ **All Clear** (commit {commit_ref})",
+                f"> *No semantic collisions or contractual breakages detected with other open pull requests targeting `{context.base_ref}`.*",
                 "",
-                f"*Audited {result.audited_prs_count} open pull request(s) against `{context.head_ref}`.*",
+                f"⏱️ **Last Evaluated:** `{ts_str}` • **Target Base:** `{context.base_ref}` • **Audited {result.audited_prs_count} open pull request(s)**",
+                "",
+                "---",
+                f"*GDSS Collision Radar automatically re-evaluates on every push (`synchronize`). Audited {result.audited_prs_count} open pull request(s) concurrently targeting `{context.base_ref}`.*",
             ]
         )
         return "\n".join(lines)
@@ -1035,6 +1055,11 @@ def render_radar_markdown(context: PRAuditContext, result: PRCollisionResult) ->
     # Collision table
     lines.extend(
         [
+            f"> **Audit Status:** ⚠️ **Collisions Detected** (commit {commit_ref})",
+            f"> *Detected non-commutative operations or contractual conflicts with concurrent pull requests targeting `{context.base_ref}`.*",
+            "",
+            f"⏱️ **Last Evaluated:** `{ts_str}` • **Target Base:** `{context.base_ref}` • **Audited {result.audited_prs_count} open pull request(s)**",
+            "",
             r"| Status | Target File | Colliding PR | Overlapping Symbol | Topology | Risk ($\Omega_{ij}$) |",
             "| :---: | :--- | :--- | :--- | :---: | :---: |",
         ]
@@ -1092,8 +1117,9 @@ def render_radar_markdown(context: PRAuditContext, result: PRCollisionResult) ->
                 )
 
     lines.append("")
+    lines.append("---")
     lines.append(
-        f"*Audited {result.audited_prs_count} open pull request(s) concurrently targeting `{context.base_ref}`.*"
+        f"*GDSS Collision Radar automatically re-evaluates on every push (`synchronize`). Audited {result.audited_prs_count} open pull request(s) concurrently targeting `{context.base_ref}`.*"
     )
     return "\n".join(lines)
 

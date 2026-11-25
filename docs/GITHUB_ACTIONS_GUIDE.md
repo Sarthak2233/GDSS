@@ -260,10 +260,12 @@ run: |
 
 ## 🔍 The Pull Request Experience
 
-### 1. The "Sticky Comment" Pattern
-To avoid spamming PR conversation threads on every `git push`, GDSS tags its report with an invisible signature (`<!-- GDSS_PR_RADAR_SIGNATURE -->`).
-- **On first push / PR open:** GDSS creates a new top-level comment.
-- **On subsequent pushes (`synchronize`):** GDSS finds the existing comment and updates it in-place via `PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}`.
+### 1. The "Sticky Comment" Pattern & Subsequent Push Retriggers
+To avoid spamming PR conversation threads with dozens of duplicate messages on every `git push`, GDSS tags its report with an invisible signature (`<!-- GDSS_PR_RADAR_SIGNATURE -->`).
+- **On first push / PR open:** GDSS creates a new sticky comment.
+- **On subsequent pushes (`synchronize`):** Every subsequent push to an open PR emits GitHub's `pull_request` event with `action: synchronize`. GDSS finds the existing sticky comment and updates it in-place via `PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}`.
+- **Why GitHub Says "1d ago" on the Comment Header:** In GitHub's web interface, the timestamp at the top of an issue comment (`github-actions Bot 1d ago`) strictly reflects the time the comment was *originally created*. GitHub does not alter that header creation date when a comment is edited via API (`PATCH`).
+- **Live Commit & Timestamp Stamping in the Comment Body:** To eliminate all ambiguity and provide immediate proof that subsequent pushes were evaluated, GDSS stamps the comment body with the exact evaluated **Commit SHA** (`commit da3ee06`) and a **Live UTC Evaluation Timestamp** (`⏱️ Last Evaluated: YYYY-MM-DD HH:MM:SS UTC`).
 
 ### 2. When No Collisions Are Detected
 When your branch does not semantically intersect with any other open PR, GDSS leaves a reassuring green status:
@@ -271,9 +273,13 @@ When your branch does not semantically intersect with any other open PR, GDSS le
 > <!-- GDSS_PR_RADAR_SIGNATURE -->
 > ### 🛰️ GDSS PR Collision Radar
 > 
-> ✅ **All Clear**: No semantic collisions or contractual breakages detected with other open pull requests.
+> > **Audit Status:** ✅ **All Clear** (commit [`da3ee06`](https://github.com/owner/repo/commit/da3ee06))  
+> > *No semantic collisions or contractual breakages detected with other open pull requests targeting `main`.*
 > 
-> *Audited 4 open pull request(s) against `feature-billing`.*
+> ⏱️ **Last Evaluated:** `2026-11-25 17:15:22 UTC` • **Target Base:** `main` • **Audited 4 open pull request(s)**
+> 
+> ---
+> *GDSS Collision Radar automatically re-evaluates on every push (`synchronize`). Audited 4 open pull request(s) concurrently targeting `main`.*
 
 ### 3. When a Semantic Collision Is Detected
 If your branch touches contracts, call sites, or symbols that are concurrently being altered in another open PR, GDSS surfaces the collision topology:

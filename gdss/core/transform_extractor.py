@@ -326,7 +326,31 @@ class TransformExtractor:
                 not old_sym.body_blocks
                 and not new_sym.body_blocks
                 and self._structural_profile(old_sym) != self._structural_profile(new_sym)
-            )
+            ) or old_sym.body != new_sym.body
+            old_calls = set(old_sym.calls)
+            new_calls = set(new_sym.calls)
+            calls_added = sorted(new_calls - old_calls)
+            calls_removed = sorted(old_calls - new_calls)
+
+            def _call_structure_map(sym: CodeSymbol) -> dict[str, set[str]]:
+                mapped: dict[str, set[str]] = {}
+                if sym.call_sites:
+                    for site in sym.call_sites:
+                        target = str(site.get("target", "")).strip()
+                        structure = str(site.get("structure", "")).strip()
+                        if target:
+                            mapped.setdefault(target, set()).add(structure or target)  # dsa:ignore
+                else:
+                    for target in sym.calls:
+                        mapped.setdefault(target, set()).add(target)  # dsa:ignore
+                return mapped
+
+            old_call_map = _call_structure_map(old_sym)
+            new_call_map = _call_structure_map(new_sym)
+            changed_targets: set[str] = set(calls_added) | set(calls_removed)  # dsa:ignore
+            for target in sorted(old_call_map.keys() & new_call_map.keys()):
+                if old_call_map[target] != new_call_map[target]:
+                    changed_targets.add(target)
 
             if sig_changed or body_changed:
                 operators.append(
@@ -343,6 +367,36 @@ class TransformExtractor:
                             "parent_class": old_sym.parent_class,
                             "old_signature": old_sym.signature,
                             "new_signature": new_sym.signature,
+                        },
+                    )
+                )
+
+            # Emit downstream evidence only for an actual call-target or
+            # call-structure mutation. Unrelated body edits do not imply callers.
+            for called_name in sorted(changed_targets):
+                old_structures = sorted(old_call_map.get(called_name, ()))
+                new_structures = sorted(new_call_map.get(called_name, ()))
+                operators.append(
+                    SemanticOperator(
+                        operator=OperatorType.MODIFY_FUNCTION,
+                        file=file,
+                        commit=commit,
+                        name=called_name,
+                        details={
+                            "callsite_contact": True,
+                            "caller_symbol": old_sym.name,
+                            "caller_signature_changed": sig_changed,
+                            "call_structure_changed": bool(
+                                old_structures != new_structures
+                            ),
+                            "calls_added": (
+                                [called_name] if called_name in calls_added else []
+                            ),
+                            "calls_removed": (
+                                [called_name] if called_name in calls_removed else []
+                            ),
+                            "old_call_structures": old_structures,
+                            "new_call_structures": new_structures,
                         },
                     )
                 )

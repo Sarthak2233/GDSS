@@ -7,6 +7,8 @@ Allows GDSS validation to remain completely agnostic of repository layout
 from __future__ import annotations
 
 import os
+import shlex
+import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,6 +40,17 @@ PROJECT_DESCRIPTORS = {
     "CMakeLists.txt",
     "Makefile",
 }
+
+
+def prepare_validation_command(command: str) -> str | list[str]:
+    """Return a shell-safe command string or an argv list for subprocess execution."""
+    if os.name != "nt":
+        return command
+    argv = shlex.split(command, posix=True)
+    if argv and argv[0].lower() in {"python", "python3", "py"}:
+        argv[0] = sys.executable
+        return argv
+    return command
 
 
 @dataclass(frozen=True)

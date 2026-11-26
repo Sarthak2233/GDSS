@@ -422,24 +422,28 @@ def get_log(repo_path: str, n: int = 20) -> dict[str, Any]:
                     oldc = observer.get_file_content_at_commit(parent, f)  # dsa:ignore
                     newc = observer.get_file_content_at_commit(sha, f)  # dsa:ignore
                     if oldc and newc:
+                        old_symbols = parser.parse_file(f, oldc)  # dsa:ignore
+                        new_symbols = parser.parse_file(f, newc)  # dsa:ignore
                         ops.extend(
                             extractor.extract_operators(
-                                f, parser.parse_file(f, oldc), parser.parse_file(f, newc), sha
+                                f, old_symbols, new_symbols, sha
                             )
                         )  # dsa:ignore
             for f in changes["added"]:
                 if f.endswith(SOURCE_EXTENSIONS):
                     newc = observer.get_file_content_at_commit(sha, f)  # dsa:ignore
                     if newc:
+                        new_symbols = parser.parse_file(f, newc)  # dsa:ignore
                         ops.extend(
-                            extractor.extract_operators(f, [], parser.parse_file(f, newc), sha)
+                            extractor.extract_operators(f, [], new_symbols, sha)
                         )  # dsa:ignore
             for f in changes["deleted"]:
                 if f.endswith(SOURCE_EXTENSIONS):
                     oldc = observer.get_file_content_at_commit(parent, f)  # dsa:ignore
                     if oldc:
+                        old_symbols = parser.parse_file(f, oldc)  # dsa:ignore
                         ops.extend(
-                            extractor.extract_operators(f, parser.parse_file(f, oldc), [], sha)
+                            extractor.extract_operators(f, old_symbols, [], sha)
                         )  # dsa:ignore
 
         res.append(

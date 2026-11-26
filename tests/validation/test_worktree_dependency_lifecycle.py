@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -28,10 +29,41 @@ def test_symlink_worktree_dependencies_flat_and_nested(tmp_path: Path) -> None:
 
     # When manifests are not modified, symlinks are created
     created = symlink_worktree_dependencies(parent_repo, wt_path, changed_files=["src/index.ts"])
-    assert (wt_path / "node_modules").is_symlink()
-    assert (wt_path / ".venv").is_symlink()
-    assert (wt_path / "web" / "node_modules").is_symlink()
+    assert (wt_path / "node_modules").is_symlink() or (
+        getattr(os.path, "isjunction", lambda _path: False)(str(wt_path / "node_modules"))
+    )
+    assert (wt_path / ".venv").is_symlink() or (
+        getattr(os.path, "isjunction", lambda _path: False)(str(wt_path / ".venv"))
+    )
+    assert (wt_path / "web" / "node_modules").is_symlink() or (
+        getattr(os.path, "isjunction", lambda _path: False)(
+            str(wt_path / "web" / "node_modules")
+        )
+    )
+    assert (wt_path / "node_modules" / "some_pkg").is_dir()
+    assert (wt_path / "node_modules").resolve() == (parent_repo / "node_modules").resolve()
     assert len(created) >= 3
+
+
+def test_symlink_worktree_dependencies_explicit_fallback_skip(tmp_path: Path) -> None:
+    parent_repo = tmp_path / "repo"
+    parent_repo.mkdir()
+    (parent_repo / "node_modules").mkdir()
+    wt_path = tmp_path / "wt"
+    wt_path.mkdir()
+
+    with patch(
+        "gdss.validation.worktree._create_dependency_reuse_link",
+        return_value=False,
+    ):
+        created = symlink_worktree_dependencies(
+            parent_repo,
+            wt_path,
+            changed_files=["src/index.ts"],
+        )
+
+    assert created == []
+    assert not (wt_path / "node_modules").exists()
 
 
 def test_symlink_worktree_dependencies_skipped_when_manifest_modified(tmp_path: Path) -> None:

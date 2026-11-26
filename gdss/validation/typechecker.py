@@ -11,6 +11,7 @@ from gdss.validation.discovery import (
     get_sandbox_timeout,
     group_files_by_package_root,
     load_validation_config,
+    prepare_validation_command,
 )
 from gdss.validation.types import TypeCheckResult
 
@@ -92,9 +93,10 @@ def _run_single_typecheck(
         timeout_seconds,
     )
     try:
+        prepared_cmd = prepare_validation_command(cmd)
         proc = subprocess.run(
-            cmd,
-            shell=True,
+            prepared_cmd,
+            shell=not isinstance(prepared_cmd, list),
             cwd=str(cwd_path),
             env=env,
             capture_output=True,
@@ -180,7 +182,7 @@ def run_targeted_typecheck(
             for f in pkg_files:
                 try:
                     rel = str((root / f).relative_to(pkg_root))
-                    rel_files.append(rel)
+                    rel_files.append(rel.replace("\\", "/"))
                 except ValueError:
                     rel_files.append(f)
 

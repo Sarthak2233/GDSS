@@ -1,6 +1,79 @@
+from gdss.core.ast_parser import ASTParser
 from gdss.core.structural_fingerprint import levenshtein_distance, normalized_similarity
 from gdss.core.transform_extractor import TransformExtractor
 from gdss.core.transform_types import CodeSymbol, OperatorType, SymbolType
+
+
+def _python_symbols(code: str, file_name: str = "fixture.py"):
+    return ASTParser().parse_file(file_name, content=code)
+
+
+def _call_contacts(operators):
+    return [
+        op
+        for op in operators
+        if op.operator == OperatorType.MODIFY_FUNCTION
+        and op.details.get("callsite_contact") is True
+    ]
+
+
+def test_unrelated_logging_change_does_not_mark_callee_as_modified():
+    old = _python_symbols(
+        "def checkout(user, card):\n"
+        "    print('before')\n"
+        "    return process_payment(user, card)\n"
+    )
+    new = _python_symbols(
+        "def checkout(user, card):\n"
+        "    print('after')\n"
+        "    return process_payment(user, card)\n"
+    )
+
+    operators = TransformExtractor().extract_operators("checkout.py", old, new)
+
+    assert not [op for op in _call_contacts(operators) if op.name == "process_payment"]
+
+
+def test_changed_process_payment_arguments_create_call_site_evidence():
+    old = _python_symbols(
+        "def checkout(user, card):\n"
+        "    return process_payment(user, card)\n"
+    )
+    new = _python_symbols(
+        "def checkout(user, card):\n"
+        "    return process_payment(user, card, require_3ds=True)\n"
+    )
+
+    operators = TransformExtractor().extract_operators("checkout.py", old, new)
+    contacts = [op for op in _call_contacts(operators) if op.name == "process_payment"]
+
+    assert len(contacts) == 1
+    assert contacts[0].details["call_structure_changed"] is True
+    assert "process_payment(user, card)" in contacts[0].details["old_call_structures"]
+    assert "process_payment(user, card, require_3ds=True)" in contacts[0].details["new_call_structures"]
+
+
+def test_added_or_removed_call_creates_correct_evidence():
+    base = _python_symbols(
+        "def checkout(user, card):\n"
+        "    return audit(user)\n"
+    )
+    added = _python_symbols(
+        "def checkout(user, card):\n"
+        "    audit(user)\n"
+        "    return process_payment(user, card)\n"
+    )
+    removed = _python_symbols(
+        "def checkout(user, card):\n"
+        "    return True\n"
+    )
+
+    extractor = TransformExtractor()
+    added_contacts = _call_contacts(extractor.extract_operators("checkout.py", base, added))
+    removed_contacts = _call_contacts(extractor.extract_operators("checkout.py", added, removed))
+
+    assert any(op.name == "process_payment" and "process_payment" in op.details["calls_added"] for op in added_contacts)
+    assert any(op.name == "audit" and "audit" in op.details["calls_removed"] for op in removed_contacts)
 
 
 def test_extract_function_operators():

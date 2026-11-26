@@ -250,6 +250,7 @@ def build_pr_analysis_context(
     branch_operators: dict[str, tuple[SemanticOperator, ...]] = {}
     drift_magnitudes: dict[str, float] = {}
     branch_commits: dict[str, tuple[dict[str, str], ...]] = {}
+    impact_sets: dict[str, set[str]] = {}
 
     for branch in prs_to_track:
         operators = trajectory.extract_trajectory_operators(
@@ -260,6 +261,32 @@ def build_pr_analysis_context(
             head=branch,
         )
         branch_operators[branch] = tuple(operators)
+        impacted = {
+            name
+            for operator in operators
+            if (name := operator.get_target_name())
+        }
+        try:
+            from gdss.core.ast_parser import SOURCE_EXTENSIONS
+
+            merge_base = obs.get_merge_base(branch, reference_branch)
+            if merge_base:
+                changes = obs.get_file_diffs_between_commits(merge_base, branch)
+                changed_paths = (
+                    list(changes.get("modified", []))
+                    + list(changes.get("added", []))
+                )
+                for blob_path in sorted(set(changed_paths)):
+                    if not blob_path.endswith(tuple(SOURCE_EXTENSIONS)):
+                        continue
+                    content = obs.get_file_content_at_commit(branch, blob_path)
+                    if content is None:
+                        continue
+                    for symbol in parser.parse_file(blob_path, content=content):
+                        impacted.update(getattr(symbol, "calls", ()) or ())
+        except Exception:
+            pass
+        impact_sets[branch] = impacted
         try:
             mag = drift_engine.compute_magnitude(branch, reference_branch).magnitude
         except Exception:
@@ -270,6 +297,7 @@ def build_pr_analysis_context(
     tensor = (tensor_engine or TensorEngine()).compute(
         {branch: list(operators) for branch, operators in branch_operators.items()},
         drift_magnitudes,
+        impact_sets,
     )
 
     return AnalysisContext(

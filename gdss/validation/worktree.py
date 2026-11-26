@@ -38,6 +38,56 @@ MANIFEST_FILENAMES = frozenset(
 DEPENDENCY_DIR_NAMES = ("node_modules", ".venv", "vendor")
 
 
+def _create_dependency_reuse_link(source: Path, destination: Path) -> bool:
+    """Reuse dependency files via symlink or Windows junction; never copy."""
+    if destination.exists() or destination.is_symlink():
+        return True
+
+    try:
+        if os.name == "nt":
+            result = subprocess.run(
+                [
+                    "cmd.exe",
+                    "/d",
+                    "/c",
+                    "mklink",
+                    "/J",
+                    str(destination),
+                    str(source),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0 and destination.is_dir():
+                logger.debug(
+                    "Created Windows junction %s -> %s",
+                    destination,
+                    source,
+                )
+                return True
+            logger.warning(
+                "WHAT: Could not create Windows junction for dependencies.\n"
+                "WHY: %s\n"
+                "FIX: Configure validation.install_command to prepare dependencies in the sandbox.",
+                (result.stderr or result.stdout or "junction creation failed").strip(),
+            )
+            return False
+
+        os.symlink(source, destination, target_is_directory=True)
+        logger.debug("Created symlink %s -> %s", destination, source)
+        return True
+    except Exception as exc:
+        logger.warning(
+            "WHAT: Could not reuse dependency directory %s.\n"
+            "WHY: %s\n"
+            "FIX: Configure validation.install_command to prepare dependencies in the sandbox.",
+            source,
+            exc,
+        )
+        return False
+
+
 def symlink_worktree_dependencies(
     parent_repo: Path,
     worktree_path: Path,
@@ -64,12 +114,8 @@ def symlink_worktree_dependencies(
         parent_dep = resolved_parent / dep_name
         wt_dep = resolved_wt / dep_name
         if parent_dep.is_dir() and not wt_dep.exists() and not wt_dep.is_symlink():
-            try:
-                os.symlink(parent_dep, wt_dep)
+            if _create_dependency_reuse_link(parent_dep, wt_dep):
                 created_links.append(wt_dep)
-                logger.debug("Symlinked %s -> %s", parent_dep, wt_dep)
-            except Exception as exc:
-                logger.debug("Failed to symlink %s: %s", dep_name, exc)
 
     # 2. First-level subdirectory dependency directories (e.g. web/node_modules)
     try:
@@ -84,12 +130,8 @@ def symlink_worktree_dependencies(
                         and not wt_sub_dep.exists()
                         and not wt_sub_dep.is_symlink()
                     ):
-                        try:
-                            os.symlink(parent_sub_dep, wt_sub_dep)
+                        if _create_dependency_reuse_link(parent_sub_dep, wt_sub_dep):
                             created_links.append(wt_sub_dep)
-                            logger.debug("Symlinked nested %s -> %s", parent_sub_dep, wt_sub_dep)
-                        except Exception as exc:
-                            logger.debug("Failed to symlink nested %s: %s", wt_sub_dep, exc)
     except Exception as exc:
         logger.debug("Error scanning nested directories for dependency symlinks: %s", exc)
 

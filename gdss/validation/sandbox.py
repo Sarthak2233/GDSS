@@ -12,7 +12,7 @@ from gdss.validation.diagnostic_extractor import (
     inspect_test_diff_anti_gaming,
     parse_test_diagnostics,
 )
-from gdss.validation.discovery import load_validation_config
+from gdss.validation.discovery import load_validation_config, prepare_validation_command
 from gdss.validation.syntax import validate_file_syntax
 from gdss.validation.test_runner import run_targeted_tests
 from gdss.validation.typechecker import run_targeted_typecheck
@@ -116,9 +116,10 @@ class ValidationSandbox:
                 install_cmd_to_run = val_config.install_command.strip()
                 logger.debug("Executing install_command in sandbox: %s", install_cmd_to_run)
                 try:
+                    prepared_install = prepare_validation_command(install_cmd_to_run)
                     install_proc = subprocess.run(
-                        install_cmd_to_run,
-                        shell=True,
+                        prepared_install,
+                        shell=not isinstance(prepared_install, list),
                         cwd=wt_str,
                         capture_output=True,
                         text=True,
@@ -162,9 +163,10 @@ class ValidationSandbox:
 
                 logger.debug("Executing custom syntax_command: %s", cmd_to_run)
                 try:
+                    prepared_syntax = prepare_validation_command(cmd_to_run)
                     syntax_proc = subprocess.run(
-                        cmd_to_run,
-                        shell=True,
+                        prepared_syntax,
+                        shell=not isinstance(prepared_syntax, list),
                         cwd=wt_str,
                         capture_output=True,
                         text=True,

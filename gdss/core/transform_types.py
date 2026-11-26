@@ -101,6 +101,7 @@ class CodeSymbol:
     module: str | None = None
     imported_names: list[str] = field(default_factory=list)
     calls: list[str] = field(default_factory=list)
+    call_sites: list[dict[str, str]] = field(default_factory=list)
     parameters: list[str] = field(default_factory=list)
     return_type: str | None = None
     structural_tokens: list[str] = field(default_factory=list)

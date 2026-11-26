@@ -6,6 +6,9 @@
 # tests miss. Creates no lasting state and never touches global git config.
 set -uo pipefail
 
+# Keep Rich/GDSS Unicode output encodable when Bash captures CLI stdout on Windows.
+export PYTHONIOENCODING="${PYTHONIOENCODING:-utf-8}"
+
 if ! command -v git >/dev/null 2>&1; then
   echo "cli-smoke: FAIL (git not installed)."
   echo "  WHY: the end-to-end layer drives gdss over a real git repo."

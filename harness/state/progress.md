@@ -33,6 +33,64 @@ output), not just claims.
   by the authoritative gate.
 - Evidence: `bash harness/verify.sh` exit 0; 451 pytest passed, 1 skipped;
   CLI and API smoke passed; frontend gates passed or skipped cleanly.
+## 2026-11-25 - Cross-Mode Multi-Provider Support & Strict Key Matching (All Providers)
+
+- **Comprehensive Multi-Provider Dispatch & Key Binding**:
+  - Expanded native provider support across `gdss/core/config.py`, `gdss/cli/main.py`, `gdss/api/service.py`, `gdss/ai/openai_provider.py`, and `gdss/validation/pr_audit.py` to cover all providers:
+    - Cloud Gateways & Direct APIs: `openrouter` (default), `deepseek`, `groq`, `together`, `mistral`, `anthropic`, `openai`, `azure`, `openai-compatible`.
+    - Keyless Local Workstations ($0): `ollama`, `vllm`, `lm-studio`, `localai`.
+    - Integrated CI: `copilot` (`GITHUB_TOKEN` with `copilot-requests: write`).
+  - Added strict environment key resolution for each provider: `OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `TOGETHER_API_KEY`, `MISTRAL_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, `GITHUB_TOKEN`, and universal isolation override `GDSS_API_KEY`.
+  - Added DSA fitness caching to eliminate redundant `os.getenv` invocations.
+- **Documentation & Sync**:
+  - Synchronized `docs/CONFIGURATION_GUIDE.md`, `README.md`, `docs/USER_GUIDE.md`, `.gdss.yml.example`, `gdss-radar/README.md`, `gdss-radar/docs/CONFIGURATION_GUIDE.md`, and `gdss-radar/.gdss.yml.example`.
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Layer 1 Static: ruff OK, mypy OK (103 source files), architecture fitness OK, DSA fitness OK.
+  - Layer 2 Runtime: 462 pytest passed, 1 skipped.
+  - Layer 3 Smoke: CLI smoke OK, API smoke OK.
+  - Frontend Gate: ESLint OK, tsc OK, token fitness OK, vitest (118 tests across 35 files) OK, size-limit OK.
+
+## 2026-11-25 - Cross-Mode Configuration Wiring, .env Auto-Discovery & Strict Provider Key Binding
+
+- **Resolved Configuration & AI Model Discovery Across All 4 Modes**:
+  - Implemented `load_env_file` in `gdss/core/config.py`: automatically discovers and reads `.env` at the project repository root without requiring manual shell `export` commands or polluting developer environment files.
+  - Implemented strict provider key binding via `resolve_provider_key`: strictly matches API keys to configured provider (`openrouter` -> `OPENROUTER_API_KEY`, `openai` -> `OPENAI_API_KEY`, `azure` -> `AZURE_OPENAI_API_KEY`), eliminating cross-key contamination in cluttered `.env` environments.
+  - Added support for explicit `api_key_env` in `.gdss.yml` (`radar.api_key_env`) and universal isolation override `GDSS_API_KEY`.
+  - Implemented bidirectional branch filter synchronization in `load_gdss_config`: branch inclusion/exclusion filters specified in `.gdss.yml` under either `radar` or `hierarchy` automatically synchronize and apply across collision analysis and drift calculations.
+  - Upgraded CLI `gdss suggest` in `gdss/cli/main.py` and Web API `get_suggestions` in `gdss/api/service.py` to honor `api_key_env`, `provider`, and `model`.
+  - Updated `gdss/ai/openai_provider.py` and `gdss/validation/pr_audit.py` to route through strict provider-matched key resolution.
+- **Added Comprehensive Unit & CLI Regression Tests**:
+  - Added `test_load_env_file_auto_discovery`, `test_branch_filtering_bidirectional_synchronization`, `test_resolve_provider_key_strict_matching`, and `test_radar_config_api_key_env_parsing` to `tests/core/test_config.py`.
+  - Added `tests/cli/test_suggest_config_wiring.py` (3 tests).
+- **Documentation & Distribution Alignment**:
+  - Updated `README.md`, `docs/CONFIGURATION_GUIDE.md`, `docs/USER_GUIDE.md`, `.gdss.yml.example`, `gdss-radar/README.md`, `gdss-radar/docs/CONFIGURATION_GUIDE.md`, and `gdss-radar/.gdss.yml.example`.
+- **Verification Evidence**:
+  - `bash harness/verify.sh`: ALL LAYERS GREEN.
+  - Layer 1 Static: `ruff` OK, `mypy` OK (103 source files), architecture fitness OK, DSA fitness OK.
+  - Layer 2 Runtime: 460 pytest passed, 1 skipped.
+  - Layer 3 Smoke: CLI smoke OK, API smoke OK.
+  - Frontend Gate: ESLint OK, tsc OK, token fitness OK, vitest (35 files, 118 tests passed) OK, Next.js build & size-limit OK.
+
+
+## 2026-11-19 - Semantic Impact Closure & Complementary Code Surgery Integration Test Suite
+
+- **Designed and Implemented Dedicated Integration Suite**:
+  - Created `tests/integration/test_semantic_impact_code_surgery.py` with 6 closed-loop integration scenarios:
+    1. `test_ast_callsite_pinpointing_in_untouched_test_file`: AST `CodeGraph` and 2-hop Semantic Impact Closure isolate the exact affected test (`test_login_valid`) and its precise line coordinates (L6–L8) in a test file having 0 prior Git diff hunks, while ignoring non-calling tests (`test_logout`, `test_oauth_stub`).
+    2. `test_sandbox_diagnostic_trace_pinpointing_ek`: Validates that `parse_test_diagnostics` extracts structured diagnostic traces ($E_k$) containing exact test file, test case, line number (L7), failure type (`TypeError`), and implicated symbols.
+    3. `test_agentic_refinement_multi_file_patch_synthesis`: Proves that `build_refinement_prompt` integrates $E_k$ failure traces and focused AST slices, and that `parse_multi_file_unified_diff` splits multi-file patches across collision and untouched test files cleanly.
+    4. `test_anti_gaming_defense_on_complementary_test_patch`: Confirms that `inspect_test_diff_anti_gaming` permits legitimate call-site updates while rejecting adversarial attempts (assertion deletion or trivialization to `assert True`).
+    5. `test_atomic_multi_file_guarded_apply_and_revalidation`: Executes `preflight_check`, atomic `apply_suggestion`, and `rollback_suggestion` on a real temporary Git repository across multiple files with byte-for-byte fidelity and zero Git corruption.
+    6. `test_mcp_full_closed_loop_code_surgery`: Exercises the full lifecycle over the JSON-RPC MCP server (`gdss_get_impact_closure`, `gdss_check_anti_gaming`, `gdss_validate_patch`).
+- **Source-Available Licensing & Distribution Alignment**:
+  - Updated `docs/DISTRIBUTION_PLAN.md` to establish the Source-Available (GSARL 1.0) model.
+  - Synchronized `gdss-radar/` license to GSARL 1.0 (`LICENSE`, `LICENSE.md`, `README.md`).
+  - Added root `LICENSE` to `GDSS/`.
+- **Verification Evidence**:
+  - `python3 -m pytest tests/integration/test_semantic_impact_code_surgery.py -v`: 6 passed in 0.37s.
+  - Static layer sensors: `ruff` OK, `mypy` OK (103 source files), architecture fitness OK, DSA fitness OK.
+
 
 ## 2026-11-16 - CI Environment Test Failure Remediation (5/5 Fixed)
 

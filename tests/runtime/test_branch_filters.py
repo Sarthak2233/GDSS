@@ -168,3 +168,33 @@ def test_build_analysis_context_branch_filtering(tmp_path):
     )
     ctx_yml = build_analysis_context(str(tmp_path), ref)
     assert ctx_yml.branches == ("feature-a",)
+
+
+def test_build_analysis_context_remote_reference_branch(tmp_path):
+    import git
+
+    from gdss.drift.context import build_analysis_context
+
+    origin_dir = tmp_path / "origin"
+    clone_dir = tmp_path / "clone"
+
+    r_origin = git.Repo.init(origin_dir)
+    with r_origin.config_writer() as config:
+        config.set_value("user", "name", "Test User")
+        config.set_value("user", "email", "test@example.com")
+    (origin_dir / "calc.py").write_text("def add(a, b): return a + b\n", encoding="utf-8")
+    r_origin.index.add(["calc.py"])
+    r_origin.index.commit("base")
+    if r_origin.active_branch.name != "main":
+        r_origin.create_head("main", "HEAD")
+        r_origin.heads.main.checkout()
+
+    r_clone = git.Repo.clone_from(str(origin_dir), str(clone_dir))
+    r_clone.create_head("feature-a", "origin/main")
+    r_clone.heads["feature-a"].checkout()
+    r_clone.delete_head("main", force=True)
+
+    assert "main" not in [h.name for h in r_clone.heads]
+    ctx = build_analysis_context(str(clone_dir), "main")
+    assert ctx.reference_branch == "main"
+    assert "main" in [h.name for h in r_clone.heads]

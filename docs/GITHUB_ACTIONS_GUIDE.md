@@ -92,8 +92,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
         env:
           # Optional: Bring Your Own Key for AI suggestions (omit for 100% deterministic $0 radar)
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          # or OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          # Recommended: Dedicated GDSS_API_KEY secret isolates GDSS from your other app secrets
+          GDSS_API_KEY: ${{ secrets.GDSS_API_KEY }}
+          # or: OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
 > [!IMPORTANT]
@@ -259,10 +260,12 @@ run: |
 
 ## 🔍 The Pull Request Experience
 
-### 1. The "Sticky Comment" Pattern
-To avoid spamming PR conversation threads on every `git push`, GDSS tags its report with an invisible signature (`<!-- GDSS_PR_RADAR_SIGNATURE -->`).
-- **On first push / PR open:** GDSS creates a new top-level comment.
-- **On subsequent pushes (`synchronize`):** GDSS finds the existing comment and updates it in-place via `PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}`.
+### 1. The "Sticky Comment" Pattern & Subsequent Push Retriggers
+To avoid spamming PR conversation threads with dozens of duplicate messages on every `git push`, GDSS tags its report with an invisible signature (`<!-- GDSS_PR_RADAR_SIGNATURE -->`).
+- **On first push / PR open:** GDSS creates a new sticky comment.
+- **On subsequent pushes (`synchronize`):** Every subsequent push to an open PR emits GitHub's `pull_request` event with `action: synchronize`. GDSS finds the existing sticky comment and updates it in-place via `PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}`.
+- **Why GitHub Says "1d ago" on the Comment Header:** In GitHub's web interface, the timestamp at the top of an issue comment (`github-actions Bot 1d ago`) strictly reflects the time the comment was *originally created*. GitHub does not alter that header creation date when a comment is edited via API (`PATCH`).
+- **Live Commit & Timestamp Stamping in the Comment Body:** To eliminate all ambiguity and provide immediate proof that subsequent pushes were evaluated, GDSS stamps the comment body with the exact evaluated **Commit SHA** (`commit da3ee06`) and a **Live UTC Evaluation Timestamp** (`⏱️ Last Evaluated: YYYY-MM-DD HH:MM:SS UTC`).
 
 ### 2. When No Collisions Are Detected
 When your branch does not semantically intersect with any other open PR, GDSS leaves a reassuring green status:
@@ -270,9 +273,13 @@ When your branch does not semantically intersect with any other open PR, GDSS le
 > <!-- GDSS_PR_RADAR_SIGNATURE -->
 > ### 🛰️ GDSS PR Collision Radar
 > 
-> ✅ **All Clear**: No semantic collisions or contractual breakages detected with other open pull requests.
+> > **Audit Status:** ✅ **All Clear** (commit [`da3ee06`](https://github.com/owner/repo/commit/da3ee06))  
+> > *No semantic collisions or contractual breakages detected with other open pull requests targeting `main`.*
 > 
-> *Audited 4 open pull request(s) against `feature-billing`.*
+> ⏱️ **Last Evaluated:** `2026-11-25 17:15:22 UTC` • **Target Base:** `main` • **Audited 4 open pull request(s)**
+> 
+> ---
+> *GDSS Collision Radar automatically re-evaluates on every push (`synchronize`). Audited 4 open pull request(s) concurrently targeting `main`.*
 
 ### 3. When a Semantic Collision Is Detected
 If your branch touches contracts, call sites, or symbols that are concurrently being altered in another open PR, GDSS surfaces the collision topology:
@@ -458,7 +465,7 @@ gdss apply sug_a1b2c3d4e5f6 --dry-run
 A common question when integrating GDSS into an engineering team is: **"Does every engineer on the team need an API key configured in their GitHub account?"**
 
 The answer is **No**:
-- **Single Setup by Repository Admin**: The repo maintainer configures the chosen AI secret (e.g. `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, or `OPENROUTER_API_KEY`) **once** in repository settings:  
+- **Single Setup by Repository Admin**: The repo maintainer configures the chosen AI secret (e.g. `GDSS_API_KEY` with OpenRouter, `OPENROUTER_API_KEY`, or `OPENAI_API_KEY`) **once** in repository settings:  
   `GitHub Repo ➔ Settings ➔ Secrets and variables ➔ Actions ➔ Repository secrets`.
 - **Automatic Execution on PRs**: Whenever any team member pushes commits or opens a PR, GitHub Actions securely injects the repository secret into the workflow runner. Individual developers never need to supply, manage, or leak personal keys.
 - **Zero-Key Deterministic Mode**: If your team chooses not to configure any AI key at all, GDSS still runs 100% of the deterministic collision radar, matrix tables, and optimal merge orders at **$0 and 0 tokens**.
@@ -466,7 +473,7 @@ The answer is **No**:
 ### 2. Bring Your Own Key / Compute (BYOK / BYOC)
 GDSS is not a paid AI middleman and does not charge or host token inference:
 - **Deterministic Core (0 Tokens):** AST parsing, dependency graph building, and the collision interaction tensor ($\Omega_{ij}$) run locally inside the GitHub Actions runner. They consume **literal 0 AI tokens** and require zero external secrets.
-- **Reconciliation Patching (BYOK):** If patch generation is requested, the runner connects directly to your team's provider: OpenRouter Free Tier (via `OPENROUTER_API_KEY`), OpenAI / DeepSeek (via `OPENAI_API_KEY`), GitHub Copilot CLI (via `GITHUB_TOKEN` with `copilot-requests: write`), or Microsoft Azure AI Foundry. When using Copilot CLI, GDSS enforces `--deny-tool='*'` so the model cannot touch repository files directly—all patches are captured from `stdout` and validated inside GDSS's ephemeral worktree sandbox. GDSS collects zero token markups.
+- **Reconciliation Patching (BYOK):** If patch generation is requested, the runner connects directly to your team's provider: OpenRouter Free Tier (explicitly recommended via `GDSS_API_KEY` or `OPENROUTER_API_KEY`), OpenAI / DeepSeek (via `OPENAI_API_KEY`), GitHub Copilot CLI (via `GITHUB_TOKEN` with `copilot-requests: write`), or Microsoft Azure AI Foundry. When using Copilot CLI, GDSS enforces `--deny-tool='*'` so the model cannot touch repository files directly—all patches are captured from `stdout` and validated inside GDSS's ephemeral worktree sandbox. GDSS collects zero token markups.
 - **Direct Privacy**: Source code and ASTs are never routed through any GDSS proxy; network calls travel strictly between GitHub's runner and your configured AI provider.
 
 ### 3. Handling Fork Pull Requests

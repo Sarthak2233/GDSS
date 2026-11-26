@@ -19,6 +19,7 @@ import urllib.error
 import urllib.request
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -193,6 +194,7 @@ def load_radar_config(repo_path: str | Path) -> dict[str, Any]:
         "target_bases": list(cfg.radar.target_bases),
         "concurrency_limit": cfg.radar.concurrency_limit,
         "condensation": cfg.radar.condensation,
+        "api_key_env": cfg.radar.api_key_env,
     }
 
 
@@ -778,17 +780,21 @@ def generate_pr_convergence_patch(
         from gdss.ai.llm_patch import AnyProvider, LLMProvider
         from gdss.ai.openai_provider import OpenAICompatibleProvider
         from gdss.ai.patch_parser import extract_patch_or_replacement
+        from gdss.core.config import resolve_provider_base_url, resolve_provider_key
 
-        effective_base_url = (
+        effective_base_url = resolve_provider_base_url(
+            None,
             base_url
             or os.environ.get("OPENAI_BASE_URL")
-            or os.environ.get("AZURE_OPENAI_ENDPOINT")
+            or os.environ.get("AZURE_OPENAI_ENDPOINT"),
         )
         effective_token = (
             token
-            or os.environ.get("OPENROUTER_API_KEY")
-            or os.environ.get("AZURE_OPENAI_API_KEY")
-            or os.environ.get("OPENAI_API_KEY")
+            if token and token != "copilot"
+            else resolve_provider_key(
+                "openrouter",
+                base_url=effective_base_url,
+            )
         )
         provider: AnyProvider | LLMProvider | None = None
         if token == "copilot":
@@ -890,21 +896,25 @@ def audit_pr_collisions(
                             "Falling back to deterministic AST collision analysis."
                         )
                 else:
-                    effective_token = (
-                        os.environ.get("OPENROUTER_API_KEY")
-                        or os.environ.get("AZURE_OPENAI_API_KEY")
-                        or os.environ.get("OPENAI_API_KEY")
-                    )
-                    effective_base_url = (
+                    from gdss.core.config import resolve_provider_base_url, resolve_provider_key
+
+                    effective_base_url = resolve_provider_base_url(
+                        provider_cfg,
                         (config.get("base_url") if config else None)
                         or os.environ.get("OPENAI_BASE_URL")
-                        or os.environ.get("AZURE_OPENAI_ENDPOINT")
+                        or os.environ.get("AZURE_OPENAI_ENDPOINT"),
+                    )
+                    effective_token = resolve_provider_key(
+                        provider_cfg or "openrouter",
+                        base_url=effective_base_url,
+                        api_key_env=config.get("api_key_env") if config else None,
                     )
                     if effective_token or effective_base_url:
                         provider = OpenAICompatibleProvider(
                             base_url=effective_base_url,
                             model=config.get("model") if config else None,
                             api_key=effective_token,
+                            api_key_env=config.get("api_key_env") if config else None,
                         )
 
                 concurrent_branches = [
@@ -1483,8 +1493,23 @@ def _get_topology_badge(kind: str) -> str:
     return f"⚡ {kind.capitalize()}"
 
 
-def render_radar_markdown(context: PRAuditContext, result: PRCollisionResult) -> str:
+def render_radar_markdown(
+    context: PRAuditContext,
+    result: PRCollisionResult,
+    timestamp: datetime | None = None,
+) -> str:
     """Render sticky radar report markdown with GitHub suggestions and audited commands."""
+    ts = timestamp or datetime.now(timezone.utc)
+    ts_str = ts.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    short_sha = context.head_sha[:7] if context.head_sha else ""
+    if short_sha and context.repo_owner != "local":
+        commit_ref = f"[`{short_sha}`](https://github.com/{context.repo_owner}/{context.repo_name}/commit/{context.head_sha})"
+    elif short_sha:
+        commit_ref = f"`{short_sha}`"
+    else:
+        commit_ref = f"`{context.head_ref}`"
+
     lines: list[str] = [
         STICKY_SIGNATURE,
         "## 🛰️ GDSS PR Collision Radar",
@@ -1494,9 +1519,13 @@ def render_radar_markdown(context: PRAuditContext, result: PRCollisionResult) ->
     if not result.has_collisions:
         lines.extend(
             [
-                "✅ **All Clear**: No semantic collisions or contractual breakages detected with other open pull requests.",
+                f"> **Audit Status:** ✅ **All Clear** (commit {commit_ref})",
+                f"> *No semantic collisions or contractual breakages detected with other open pull requests targeting `{context.base_ref}`.*",
                 "",
-                f"*Audited {result.audited_prs_count} open pull request(s) against `{context.head_ref}`.*",
+                f"⏱️ **Last Evaluated:** `{ts_str}` • **Target Base:** `{context.base_ref}` • **Audited {result.audited_prs_count} open pull request(s)**",
+                "",
+                "---",
+                f"*GDSS Collision Radar automatically re-evaluates on every push (`synchronize`). Audited {result.audited_prs_count} open pull request(s) concurrently targeting `{context.base_ref}`.*",
             ]
         )
         return "\n".join(lines)
@@ -1504,6 +1533,11 @@ def render_radar_markdown(context: PRAuditContext, result: PRCollisionResult) ->
     # Collision table
     lines.extend(
         [
+            f"> **Audit Status:** ⚠️ **Collisions Detected** (commit {commit_ref})",
+            f"> *Detected non-commutative operations or contractual conflicts with concurrent pull requests targeting `{context.base_ref}`.*",
+            "",
+            f"⏱️ **Last Evaluated:** `{ts_str}` • **Target Base:** `{context.base_ref}` • **Audited {result.audited_prs_count} open pull request(s)**",
+            "",
             r"| Status | Target File | Colliding PR | Overlapping Symbol | Topology | Risk ($\Omega_{ij}$) |",
             "| :---: | :--- | :--- | :--- | :---: | :---: |",
         ]
@@ -1561,8 +1595,9 @@ def render_radar_markdown(context: PRAuditContext, result: PRCollisionResult) ->
                 )
 
     lines.append("")
+    lines.append("---")
     lines.append(
-        f"*Audited {result.audited_prs_count} open pull request(s) concurrently targeting `{context.base_ref}`.*"
+        f"*GDSS Collision Radar automatically re-evaluates on every push (`synchronize`). Audited {result.audited_prs_count} open pull request(s) concurrently targeting `{context.base_ref}`.*"
     )
     return "\n".join(lines)
 

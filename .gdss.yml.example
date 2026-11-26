@@ -17,21 +17,53 @@ version: 1
 radar:
   # LLM Provider:
   #   - "openrouter" (Recommended free tier & multi-model gateway via OPENROUTER_API_KEY)
+  #   - "deepseek" (uses DEEPSEEK_API_KEY, defaults base_url to https://api.deepseek.com/v1)
+  #   - "groq" (uses GROQ_API_KEY, defaults base_url to https://api.groq.com/openai/v1)
+  #   - "together" (uses TOGETHER_API_KEY, defaults base_url to https://api.together.ai/v1)
+  #   - "mistral" (uses MISTRAL_API_KEY, defaults base_url to https://api.mistral.ai/v1)
+  #   - "anthropic" (uses ANTHROPIC_API_KEY, defaults base_url to https://api.anthropic.com/v1)
+  #   - "gemini" / "google" (uses GEMINI_API_KEY, defaults base_url to https://generativelanguage.googleapis.com/v1beta/openai)
+  #   - "cohere" (uses COHERE_API_KEY, defaults base_url to https://api.cohere.ai/compatibility/v1)
+  #   - "perplexity" (uses PERPLEXITY_API_KEY, defaults base_url to https://api.perplexity.ai/orchestrator/v1)
   #   - "openai" (uses OPENAI_API_KEY)
-  #   - "deepseek" (uses DEEPSEEK_API_KEY)
+  #   - "azure" (uses AZURE_OPENAI_API_KEY or AZURE_AI_API_KEY)
   #   - "copilot" (GitHub Copilot CLI in CI via GITHUB_TOKEN & copilot-requests: write)
-  #   - "ollama" / "vllm" (for self-hosted local setups)
+  #   - "ollama" / "vllm" / "lm-studio" / "localai" (keyless offline local inference)
+  #   - "openai-compatible" (generic OpenAI protocol with custom base_url)
+  # RECOMMENDED: "openrouter" (multi-model gateway, access 100+ models with one key, plus $0 free tier)
   provider: "openrouter"
 
   # The LLM model used for semantic patch reconciliation & contract synthesis.
   # Popular options:
-  #   - "openrouter/free" (OpenRouter automated zero-cost router - default)
-  #   - "gpt-4o-mini" / "gpt-4o" (Microsoft Azure AI Foundry, OpenAI)
-  #   - "deepseek-chat" (DeepSeek V3 / R1)
-  #   - "claude-3-5-sonnet-20241022" (OpenRouter / Anthropic)
+  #   - "openrouter/free" (OpenRouter automated zero-cost router - recommended free tier)
+  #   - "anthropic/claude-3.5-sonnet" (OpenRouter / Anthropic)
+  #   - "deepseek/deepseek-chat" (DeepSeek V3 / R1)
+  #   - "gpt-4o" / "gpt-4o-mini" (Microsoft Azure AI Foundry, OpenAI)
   #   - "llama-3.3-70b-versatile" (Groq / OpenRouter)
+  #   - "gemini-2.0-flash" (Google AI Studio)
+  #   - "command-r-plus" (Cohere)
   #   - "qwen2.5-coder:7b" (Local Ollama / vLLM)
   model: "openrouter/free"
+
+  # Optional environment variable name for API inference authentication:
+  # By default, GDSS auto-discovers keys from your project root '.env' matching the provider:
+  #   - provider: "openrouter" -> checks OPENROUTER_API_KEY
+  #   - provider: "deepseek"   -> checks DEEPSEEK_API_KEY
+  #   - provider: "groq"       -> checks GROQ_API_KEY
+  #   - provider: "together"   -> checks TOGETHER_API_KEY
+  #   - provider: "mistral"    -> checks MISTRAL_API_KEY
+  #   - provider: "anthropic"  -> checks ANTHROPIC_API_KEY
+  #   - provider: "gemini"     -> checks GEMINI_API_KEY
+  #   - provider: "cohere"     -> checks COHERE_API_KEY
+  #   - provider: "perplexity" -> checks PERPLEXITY_API_KEY
+  #   - provider: "openai"     -> checks OPENAI_API_KEY
+  #   - provider: "azure"      -> checks AZURE_OPENAI_API_KEY or AZURE_AI_API_KEY
+  #   - provider: "copilot"    -> checks GITHUB_TOKEN
+  #   - provider: "ollama" / "vllm" / "lm-studio" / "localai" -> Keyless ($0 local offline inference)
+  # Universal override (RECOMMENDED): Setting GDSS_API_KEY in .env always applies to GDSS
+  # and completely isolates GDSS from your existing application API keys.
+  # If your team or CI runner uses a custom secret name, declare it here:
+  api_key_env: "GDSS_API_KEY"
 
   # Custom API base URL (optional, for self-hosted LLM endpoints or OpenAI-compatible proxies):
   # base_url: "https://openrouter.ai/api/v1"

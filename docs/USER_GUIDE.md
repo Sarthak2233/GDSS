@@ -257,9 +257,9 @@ gdss suggest --repo . --ref main -b feature/auth -b feature/billing
 # With Local LLM (Ollama or vLLM) + Sandbox Validation
 gdss suggest --repo . --ref main --llm --provider ollama --model qwen2.5-coder:7b --validate
 
-# With Cloud Provider (OpenRouter, Azure AI Foundry, or OpenAI)
-export OPENROUTER_API_KEY="sk-or-..."
-gdss suggest --repo . --ref main --llm --provider openrouter --model anthropic/claude-3.5-sonnet --validate
+# With Cloud Provider (Recommended: OpenRouter via .env auto-discovery or GDSS_API_KEY)
+# If GDSS_API_KEY or OPENROUTER_API_KEY is defined in your project's .env, no manual export is needed!
+gdss suggest --repo . --ref main --llm --provider openrouter --model openrouter/free --validate
 ```
 
 ---
@@ -298,22 +298,52 @@ When an incoming pull request (e.g., PR #42) is opened while 5 other PRs are con
 
 This pairwise 3-way batching guarantees that adding 5 or 50 concurrent PRs never creates prompt explosion or cross-feature hallucination.
 
-## ⚙️ Repository Configuration (`.gdss.yml`) Overview
+## ⚙️ Repository Configuration (`.gdss.yml`) & `.env` Auto-Discovery
 
-GDSS is **zero-config by default**. However, placing a `.gdss.yml` in the root of your repository ensures consistent behavior across developer laptops and CI runners:
+GDSS is **zero-config by default**. However, placing a `.gdss.yml` in the root of your repository ensures consistent collision analysis, model selection, and branch filters across developer laptops and CI runners.
+
+### Configuration vs. Secrets Separation
+These usage differs, when you integrate in the CI/CD mode then the api key for the LLM is taken from your github secrets as mentioned before. The .env auto discovery form the installed project root is only for the users using the CLI from the terminal.
+- **`.gdss.yml` (Committed to Git):** Stores shared project rules, model preferences, test runner commands, and branch hierarchies.
+- **`.env` (Never Committed / `.gitignore`):** Stores your private BYOK credentials (e.g. `OPENROUTER_API_KEY`, `OPENAI_API_KEY`). GDSS **automatically discovers and reads `.env`** at your repository root when running CLI commands (`gdss suggest`) or the Web API (`gdss serve`), so you never need to manually export keys or modify `~/.bashrc`.
+
+#### Strict Provider-Aware Key Binding & Universal Isolation
+To prevent accidental cross-key collisions in projects with many existing `.env` secrets, GDSS matches keys strictly based on your configured `provider`:
+- **Universal Recommended Standard (`GDSS_API_KEY`):** Setting `GDSS_API_KEY` in your `.env` file or GitHub Secrets is the **explicitly recommended best practice**. It forces GDSS to use this dedicated key with highest priority, completely isolating GDSS from your existing application's API keys (e.g., preventing accidental quota burns on an app-level `OPENAI_API_KEY`).
+- `provider: openrouter` ➔ **Recommended multi-model gateway** ($0 free tier via `openrouter/free` with zero credit card setup). Automatically checks `OPENROUTER_API_KEY` if `GDSS_API_KEY` is not provided.
+- `provider: openai` ➔ automatically checks `OPENAI_API_KEY`
+- `provider: azure` ➔ automatically checks `AZURE_OPENAI_API_KEY` or `AZURE_AI_API_KEY`
+- `provider: copilot` ➔ automatically checks `GITHUB_TOKEN`
+- `provider: deepseek` ➔ automatically checks `DEEPSEEK_API_KEY`
+- `provider: groq` ➔ automatically checks `GROQ_API_KEY`
+- **Custom Key Names (`api_key_env`):** If your organization uses custom secret names (e.g. `TEAM_OPENROUTER_SECRET`), declare `api_key_env: "TEAM_OPENROUTER_SECRET"` under `radar:` in `.gdss.yml`.
+
+#### Resolution Precedence Order
+When resolving configuration and credentials, GDSS enforces a strict 4-tier precedence:
+1. **Explicit CLI Flags** (e.g. `--model`, `--provider`, `--max-refinements`)
+2. **Environment Variables & Local `.env`** (Shell `export` > local `.env` file > CI runner secrets)
+3. **Repository Configuration (`.gdss.yml`)** (Project defaults committed in Git)
+4. **Offline Local Fallback** (Local Ollama / vLLM if reachable, or 100% deterministic $0 analysis)
 
 ```yaml
 # .gdss.yml - Project-level semantic intelligence configuration
 
 radar:
-  model: "gpt-4o"
-  context_window: 128000
-  provider: "github"
-  max_refinements: 2
-  concurrency_limit: 4
-  condensation: "lossless"
-  risk_threshold: 0.8
-  fail_on_collision: false
+  provider: "openrouter"          # "openrouter", "deepseek", "groq", "together", "mistral", "anthropic", "gemini", "cohere", "perplexity", "openai", "azure", "copilot", "ollama", "vllm", "lm-studio", "localai", or "openai-compatible"
+  model: "openrouter/free"        # e.g. "anthropic/claude-3.5-sonnet", "qwen2.5-coder:7b"
+  # api_key_env: "CORP_AI_KEY"   # Optional: custom env var name for API key in .env or CI
+  context_window: 128000          # Model context window in tokens
+  max_refinements: 2              # Maximum self-healing retry rounds if patch syntax/tests fail
+  concurrency_limit: 4            # Parallel worker threads for multi-branch collision drafting
+  condensation: "lossless"        # "lossless", "ast_minimal", or "off"
+  risk_threshold: 0.8             # Collision risk threshold to trigger review
+  fail_on_collision: false        # Set true to fail CI on critical non-commutative collisions
+  include:                        # Branch inclusion patterns (synchronizes with hierarchy)
+    - "feature/*"
+    - "fix/*"
+  exclude:                        # Branch exclusion patterns (synchronizes with hierarchy)
+    - "spike/*"
+    - "dependabot/*"
 
 validation:
   test_command: "pytest {test_file}"
@@ -346,12 +376,6 @@ hierarchy:
     - "develop"
   # Only audit PRs that share the exact same base landing branch (eliminates cross-target false alarms)
   same_base_only: true
-  include:
-    - "feature/*"
-    - "fix/*"
-  exclude:
-    - "spike/*"
-    - "dependabot/*"
   target_bases:
     - "main"
     - "develop"
@@ -387,7 +411,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }} # Optional BYOK key for AI patch synthesis (all collision analysis runs at $0 with 0 tokens)
+          # Optional BYOK key for AI patch synthesis (all collision analysis runs at $0 with 0 tokens)
+          GDSS_API_KEY: ${{ secrets.GDSS_API_KEY }} # Recommended: OpenRouter or BYOK key (isolates from app secrets)
+          # or: OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
 > [!TIP]

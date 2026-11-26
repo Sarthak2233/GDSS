@@ -121,7 +121,22 @@ def build_analysis_context(
             "FIX: run gdss inside a local Git repository."
         )
     local_branches = observer.list_local_branches()
-    if reference_branch not in local_branches:
+    local_set = set(local_branches)
+    if reference_branch not in local_set and observer.repo:
+        all_branches = observer.list_all_available_branches(include_remotes=True)
+        candidate = next(
+            (b for b in all_branches if b == f"origin/{reference_branch}"),
+            next((b for b in all_branches if b.endswith(f"/{reference_branch}")), None),
+        )
+        if candidate:
+            try:
+                observer.repo.create_head(reference_branch, candidate)
+                local_branches = [*local_branches, reference_branch]
+                local_set.add(reference_branch)
+            except Exception:
+                pass
+
+    if reference_branch not in local_set:
         raise AnalysisContextError(
             f"WHAT: reference branch '{reference_branch}' is unavailable.\n"
             "WHY: branch trajectories must be measured from an existing attractor.\n"

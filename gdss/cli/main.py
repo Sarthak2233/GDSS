@@ -284,25 +284,83 @@ def suggest(
     from gdss.ai.openai_provider import OpenAICompatibleProvider
     from gdss.ai.suggester import suggest as get_suggestions
     from gdss.ai.vllm_provider import VLLMProvider
+    from gdss.core.config import load_gdss_config
 
     try:
-        if context_window is not None:
-            os.environ["GDSS_CONTEXT_WINDOW"] = str(context_window)
+        cfg = load_gdss_config(repo)
+        radar = cfg.radar
+        has_custom_radar = bool(cfg.raw_data and "radar" in cfg.raw_data)
+
+        # Precedence: Explicit CLI flag > .gdss.yml > Default
+        resolved_provider_name = provider_name
+        if resolved_provider_name == "auto" and has_custom_radar and "provider" in cfg.raw_data["radar"]:
+            resolved_provider_name = radar.provider
+
+        resolved_model = model
+        if model == "qwen2.5-coder:7b" and has_custom_radar and "model" in cfg.raw_data["radar"]:
+            resolved_model = radar.model
+
+        resolved_ctx_window = context_window
+        if resolved_ctx_window is None and has_custom_radar and "context_window" in cfg.raw_data["radar"]:
+            resolved_ctx_window = radar.context_window
+
+        if resolved_ctx_window is not None:
+            os.environ["GDSS_CONTEXT_WINDOW"] = str(resolved_ctx_window)
+
+        resolved_max_refinements = (
+            radar.max_refinements
+            if max_refinements == 2 and has_custom_radar and "max_refinements" in cfg.raw_data["radar"]
+            else max_refinements
+        )
+        resolved_concurrency = (
+            radar.concurrency_limit
+            if concurrency == 4 and has_custom_radar and "concurrency_limit" in cfg.raw_data["radar"]
+            else concurrency
+        )
+        resolved_condensation = (
+            radar.condensation
+            if condensation == "lossless" and has_custom_radar and "condensation" in cfg.raw_data["radar"]
+            else condensation
+        )
+        resolved_branches = branches or (list(radar.include) if radar.include else None)
+        resolved_exclude = exclude or (list(radar.exclude) if radar.exclude else None)
 
         provider: AnyProvider | LLMProvider | None = None
-        if llm or (provider_name != "auto" and provider_name != "off"):
-            if provider_name == "vllm":
+        if llm or (resolved_provider_name != "auto" and resolved_provider_name != "off"):
+            if resolved_provider_name == "vllm":
                 provider = VLLMProvider()
-            elif provider_name == "ollama":
-                provider = OllamaProvider(model=model)
-            elif provider_name == "openrouter":
+            elif resolved_provider_name == "ollama":
+                provider = OllamaProvider(model=resolved_model)
+            elif resolved_provider_name in {"copilot", "github-copilot"}:
+                from gdss.ai.copilot_provider import CopilotCLIProvider
+
+                provider = CopilotCLIProvider(model=resolved_model)
+            elif resolved_provider_name in {
+                "openrouter",
+                "openai",
+                "azure",
+                "deepseek",
+                "groq",
+                "together",
+                "mistral",
+                "anthropic",
+                "gemini",
+                "google",
+                "cohere",
+                "perplexity",
+                "lm-studio",
+                "localai",
+                "openai-compatible",
+                "github",
+                "github-models",
+            }:
+                from gdss.core.config import resolve_provider_base_url
+
+                base_url = resolve_provider_base_url(resolved_provider_name, radar.base_url)
                 provider = OpenAICompatibleProvider(
-                    base_url="https://openrouter.ai/api/v1",
-                    model=model if model != "qwen2.5-coder:7b" else None,
-                )
-            elif provider_name in {"openai", "github", "github-models"}:
-                provider = OpenAICompatibleProvider(
-                    model=model if model != "qwen2.5-coder:7b" else None
+                    base_url=base_url,
+                    model=resolved_model if (resolved_model != "qwen2.5-coder:7b" or (has_custom_radar and "model" in cfg.raw_data["radar"])) else None,
+                    api_key_env=radar.api_key_env,
                 )
             else:  # auto
                 from gdss.ai.suggester import _pick_provider
@@ -310,7 +368,7 @@ def suggest(
                 provider = _pick_provider(llm=True, provider=None)
             if provider is None and llm:
                 console.print(
-                    "[bold red]✗ Error:[/] --llm requested but no provider is reachable (vLLM, Ollama, or GITHUB_TOKEN/OPENAI_API_KEY)."
+                    "[bold red]✗ Error:[/] --llm requested but no provider is reachable (vLLM, Ollama, or GITHUB_TOKEN/OPENAI_API_KEY/OPENROUTER_API_KEY)."
                 )
                 raise typer.Exit(code=1)  # dsa:ignore
 
@@ -328,17 +386,17 @@ def suggest(
             state = ConvergenceState(
                 repo_path=repo,
                 reference_branch=ref,
-                branches=branches,
-                exclude_branches=exclude,
+                branches=resolved_branches,
+                exclude_branches=resolved_exclude,
                 llm=llm,
                 validate=validate,
                 combos=combos,
                 max_candidates=max_candidates,
                 sandbox_timeout=float(resolved_timeout),
                 provider=provider,
-                max_refinements=max_refinements,
-                concurrency_limit=concurrency,
-                condensation_mode=condensation,
+                max_refinements=resolved_max_refinements,
+                concurrency_limit=resolved_concurrency,
+                condensation_mode=resolved_condensation,
             )
             orchestrated_state = run_convergence_pipeline(state)
             suggestions = orchestrated_state.suggestions
@@ -346,8 +404,8 @@ def suggest(
             suggestions = get_suggestions(
                 repo_path=repo,
                 reference_branch=ref,
-                branches=branches,
-                exclude_branches=exclude,
+                branches=resolved_branches,
+                exclude_branches=resolved_exclude,
                 llm=llm,
                 provider=provider,
                 combos=combos,
@@ -359,7 +417,7 @@ def suggest(
             from gdss.ai.context_builder import extract_3way_symbol_context
             from gdss.ai.prompt_builder import build_conflict_prompt
 
-            ctx = build_analysis_context(repo, ref, branches=branches, exclude_branches=exclude)
+            ctx = build_analysis_context(repo, ref, branches=resolved_branches, exclude_branches=resolved_exclude)
             for s in suggestions:
                 other_br = getattr(s.context, "other_branch", "") if s.context else ""
                 collision_ctx = extract_3way_symbol_context(ctx, s, other_branch=other_br)
